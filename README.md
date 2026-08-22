@@ -1,5 +1,19 @@
 # dsh-codex-pack
 
+> dsh 集成层
+
+[![ci](https://github.com/shine-233/dsh-codex-pack/actions/workflows/ci.yml/badge.svg)](dsh-codex-pack../../actions)
+
+## 当前状态
+
+📦 模板就绪，待模块发布后启用
+
+## 能力明细
+
+cordis.patch.yml.example 接线模板 + MOUNT_POINTS.md 判决对照表
+
+---
+
 > 收口集成层：判②③⑤⑥⑨的全部落点。
 
 ## 吸收来源
