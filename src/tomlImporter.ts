@@ -16,7 +16,7 @@ export function parseTomlLite(src: string): Record<string, any> {
     else if (v === 'true') v = true;
     else if (v === 'false') v = false;
     else if (/^-?\d+(\.\d+)?$/.test(v)) v = Number(v);
-    else if (v.startsWith('[')) v = v.slice(1,-1).split(',').map((s)=>s.trim().replace(/^"|"$/g,'')).filter(Boolean);
+    else if (v.startsWith('[')) v = v.slice(1,-1).split(',').map((s: string)=>s.trim().replace(/^"|"$/g,'')).filter(Boolean);
     section[kv[1]] = v;
   }
   return out;
