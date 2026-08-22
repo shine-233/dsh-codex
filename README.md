@@ -1,5 +1,19 @@
 # dsh-codex-ledger
 
+> 账本与总控
+
+[![ci](https://github.com/shine-233/dsh-codex-ledger/actions/workflows/ci.yml/badge.svg)](dsh-codex-ledger../../actions)
+
+## 当前状态
+
+✅ 142/142 台账
+
+## 能力明细
+
+coverage.yaml 台账 142/142；verify_coverage.py；MIGRATION_PLAN.md；差分任务矩阵 T01-T20
+
+---
+
 > 整个 codex→dsh 移植工程的**总控账本**：任何上游单元必须有且只有一个去向，遗漏在数学上不可能发生。
 
 ## 文件
