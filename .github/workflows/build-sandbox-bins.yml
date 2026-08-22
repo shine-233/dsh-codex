@@ -1,0 +1,56 @@
+﻿name: build-sandbox-bins
+# 浜戠缂栬瘧 M4 娌欑宸ュ叿鈥斺€旀湰鏈烘棤闇€瀹夎 Rust/cargo銆?# 浜х墿鍑虹幇鍦?Actions 椤甸潰鐨?Artifacts 閲岋紝涓嬭浇鍚庢斁鍏?bin/<target-triple>/ 鍗冲畬鎴?M4銆?
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/build-sandbox-bins.yml']
+  workflow_dispatch: {}
+
+env:
+  UPSTREAM_REF: '970b7f2ff4f6'   # 瑙?ledger/coverage.yaml meta.anchor_commit
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout upstream codex at pinned anchor
+        uses: actions/checkout@v4
+        with:
+          repository: openai/codex
+          ref: ${{ env.UPSTREAM_REF }}
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build Linux sandbox helpers
+        run: |
+          cargo build --release --manifest-path codex-rs/linux-sandbox/Cargo.toml
+          cargo build --release --manifest-path codex-rs/shell-escalation/Cargo.toml || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-x64-bins
+          path: |
+            target/release/codex-linux-sandbox
+            target/release/shell-escalation*
+          if-no-files-found: warn
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout upstream codex at pinned anchor
+        uses: actions/checkout@v4
+        with:
+          repository: openai/codex
+          ref: ${{ env.UPSTREAM_REF }}
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build Windows AppContainer sandbox
+        run: cargo build --release --manifest-path codex-rs/windows-sandbox-rs/Cargo.toml
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64-bins
+          path: |
+            target/release/*.exe
+          if-no-files-found: warn
+
+  bwrap-note:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "bwrap 鐢卞彂琛岀増鎻愪緵锛坅pt install bubblewrap锛夛紝鏃犻渶鑷缂栬瘧銆?
+
