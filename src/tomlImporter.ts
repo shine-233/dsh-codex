@@ -8,7 +8,11 @@ export function parseTomlLite(src: string): Record<string, any> {
     const line = raw.trim();
     if (!line || line.startsWith('#')) continue;
     const sec = line.match(/^\[(.+)\]$/);
-    if (sec) { section = out[sec[1]] ||= {}; continue; }
+    if (sec) {
+      section = out;
+      for (const part of sec[1].split('.')) section = section[part] ||= {};
+      continue;
+    }
     const kv = line.match(/^([A-Za-z0-9_-]+)\s*=\s*(.+)$/);
     if (!kv) continue;
     let v: any = kv[2].trim();
