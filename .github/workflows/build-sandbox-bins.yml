@@ -26,9 +26,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: linux-x64-bins
-          path: |
-            target/release/codex-linux-sandbox
-            target/release/shell-escalation*
+          path: |`n            codex-rs/target/release/codex-linux-sandbox`n            codex-rs/target/release/shell-escalation*
           if-no-files-found: warn
 
   windows:
@@ -49,9 +47,7 @@ jobs:
             target/release/*.exe
           if-no-files-found: warn
 
-  bwrap-note:
+  ascii-note:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "bwrap 鐢卞彂琛岀増鎻愪緵锛坅pt install bubblewrap锛夛紝鏃犻渶鑷缂栬瘧銆?
-
-
+      - run: echo 'bwrap comes from distro packages (apt install bubblewrap); nothing to compile here.'
