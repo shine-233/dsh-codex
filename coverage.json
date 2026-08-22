@@ -6,6 +6,13 @@
  },
  "entries": [
   {
+   "path": ".",
+   "lines": 0,
+   "dest": "EXCLUDED",
+   "code": "E4-workspace-root",
+   "note": "codex-rs workspace manifest, not a portable unit"
+  },
+  {
    "path": "agent-graph-store",
    "lines": 436,
    "dest": "codex-session-kit",
@@ -64,6 +71,13 @@
   {
    "path": "app-server-protocol-noop-macros",
    "lines": 17,
+   "dest": "EXCLUDED",
+   "code": "E4-rust-glue",
+   "note": "Rust-specific glue/tests with no JS counterpart problem"
+  },
+  {
+   "path": "app-server-test-client",
+   "lines": 3756,
    "dest": "EXCLUDED",
    "code": "E4-rust-glue",
    "note": "Rust-specific glue/tests with no JS counterpart problem"
@@ -363,6 +377,13 @@
    "note": ""
   },
   {
+   "path": "ext/git-attribution",
+   "lines": 406,
+   "dest": "EXCLUDED",
+   "code": "E4-rust-glue",
+   "note": "Rust-specific glue/tests with no JS counterpart problem"
+  },
+  {
    "path": "ext/goal",
    "lines": 4200,
    "dest": "EXCLUDED",
@@ -403,6 +424,13 @@
    "dest": "EXCLUDED",
    "code": "E5-equivalent-or-os",
    "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+  },
+  {
+   "path": "ext/memories",
+   "lines": 2262,
+   "dest": "codex-session-kit",
+   "code": "",
+   "note": ""
   },
   {
    "path": "ext/queue",
