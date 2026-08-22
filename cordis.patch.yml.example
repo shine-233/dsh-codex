@@ -1,0 +1,41 @@
+# dsh-codex-pack 参考接线模板
+# 用法：复制到 $DSH_HOME/profiles/<name>/cordis.patch.yml 并按需裁剪。
+# 各模块以独立包发布后，替换 name 字段为实际 @scope/pkg 名。
+
+entries:
+  # 审批引擎接管命令裁决（R2）
+  - insert:
+      - id: tool-bash
+        config:
+          approvalEngine: codex-policy-engine
+          policyFile: ./policies/default.starlark
+
+  # 编辑工具换用融合补丁引擎（R3）
+  - insert:
+      - id: tool-fs
+        config:
+          editBackend: codex-edit-fusion
+          fuzzyPasses: [exact, rstrip, trim, unicode]
+
+  # 网络白名单代理（R7）+ 沙箱执行体（R8）
+  - insert:
+      - id: sandbox-policy
+        config:
+          mode: workspace-write
+          netGuard: codex-net-guard
+          allowedDomains: ["github.com", "api.deepseek.com"]
+          sandboxBin: ./bin/dsh-sandbox
+
+  # 技能目录预算渲染与自动选技（R9）
+  - insert:
+      - id: skill-filesystem
+        config:
+          catalogBudgetTokens: auto   # min(10000, contextWindow*0.02)
+          autoSelect: bm25-shadow
+
+  # 记忆系统（R6）
+  - insert:
+      - id: memory-store
+        config:
+          backend: jsonl
+          path: ${DSH_HOME}/memory.jsonl
