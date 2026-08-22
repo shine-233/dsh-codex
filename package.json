@@ -1,17 +1,23 @@
 {
-  "name": "@shine233/codex-prompts",
+  "name": "codex-prompts",
   "version": "0.1.0",
   "license": "Apache-2.0",
   "type": "module",
   "description": "Battle-tested prompt assets from openai/codex",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./lib/index.js",
+    "./package.json": "./package.json"
   },
   "devDependencies": {
-    "typescript": "^5.6.0",
     "vitest": "^2.1.9"
   },
   "scripts": {
     "test": "vitest run"
+  },
+  "main": "lib/index.js",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
   }
 }
