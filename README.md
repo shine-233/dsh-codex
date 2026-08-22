@@ -1,5 +1,19 @@
 # codex-skills-kit
 
+> 技能增强包（规划中）
+
+[![ci](https://github.com/shine-233/codex-skills-kit/actions/workflows/ci.yml/badge.svg)](codex-skills-kit../../actions)
+
+## 当前状态
+
+🚧 规划中
+
+## 能力明细
+
+预算渲染 + 词法选技——代码待移植
+
+---
+
 > 判④扩容：codex 技能系统全面领先部分的完整移植。
 
 ## 吸收来源
