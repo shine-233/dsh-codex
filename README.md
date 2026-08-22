@@ -23,3 +23,24 @@ buildSystemPrompt(opts): string
 
 ## 上游同步
 基于 openai/codex@970b7f2ff4f6（Apache-2.0）。季度 diff 由 dsh-codex-ledger CI 触发，见 ledger/coverage.yaml 对应行。
+
+## M3 状态（资产已落地）
+- ✅ 已从上游 prompts crate 抽取 16 个模板：
+  - `templates/compact/prompt.md`
+  - `templates/compact/summary_prefix.md`
+  - `templates/goals/budget_limit.md`
+  - `templates/goals/continuation.md`
+  - `templates/goals/objective_updated.md`
+  - `templates/permissions/approval_policy/never.md`
+  - `templates/permissions/approval_policy/on_request.md`
+  - `templates/permissions/approval_policy/on_request_rule_request_permission.md`
+  - `templates/permissions/approval_policy/unless_trusted.md`
+  - `templates/permissions/sandbox_mode/danger_full_access.md`
+  - `templates/permissions/sandbox_mode/read_only.md`
+  - `templates/permissions/sandbox_mode/workspace_write.md`
+  - `templates/realtime/backend_prompt.md`
+  - `templates/realtime/realtime_end.md`
+  - `templates/realtime/realtime_start.md`
+  - `templates/review/rubric.md`
+
+- API：listTemplates / loadTemplate / buildSystemPrompt（支持 {{var}} 替换）
