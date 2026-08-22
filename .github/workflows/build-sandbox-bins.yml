@@ -7,7 +7,7 @@ on:
   workflow_dispatch: {}
 
 env:
-  UPSTREAM_REF: '970b7f2ff4f6'   # 瑙?ledger/coverage.yaml meta.anchor_commit
+  UPSTREAM_REF: '970b7f2ff4f612b8e8cd340eb6b6d789d7141dd2'   # 瑙?ledger/coverage.yaml meta.anchor_commit
 
 jobs:
   linux:
@@ -53,4 +53,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo "bwrap 鐢卞彂琛岀増鎻愪緵锛坅pt install bubblewrap锛夛紝鏃犻渶鑷缂栬瘧銆?
+
 
