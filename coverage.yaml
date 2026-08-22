@@ -1,0 +1,591 @@
+meta:
+  upstream: openai/codex
+  anchor_commit: '970b7f2ff4f6'
+  generated_at: 2026-08-22
+entries:
+  - path: agent-graph-store
+    lines: 436
+    dest: codex-session-kit
+  - path: agent-identity
+    lines: 902
+    dest: EXCLUDED
+    code: E1-openai-bound
+    note: "client of OpenAI cloud services; useless without their backend"
+  - path: analytics
+    lines: 12894
+    dest: EXCLUDED
+    code: E1-openai-bound
+    note: "client of OpenAI cloud services; useless without their backend"
+  - path: ansi-escape
+    lines: 55
+    dest: EXCLUDED
+    code: E2-ui-form
+    note: "ratatui terminal rendering paradigm; dsh ships Web UI"
+  - path: app-server
+    lines: 133433
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: app-server-client
+    lines: 2945
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: app-server-daemon
+    lines: 3237
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: app-server-protocol
+    lines: 30267
+    dest: codex-schema
+  - path: app-server-protocol-noop-macros
+    lines: 17
+    dest: EXCLUDED
+    code: E4-rust-glue
+    note: "Rust-specific glue/tests with no JS counterpart problem"
+  - path: app-server-transport
+    lines: 15273
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: app-server/tests/common
+    lines: 0
+    dest: EXCLUDED
+    code: E4-rust-glue
+    note: "Rust-specific glue/tests with no JS counterpart problem"
+  - path: apply-patch
+    lines: 5441
+    dest: codex-edit-fusion
+  - path: arg0
+    lines: 683
+    dest: EXCLUDED
+    code: E4-rust-glue
+    note: "Rust-specific glue/tests with no JS counterpart problem"
+  - path: async-utils
+    lines: 70
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: aws-auth
+    lines: 432
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: backend-client
+    lines: 2539
+    dest: EXCLUDED
+    code: E1-openai-bound
+    note: "client of OpenAI cloud services; useless without their backend"
+  - path: build-info
+    lines: 224
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: bwrap
+    lines: 135
+    dest: codex-sandbox-bin
+  - path: chatgpt
+    lines: 900
+    dest: EXCLUDED
+    code: E1-openai-bound
+    note: "client of OpenAI cloud services; useless without their backend"
+  - path: cli
+    lines: 29170
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: cloud-config
+    lines: 2529
+    dest: EXCLUDED
+    code: E1-openai-bound
+    note: "client of OpenAI cloud services; useless without their backend"
+  - path: cloud-tasks
+    lines: 4935
+    dest: EXCLUDED
+    code: E2-ui-form
+    note: "ratatui terminal rendering paradigm; dsh ships Web UI"
+  - path: cloud-tasks-client
+    lines: 1031
+    dest: EXCLUDED
+    code: E1-openai-bound
+    note: "client of OpenAI cloud services; useless without their backend"
+  - path: cloud-tasks-mock-client
+    lines: 248
+    dest: EXCLUDED
+    code: E1-openai-bound
+    note: "client of OpenAI cloud services; useless without their backend"
+  - path: code-mode
+    lines: 8769
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: code-mode-host
+    lines: 8558
+    dest: EXCLUDED
+    code: E3-v8-node-native
+    note: "Node.js itself is V8; dsh PTC already equivalent"
+  - path: code-mode-protocol
+    lines: 4147
+    dest: codex-schema
+  - path: code-mode-runtime
+    lines: 6554
+    dest: EXCLUDED
+    code: E3-v8-node-native
+    note: "Node.js itself is V8; dsh PTC already equivalent"
+  - path: codex-api
+    lines: 13810
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: codex-backend-openapi-models
+    lines: 943
+    dest: EXCLUDED
+    code: E1-openai-bound
+    note: "client of OpenAI cloud services; useless without their backend"
+  - path: codex-client
+    lines: 171
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: codex-experimental-api-macros
+    lines: 281
+    dest: EXCLUDED
+    code: E4-rust-glue
+    note: "Rust-specific glue/tests with no JS counterpart problem"
+  - path: codex-home
+    lines: 201
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: codex-mcp
+    lines: 17353
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: collaboration-mode-templates
+    lines: 2
+    dest: codex-prompts
+  - path: config
+    lines: 22666
+    dest: codex-config-importer
+  - path: connectors
+    lines: 4551
+    dest: EXCLUDED
+    code: E1-openai-bound
+    note: "client of OpenAI cloud services; useless without their backend"
+  - path: context-fragments
+    lines: 170
+    dest: codex-config-importer
+  - path: core
+    lines: 297838
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: core-api
+    lines: 132
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: core-plugins
+    lines: 39173
+    dest: dsh-codex-pack
+    code: REF
+    note: "manifest/marketplace format reference"
+  - path: core/tests/common
+    lines: 0
+    dest: EXCLUDED
+    code: E4-rust-glue
+    note: "Rust-specific glue/tests with no JS counterpart problem"
+  - path: diagnostics
+    lines: 238
+    dest: codex-sandbox-bin
+  - path: exec
+    lines: 10096
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: exec-server
+    lines: 44444
+    dest: codex-sandbox-bin
+  - path: exec-server-protocol
+    lines: 1818
+    dest: codex-schema
+  - path: exec-server/tests/support
+    lines: 0
+    dest: EXCLUDED
+    code: E4-rust-glue
+    note: "Rust-specific glue/tests with no JS counterpart problem"
+  - path: execpolicy
+    lines: 2698
+    dest: codex-policy-engine
+  - path: ext/agent
+    lines: 157
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: ext/connectors
+    lines: 70
+    dest: EXCLUDED
+    code: E1-openai-bound
+    note: "client of OpenAI cloud services; useless without their backend"
+  - path: ext/extension-api
+    lines: 2346
+    dest: codex-schema
+  - path: ext/goal
+    lines: 4200
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: ext/guardian-v2
+    lines: 6379
+    dest: codex-prompts
+    code: PROMPT-ONLY
+    note: "only classifier_instructions.md + pattern doc; code is OpenAI-bound"
+  - path: ext/history-notes
+    lines: 967
+    dest: codex-session-kit
+  - path: ext/image-generation
+    lines: 1219
+    dest: EXCLUDED
+    code: E1-openai-bound
+    note: "client of OpenAI cloud services; useless without their backend"
+  - path: ext/items
+    lines: 317
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: ext/mcp
+    lines: 1551
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: ext/queue
+    lines: 1503
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: ext/skills
+    lines: 19787
+    dest: codex-skills-kit
+    code: PARTIAL
+    note: "render.rs + dynamic_skill_selector only"
+  - path: ext/web-search
+    lines: 806
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: external-agent-migration
+    lines: 14999
+    dest: codex-session-kit
+  - path: features
+    lines: 2760
+    dest: codex-config-importer
+  - path: feedback
+    lines: 1245
+    dest: EXCLUDED
+    code: E1-openai-bound
+    note: "client of OpenAI cloud services; useless without their backend"
+  - path: file-search
+    lines: 1207
+    dest: codex-session-kit
+  - path: file-system
+    lines: 600
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: file-watcher
+    lines: 1318
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: git-utils
+    lines: 3936
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: history
+    lines: 1129
+    dest: codex-schema
+  - path: hooks
+    lines: 13208
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: http-client
+    lines: 8152
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: install-context
+    lines: 796
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: keyring-store
+    lines: 201
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: linux-sandbox
+    lines: 8631
+    dest: codex-sandbox-bin
+  - path: lmstudio
+    lines: 414
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: login
+    lines: 14521
+    dest: EXCLUDED
+    code: E1-openai-bound
+    note: "client of OpenAI cloud services; useless without their backend"
+  - path: mcp-server
+    lines: 3333
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: mcp-server/tests/common
+    lines: 0
+    dest: EXCLUDED
+    code: E4-rust-glue
+    note: "Rust-specific glue/tests with no JS counterpart problem"
+  - path: memories/read
+    lines: 201
+    dest: codex-session-kit
+  - path: memories/write
+    lines: 4293
+    dest: codex-session-kit
+  - path: message-history
+    lines: 1271
+    dest: codex-session-kit
+  - path: model-provider
+    lines: 4264
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: model-provider-info
+    lines: 1166
+    dest: codex-config-importer
+  - path: models-manager
+    lines: 2865
+    dest: EXCLUDED
+    code: E1-openai-bound
+    note: "client of OpenAI cloud services; useless without their backend"
+  - path: network-proxy
+    lines: 16834
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: ollama
+    lines: 1005
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: otel
+    lines: 7446
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: plugin
+    lines: 829
+    dest: dsh-codex-pack
+    code: REF
+    note: "manifest/marketplace format reference"
+  - path: process-hardening
+    lines: 165
+    dest: codex-sandbox-bin
+  - path: prompts
+    lines: 1564
+    dest: codex-prompts
+  - path: protocol
+    lines: 23577
+    dest: codex-schema
+  - path: response-debug-context
+    lines: 150
+    dest: codex-config-importer
+  - path: responses-api-proxy
+    lines: 875
+    dest: EXCLUDED
+    code: E1-openai-bound
+    note: "client of OpenAI cloud services; useless without their backend"
+  - path: rmcp-client
+    lines: 23256
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: rollout
+    lines: 13749
+    dest: codex-session-kit
+  - path: rollout-trace
+    lines: 12381
+    dest: codex-session-kit
+  - path: sandboxing
+    lines: 7797
+    dest: codex-sandbox-bin
+  - path: secrets
+    lines: 875
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: shell-command
+    lines: 5839
+    dest: codex-policy-engine
+  - path: shell-escalation
+    lines: 2078
+    dest: codex-sandbox-bin
+  - path: skills
+    lines: 2244
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: state
+    lines: 20397
+    dest: codex-session-kit
+  - path: stdio-to-uds
+    lines: 197
+    dest: EXCLUDED
+    code: E4-rust-glue
+    note: "Rust-specific glue/tests with no JS counterpart problem"
+  - path: terminal-detection
+    lines: 1396
+    dest: codex-config-importer
+  - path: test-binary-support
+    lines: 70
+    dest: EXCLUDED
+    code: E4-rust-glue
+    note: "Rust-specific glue/tests with no JS counterpart problem"
+  - path: thread-manager-sample
+    lines: 399
+    dest: EXCLUDED
+    code: E4-rust-glue
+    note: "Rust-specific glue/tests with no JS counterpart problem"
+  - path: thread-store
+    lines: 27738
+    dest: codex-session-kit
+  - path: tools
+    lines: 6421
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: tui
+    lines: 248475
+    dest: EXCLUDED
+    code: E2-ui-form
+    note: "ratatui terminal rendering paradigm; dsh ships Web UI"
+  - path: uds
+    lines: 380
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: utils/absolute-path
+    lines: 816
+    dest: codex-config-importer
+  - path: utils/approval-presets
+    lines: 73
+    dest: codex-policy-engine
+  - path: utils/audio
+    lines: 391
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: utils/cache
+    lines: 168
+    dest: codex-config-importer
+  - path: utils/cargo-bin
+    lines: 215
+    dest: EXCLUDED
+    code: E4-rust-glue
+    note: "Rust-specific glue/tests with no JS counterpart problem"
+  - path: utils/cli
+    lines: 566
+    dest: EXCLUDED
+    code: E4-rust-glue
+    note: "Rust-specific glue/tests with no JS counterpart problem"
+  - path: utils/elapsed
+    lines: 60
+    dest: codex-config-importer
+  - path: utils/fuzzy-match
+    lines: 154
+    dest: codex-config-importer
+  - path: utils/home-dir
+    lines: 123
+    dest: codex-config-importer
+  - path: utils/image
+    lines: 949
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: utils/json-to-toml
+    lines: 73
+    dest: codex-config-importer
+  - path: utils/oss
+    lines: 55
+    dest: EXCLUDED
+    code: E4-rust-glue
+    note: "Rust-specific glue/tests with no JS counterpart problem"
+  - path: utils/output-truncation
+    lines: 492
+    dest: codex-policy-engine
+  - path: utils/path-uri
+    lines: 2899
+    dest: codex-config-importer
+  - path: utils/path-utils
+    lines: 304
+    dest: codex-config-importer
+  - path: utils/plugins
+    lines: 404
+    dest: dsh-codex-pack
+    code: REF
+    note: "manifest/marketplace format reference"
+  - path: utils/pty
+    lines: 4334
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: utils/readiness
+    lines: 290
+    dest: codex-config-importer
+  - path: utils/redacted-string
+    lines: 41
+    dest: codex-config-importer
+  - path: utils/rustls-provider
+    lines: 71
+    dest: EXCLUDED
+    code: E4-rust-glue
+    note: "Rust-specific glue/tests with no JS counterpart problem"
+  - path: utils/sandbox-summary
+    lines: 172
+    dest: codex-sandbox-bin
+  - path: utils/sleep-inhibitor
+    lines: 550
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: utils/stream-parser
+    lines: 1315
+    dest: codex-config-importer
+  - path: utils/string
+    lines: 487
+    dest: codex-config-importer
+  - path: utils/template
+    lines: 382
+    dest: codex-config-importer
+  - path: v8-poc
+    lines: 73
+    dest: EXCLUDED
+    code: E3-v8-node-native
+    note: "Node.js itself is V8; dsh PTC already equivalent"
+  - path: websocket-client
+    lines: 1079
+    dest: EXCLUDED
+    code: E5-equivalent-or-os
+    note: "dsh has equivalent layer or OS-bound; designs harvested where better"
+  - path: windows-sandbox-rs
+    lines: 18491
+    dest: codex-sandbox-bin
+  - path: workload-identity
+    lines: 812
+    dest: EXCLUDED
+    code: E1-openai-bound
+    note: "client of OpenAI cloud services; useless without their backend"
