@@ -1,0 +1,38 @@
+<!doctype html><html><head><meta charset="utf-8"><title>dsh-codex-ui</title>
+<style>body{font-family:system-ui;background:#111;color:#eee;padding:2rem}
+h1{color:#7ab}textarea{width:100%;height:8rem;background:#000;color:#9f9}
+table{border-collapse:collapse;width:100%}td,th{border:1px solid #444;padding:.4rem}
+.blocked{color:#f66}.ok{color:#8c8}</style></head><body>
+<h1>dsh-codex-ui · v0 dashboard</h1>
+<h2>Memory Browser</h2>
+<p>选择 session-kit 生成的 memory.jsonl：</p>
+<input type="file" accept=".jsonl" onchange="loadMem(this)">
+<table id="mem"><tr><th>key</th><th>value</th></tr></table>
+<script>
+async function loadMem(input){
+  const t=await input.files[0].text();
+  const state={};
+  for(const l of t.split('\n')){ if(!l.trim())continue;
+    try{const op=JSON.parse(l);
+      if(op.op==='set')state[op.key]=op.value;
+      if(op.op==='del')delete state[op.key];
+    }catch{}}
+  const tb=document.getElementById('mem');
+  tb.innerHTML='<tr><th>key</th><th>value</th></tr>';
+  for(const [k,v] of Object.entries(state)){
+    const row=tb.insertRow();row.insertCell().textContent=k;row.insertCell().textContent=JSON.stringify(v);}
+}
+</script>
+<h2>Net-Guard Log</h2>
+<textarea id="nglog" placeholder="粘贴 net-guard 日志…"></textarea>
+<p><button onclick="scanLog()">扫描拦截</button></p>
+<div id="ngout"></div>
+<script>
+function scanLog(){
+  const t=document.getElementById('nglog').value;
+  const out=t.split('\n').filter(l=>/blocked/i.test(l));
+  document.getElementById('ngout').innerHTML =
+    '<p class="blocked">拦截 '+out.length+' 条</p><pre>'+out.join('\n')+'</pre>';
+}
+</script>
+</body></html>
