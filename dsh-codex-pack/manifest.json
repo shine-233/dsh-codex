@@ -1,0 +1,14 @@
+{
+  "name": "dsh-codex-pack",
+  "version": "0.1.0",
+  "modules": {
+    "policy-engine": "@shine233/codex-policy-engine",
+    "edit-fusion": "@shine233/codex-edit-fusion",
+    "config-importer": "@shine233/codex-config-importer",
+    "prompts": "@shine233/codex-prompts",
+    "session-kit": "@shine233/codex-session-kit",
+    "net-guard": "@shine233/codex-net-guard",
+    "schema": "@shine233/codex-schema"
+  },
+  "mountPointsDoc": "docs/MOUNT_POINTS.md"
+}
