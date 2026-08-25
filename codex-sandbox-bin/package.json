@@ -1,0 +1,25 @@
+{
+  "name": "codex-sandbox-bin",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "src/index.ts",
+  "description": "Vendored cross-platform sandbox helpers",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.9"
+  },
+  "exports": {
+    ".": "./lib/index.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

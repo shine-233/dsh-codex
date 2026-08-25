@@ -1,0 +1,56 @@
+﻿name: build-sandbox-bins
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/build-sandbox-bins.yml']
+  workflow_dispatch: {}
+
+env:
+  UPSTREAM_REF: '970b7f2ff4f612b8e8cd340eb6b6d789d7141dd2'
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout upstream codex at pinned anchor
+        uses: actions/checkout@v4
+        with:
+          repository: openai/codex
+          ref: ${{ env.UPSTREAM_REF }}
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build Linux sandbox helpers
+        run: |
+          cargo build --release --manifest-path codex-rs/linux-sandbox/Cargo.toml
+          cargo build --release --manifest-path codex-rs/shell-escalation/Cargo.toml || true
+      - name: Upload Linux bins
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-x64-bins
+          path: |
+            codex-rs/target/release/codex-linux-sandbox
+            codex-rs/target/release/shell-escalation*
+          if-no-files-found: warn
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout upstream codex at pinned anchor
+        uses: actions/checkout@v4
+        with:
+          repository: openai/codex
+          ref: ${{ env.UPSTREAM_REF }}
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build Windows AppContainer sandbox
+        run: cargo build --release --manifest-path codex-rs/windows-sandbox-rs/Cargo.toml
+      - name: Upload Windows bins
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64-bins
+          path: codex-rs/target/release/*.exe
+          if-no-files-found: warn
+
+  ascii-note:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'bwrap comes from distro packages (apt install bubblewrap); nothing to compile here.'
