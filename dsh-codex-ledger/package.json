@@ -1,0 +1,13 @@
+{
+  "name": "dsh-codex-ledger",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "lib/index.js",
+  "description": "Porting ledger & master plan for codex->dsh (coverage.yaml + verify scripts), packaged as a dsh plugin",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}
