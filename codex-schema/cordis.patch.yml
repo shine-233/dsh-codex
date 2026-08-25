@@ -1,0 +1,4 @@
+- insert:
+    - id: codex-schema
+      name: codex-schema
+
