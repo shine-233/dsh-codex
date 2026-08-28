@@ -5,6 +5,8 @@
   "type": "module",
   "description": "Integration pack wiring absorbed codex modules into dsh",
   "devDependencies": {
+    "@types/node": "^26.4.0",
+    "typescript": "^5.9.3",
     "vitest": "^2.1.9"
   },
   "exports": {
