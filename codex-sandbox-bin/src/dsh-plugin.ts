@@ -10,12 +10,12 @@ export const inject = ['tools']
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', 'bin');
 
 /** Map node platform names to the vendored bin/<dir> layout. */
-const PLATFORM_DIRS = { win32: 'windows', linux: 'linux', darwin: 'darwin' };
+const PLATFORM_DIRS: Record<string, string> = { win32: 'windows', linux: 'linux', darwin: 'darwin' };
 
 export function binPaths() {
   const key = `${PLATFORM_DIRS[platform()] ?? platform()}-${arch()}`
   const dir = join(ROOT, key)
-  const out = { platformKey: key, dir, binaries: {} }
+  const out: { platformKey: string; dir: string; binaries: Record<string, { path: string; bytes: number }> } = { platformKey: key, dir, binaries: {} }
   if (!existsSync(dir)) return out
   for (const f of readdirSafe(dir)) {
     const full = join(dir, f)
@@ -24,16 +24,19 @@ export function binPaths() {
   return out
 }
 
-function readdirSafe(d) { try { return readdirSync(d) } catch { return [] } }
+function readdirSafe(d: string) { try { return readdirSync(d) } catch { return [] } }
 
-export function apply(ctx, config = {}) {
+type Tool = { name: string; description: string; parameters: Record<string, never>; output: object; execute: () => Promise<string>; timeoutMs: number }
+type Host = { tools?: { register: (tool: Tool) => void } }
+
+export function apply(ctx: Host, _config: Record<string, unknown> = {}) {
   if (!ctx?.tools?.register) return
-  const defineTool = (d) => d
+  const defineTool = (d: Tool) => d
   ctx.tools.register(defineTool({
     name: 'codex_sandbox_status',
     description: 'Report which vendored codex sandbox executables are present for this platform (linux sandbox / windows command-runner), with absolute paths ready for sandbox-policy config.',
     parameters: {},
-    output: { schema: { type: 'string' }, render: (_a, v) => [{ type: 'text', text: v }] },
+    output: { schema: { type: 'string' }, render: (_a: unknown, v: string) => [{ type: 'text', text: v }] },
     async execute() {
       const info = binPaths()
       return JSON.stringify({ ...info, available: Object.keys(info.binaries).length > 0 }, null, 2)
