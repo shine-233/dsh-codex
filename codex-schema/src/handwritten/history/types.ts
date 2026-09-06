@@ -10,6 +10,9 @@ export interface RolloutItemTurnContext { None: 'TurnContext';  }
 export interface RolloutItemWorldState { None: 'WorldState';  }
 export interface RolloutItemSecurityRiskScore { None: 'SecurityRiskScore';  }
 export interface RolloutItemEventMsg { None: 'EventMsg';  }
+// rust-v0.153.4 新增变体（2026-09-06 对齐）：payload 见 protocol/types.ts 的 TokenUsageRecord / RealtimeItem。
+export interface RolloutItemTokenUsageRecord { None: 'TokenUsageRecord';     payload: TokenUsageRecord; }
+export interface RolloutItemRealtimeItem { None: 'RealtimeItem';     payload: RealtimeItem; }
 export interface InitialHistoryResumed { None: 'Resumed';  }
 export interface InitialHistoryForked { None: 'Forked';  }
 export interface WindowIdWireLegacyWindowNumber { None: 'LegacyWindowNumber';  }

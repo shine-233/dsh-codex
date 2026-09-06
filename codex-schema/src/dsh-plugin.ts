@@ -8,7 +8,7 @@ export const inject = ['tools']
 
 export function schemaInfo() {
   return {
-    anchor: 'openai/codex@970b7f2ff4f6',
+    anchor: 'openai/codex@rust-v0.153.4 (d347e70 lineage: 042fb41b7c813ac7999105e886b2b7aa715b5081)',
     license: 'Apache-2.0',
     surfaces: ['app-server-protocol/v2', 'protocol', 'exec-server-protocol', 'code-mode-protocol', 'history'],
     note: 'types-only package; import types from @shine233/codex-schema in TS code',

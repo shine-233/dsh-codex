@@ -1,1003 +1,1176 @@
 {
- "meta": {
-  "upstream": "openai/codex",
-  "anchor_commit": "970b7f2ff4f6",
-  "generated_at": "2026-08-22"
- },
- "entries": [
-  {
-   "path": ".",
-   "lines": 0,
-   "dest": "EXCLUDED",
-   "code": "E4-workspace-root",
-   "note": "codex-rs workspace manifest, not a portable unit"
-  },
-  {
-   "path": "agent-graph-store",
-   "lines": 436,
-   "dest": "codex-session-kit",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "agent-identity",
-   "lines": 902,
-   "dest": "EXCLUDED",
-   "code": "E1-openai-bound",
-   "note": "client of OpenAI cloud services; useless without their backend"
-  },
-  {
-   "path": "analytics",
-   "lines": 12894,
-   "dest": "EXCLUDED",
-   "code": "E1-openai-bound",
-   "note": "client of OpenAI cloud services; useless without their backend"
-  },
-  {
-   "path": "ansi-escape",
-   "lines": 55,
-   "dest": "EXCLUDED",
-   "code": "E2-ui-form",
-   "note": "ratatui terminal rendering paradigm; dsh ships Web UI"
-  },
-  {
-   "path": "app-server",
-   "lines": 133433,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "app-server-client",
-   "lines": 2945,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "app-server-daemon",
-   "lines": 3237,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "app-server-protocol",
-   "lines": 30267,
-   "dest": "codex-schema",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "app-server-protocol-noop-macros",
-   "lines": 17,
-   "dest": "EXCLUDED",
-   "code": "E4-rust-glue",
-   "note": "Rust-specific glue/tests with no JS counterpart problem"
-  },
-  {
-   "path": "app-server-test-client",
-   "lines": 3756,
-   "dest": "EXCLUDED",
-   "code": "E4-rust-glue",
-   "note": "Rust-specific glue/tests with no JS counterpart problem"
-  },
-  {
-   "path": "app-server-transport",
-   "lines": 15273,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "app-server/tests/common",
-   "lines": 0,
-   "dest": "EXCLUDED",
-   "code": "E4-rust-glue",
-   "note": "Rust-specific glue/tests with no JS counterpart problem"
-  },
-  {
-   "path": "apply-patch",
-   "lines": 5441,
-   "dest": "codex-edit-fusion",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "arg0",
-   "lines": 683,
-   "dest": "EXCLUDED",
-   "code": "E4-rust-glue",
-   "note": "Rust-specific glue/tests with no JS counterpart problem"
-  },
-  {
-   "path": "async-utils",
-   "lines": 70,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "aws-auth",
-   "lines": 432,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "backend-client",
-   "lines": 2539,
-   "dest": "EXCLUDED",
-   "code": "E1-openai-bound",
-   "note": "client of OpenAI cloud services; useless without their backend"
-  },
-  {
-   "path": "build-info",
-   "lines": 224,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "bwrap",
-   "lines": 135,
-   "dest": "codex-sandbox-bin",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "chatgpt",
-   "lines": 900,
-   "dest": "EXCLUDED",
-   "code": "E1-openai-bound",
-   "note": "client of OpenAI cloud services; useless without their backend"
-  },
-  {
-   "path": "cli",
-   "lines": 29170,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "cloud-config",
-   "lines": 2529,
-   "dest": "EXCLUDED",
-   "code": "E1-openai-bound",
-   "note": "client of OpenAI cloud services; useless without their backend"
-  },
-  {
-   "path": "cloud-tasks",
-   "lines": 4935,
-   "dest": "EXCLUDED",
-   "code": "E2-ui-form",
-   "note": "ratatui terminal rendering paradigm; dsh ships Web UI"
-  },
-  {
-   "path": "cloud-tasks-client",
-   "lines": 1031,
-   "dest": "EXCLUDED",
-   "code": "E1-openai-bound",
-   "note": "client of OpenAI cloud services; useless without their backend"
-  },
-  {
-   "path": "cloud-tasks-mock-client",
-   "lines": 248,
-   "dest": "EXCLUDED",
-   "code": "E1-openai-bound",
-   "note": "client of OpenAI cloud services; useless without their backend"
-  },
-  {
-   "path": "code-mode",
-   "lines": 8769,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "code-mode-host",
-   "lines": 8558,
-   "dest": "EXCLUDED",
-   "code": "E3-v8-node-native",
-   "note": "Node.js itself is V8; dsh PTC already equivalent"
-  },
-  {
-   "path": "code-mode-protocol",
-   "lines": 4147,
-   "dest": "codex-schema",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "code-mode-runtime",
-   "lines": 6554,
-   "dest": "EXCLUDED",
-   "code": "E3-v8-node-native",
-   "note": "Node.js itself is V8; dsh PTC already equivalent"
-  },
-  {
-   "path": "codex-api",
-   "lines": 13810,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "codex-backend-openapi-models",
-   "lines": 943,
-   "dest": "EXCLUDED",
-   "code": "E1-openai-bound",
-   "note": "client of OpenAI cloud services; useless without their backend"
-  },
-  {
-   "path": "codex-client",
-   "lines": 171,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "codex-experimental-api-macros",
-   "lines": 281,
-   "dest": "EXCLUDED",
-   "code": "E4-rust-glue",
-   "note": "Rust-specific glue/tests with no JS counterpart problem"
-  },
-  {
-   "path": "codex-home",
-   "lines": 201,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "codex-mcp",
-   "lines": 17353,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "collaboration-mode-templates",
-   "lines": 2,
-   "dest": "codex-prompts",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "config",
-   "lines": 22666,
-   "dest": "codex-config-importer",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "connectors",
-   "lines": 4551,
-   "dest": "EXCLUDED",
-   "code": "E1-openai-bound",
-   "note": "client of OpenAI cloud services; useless without their backend"
-  },
-  {
-   "path": "context-fragments",
-   "lines": 170,
-   "dest": "codex-config-importer",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "core",
-   "lines": 297838,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "core-api",
-   "lines": 132,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "core-plugins",
-   "lines": 39173,
-   "dest": "dsh-codex-pack",
-   "code": "REF",
-   "note": "manifest/marketplace format reference"
-  },
-  {
-   "path": "core/tests/common",
-   "lines": 0,
-   "dest": "EXCLUDED",
-   "code": "E4-rust-glue",
-   "note": "Rust-specific glue/tests with no JS counterpart problem"
-  },
-  {
-   "path": "diagnostics",
-   "lines": 238,
-   "dest": "codex-sandbox-bin",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "exec",
-   "lines": 10096,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "exec-server",
-   "lines": 44444,
-   "dest": "codex-sandbox-bin",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "exec-server-protocol",
-   "lines": 1818,
-   "dest": "codex-schema",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "exec-server/tests/support",
-   "lines": 0,
-   "dest": "EXCLUDED",
-   "code": "E4-rust-glue",
-   "note": "Rust-specific glue/tests with no JS counterpart problem"
-  },
-  {
-   "path": "execpolicy",
-   "lines": 2698,
-   "dest": "codex-policy-engine",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "ext/agent",
-   "lines": 157,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "ext/connectors",
-   "lines": 70,
-   "dest": "EXCLUDED",
-   "code": "E1-openai-bound",
-   "note": "client of OpenAI cloud services; useless without their backend"
-  },
-  {
-   "path": "ext/extension-api",
-   "lines": 2346,
-   "dest": "codex-schema",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "ext/git-attribution",
-   "lines": 406,
-   "dest": "EXCLUDED",
-   "code": "E4-rust-glue",
-   "note": "Rust-specific glue/tests with no JS counterpart problem"
-  },
-  {
-   "path": "ext/goal",
-   "lines": 4200,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "ext/guardian-v2",
-   "lines": 6379,
-   "dest": "codex-prompts",
-   "code": "PROMPT-ONLY",
-   "note": "only classifier_instructions.md + pattern doc; code is OpenAI-bound"
-  },
-  {
-   "path": "ext/history-notes",
-   "lines": 967,
-   "dest": "codex-session-kit",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "ext/image-generation",
-   "lines": 1219,
-   "dest": "EXCLUDED",
-   "code": "E1-openai-bound",
-   "note": "client of OpenAI cloud services; useless without their backend"
-  },
-  {
-   "path": "ext/items",
-   "lines": 317,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "ext/mcp",
-   "lines": 1551,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "ext/memories",
-   "lines": 2262,
-   "dest": "codex-session-kit",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "ext/queue",
-   "lines": 1503,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "ext/skills",
-   "lines": 19787,
-   "dest": "codex-skills-kit",
-   "code": "PARTIAL",
-   "note": "render.rs + dynamic_skill_selector only"
-  },
-  {
-   "path": "ext/web-search",
-   "lines": 806,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "external-agent-migration",
-   "lines": 14999,
-   "dest": "codex-session-kit",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "features",
-   "lines": 2760,
-   "dest": "codex-config-importer",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "feedback",
-   "lines": 1245,
-   "dest": "EXCLUDED",
-   "code": "E1-openai-bound",
-   "note": "client of OpenAI cloud services; useless without their backend"
-  },
-  {
-   "path": "file-search",
-   "lines": 1207,
-   "dest": "codex-session-kit",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "file-system",
-   "lines": 600,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "file-watcher",
-   "lines": 1318,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "git-utils",
-   "lines": 3936,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "history",
-   "lines": 1129,
-   "dest": "codex-schema",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "hooks",
-   "lines": 13208,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "http-client",
-   "lines": 8152,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "install-context",
-   "lines": 796,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "keyring-store",
-   "lines": 201,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "linux-sandbox",
-   "lines": 8631,
-   "dest": "codex-sandbox-bin",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "lmstudio",
-   "lines": 414,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "login",
-   "lines": 14521,
-   "dest": "EXCLUDED",
-   "code": "E1-openai-bound",
-   "note": "client of OpenAI cloud services; useless without their backend"
-  },
-  {
-   "path": "mcp-server",
-   "lines": 3333,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "mcp-server/tests/common",
-   "lines": 0,
-   "dest": "EXCLUDED",
-   "code": "E4-rust-glue",
-   "note": "Rust-specific glue/tests with no JS counterpart problem"
-  },
-  {
-   "path": "memories/read",
-   "lines": 201,
-   "dest": "codex-session-kit",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "memories/write",
-   "lines": 4293,
-   "dest": "codex-session-kit",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "message-history",
-   "lines": 1271,
-   "dest": "codex-session-kit",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "model-provider",
-   "lines": 4264,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "model-provider-info",
-   "lines": 1166,
-   "dest": "codex-config-importer",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "models-manager",
-   "lines": 2865,
-   "dest": "EXCLUDED",
-   "code": "E1-openai-bound",
-   "note": "client of OpenAI cloud services; useless without their backend"
-  },
-  {
-   "path": "network-proxy",
-   "lines": 16834,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "ollama",
-   "lines": 1005,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "otel",
-   "lines": 7446,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "plugin",
-   "lines": 829,
-   "dest": "dsh-codex-pack",
-   "code": "REF",
-   "note": "manifest/marketplace format reference"
-  },
-  {
-   "path": "process-hardening",
-   "lines": 165,
-   "dest": "codex-sandbox-bin",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "prompts",
-   "lines": 1564,
-   "dest": "codex-prompts",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "protocol",
-   "lines": 23577,
-   "dest": "codex-schema",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "response-debug-context",
-   "lines": 150,
-   "dest": "codex-config-importer",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "responses-api-proxy",
-   "lines": 875,
-   "dest": "EXCLUDED",
-   "code": "E1-openai-bound",
-   "note": "client of OpenAI cloud services; useless without their backend"
-  },
-  {
-   "path": "rmcp-client",
-   "lines": 23256,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "rollout",
-   "lines": 13749,
-   "dest": "codex-session-kit",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "rollout-trace",
-   "lines": 12381,
-   "dest": "codex-session-kit",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "sandboxing",
-   "lines": 7797,
-   "dest": "codex-sandbox-bin",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "secrets",
-   "lines": 875,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "shell-command",
-   "lines": 5839,
-   "dest": "codex-policy-engine",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "shell-escalation",
-   "lines": 2078,
-   "dest": "codex-sandbox-bin",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "skills",
-   "lines": 2244,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "state",
-   "lines": 20397,
-   "dest": "codex-session-kit",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "stdio-to-uds",
-   "lines": 197,
-   "dest": "EXCLUDED",
-   "code": "E4-rust-glue",
-   "note": "Rust-specific glue/tests with no JS counterpart problem"
-  },
-  {
-   "path": "terminal-detection",
-   "lines": 1396,
-   "dest": "codex-config-importer",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "test-binary-support",
-   "lines": 70,
-   "dest": "EXCLUDED",
-   "code": "E4-rust-glue",
-   "note": "Rust-specific glue/tests with no JS counterpart problem"
-  },
-  {
-   "path": "thread-manager-sample",
-   "lines": 399,
-   "dest": "EXCLUDED",
-   "code": "E4-rust-glue",
-   "note": "Rust-specific glue/tests with no JS counterpart problem"
-  },
-  {
-   "path": "thread-store",
-   "lines": 27738,
-   "dest": "codex-session-kit",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "tools",
-   "lines": 6421,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "tui",
-   "lines": 248475,
-   "dest": "EXCLUDED",
-   "code": "E2-ui-form",
-   "note": "ratatui terminal rendering paradigm; dsh ships Web UI"
-  },
-  {
-   "path": "uds",
-   "lines": 380,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "utils/absolute-path",
-   "lines": 816,
-   "dest": "codex-config-importer",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "utils/approval-presets",
-   "lines": 73,
-   "dest": "codex-policy-engine",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "utils/audio",
-   "lines": 391,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "utils/cache",
-   "lines": 168,
-   "dest": "codex-config-importer",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "utils/cargo-bin",
-   "lines": 215,
-   "dest": "EXCLUDED",
-   "code": "E4-rust-glue",
-   "note": "Rust-specific glue/tests with no JS counterpart problem"
-  },
-  {
-   "path": "utils/cli",
-   "lines": 566,
-   "dest": "EXCLUDED",
-   "code": "E4-rust-glue",
-   "note": "Rust-specific glue/tests with no JS counterpart problem"
-  },
-  {
-   "path": "utils/elapsed",
-   "lines": 60,
-   "dest": "codex-config-importer",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "utils/fuzzy-match",
-   "lines": 154,
-   "dest": "codex-config-importer",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "utils/home-dir",
-   "lines": 123,
-   "dest": "codex-config-importer",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "utils/image",
-   "lines": 949,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "utils/json-to-toml",
-   "lines": 73,
-   "dest": "codex-config-importer",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "utils/oss",
-   "lines": 55,
-   "dest": "EXCLUDED",
-   "code": "E4-rust-glue",
-   "note": "Rust-specific glue/tests with no JS counterpart problem"
-  },
-  {
-   "path": "utils/output-truncation",
-   "lines": 492,
-   "dest": "codex-policy-engine",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "utils/path-uri",
-   "lines": 2899,
-   "dest": "codex-config-importer",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "utils/path-utils",
-   "lines": 304,
-   "dest": "codex-config-importer",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "utils/plugins",
-   "lines": 404,
-   "dest": "dsh-codex-pack",
-   "code": "REF",
-   "note": "manifest/marketplace format reference"
-  },
-  {
-   "path": "utils/pty",
-   "lines": 4334,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "utils/readiness",
-   "lines": 290,
-   "dest": "codex-config-importer",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "utils/redacted-string",
-   "lines": 41,
-   "dest": "codex-config-importer",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "utils/rustls-provider",
-   "lines": 71,
-   "dest": "EXCLUDED",
-   "code": "E4-rust-glue",
-   "note": "Rust-specific glue/tests with no JS counterpart problem"
-  },
-  {
-   "path": "utils/sandbox-summary",
-   "lines": 172,
-   "dest": "codex-sandbox-bin",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "utils/sleep-inhibitor",
-   "lines": 550,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "utils/stream-parser",
-   "lines": 1315,
-   "dest": "codex-config-importer",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "utils/string",
-   "lines": 487,
-   "dest": "codex-config-importer",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "utils/template",
-   "lines": 382,
-   "dest": "codex-config-importer",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "v8-poc",
-   "lines": 73,
-   "dest": "EXCLUDED",
-   "code": "E3-v8-node-native",
-   "note": "Node.js itself is V8; dsh PTC already equivalent"
-  },
-  {
-   "path": "websocket-client",
-   "lines": 1079,
-   "dest": "EXCLUDED",
-   "code": "E5-equivalent-or-os",
-   "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
-  },
-  {
-   "path": "windows-sandbox-rs",
-   "lines": 18491,
-   "dest": "codex-sandbox-bin",
-   "code": "",
-   "note": ""
-  },
-  {
-   "path": "workload-identity",
-   "lines": 812,
-   "dest": "EXCLUDED",
-   "code": "E1-openai-bound",
-   "note": "client of OpenAI cloud services; useless without their backend"
-  }
- ]
+  "meta": {
+    "upstream": "openai/codex",
+    "anchor_commit": "970b7f2ff4f6",
+    "generated_at": "2026-08-22",
+    "status_audit_at": "2026-09-06"
+  },
+  "entries": [
+    {
+      "path": ".",
+      "lines": 0,
+      "dest": "EXCLUDED",
+      "code": "E4-workspace-root",
+      "note": "codex-rs workspace manifest, not a portable unit"
+    },
+    {
+      "path": "agent-graph-store",
+      "lines": 436,
+      "dest": "codex-session-kit",
+      "code": "",
+      "note": "",
+      "status": "design-only",
+      "audit": "2026-09-06 核实: dest 无本路径实现"
+    },
+    {
+      "path": "agent-identity",
+      "lines": 902,
+      "dest": "EXCLUDED",
+      "code": "E1-openai-bound",
+      "note": "client of OpenAI cloud services; useless without their backend"
+    },
+    {
+      "path": "analytics",
+      "lines": 12894,
+      "dest": "EXCLUDED",
+      "code": "E1-openai-bound",
+      "note": "client of OpenAI cloud services; useless without their backend"
+    },
+    {
+      "path": "ansi-escape",
+      "lines": 55,
+      "dest": "EXCLUDED",
+      "code": "E2-ui-form",
+      "note": "ratatui terminal rendering paradigm; dsh ships Web UI"
+    },
+    {
+      "path": "app-server",
+      "lines": 133433,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "app-server-client",
+      "lines": 2945,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "app-server-daemon",
+      "lines": 3237,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "app-server-protocol",
+      "lines": 30267,
+      "dest": "codex-schema",
+      "code": "",
+      "note": "",
+      "status": "implemented",
+      "audit": "ts-rs bindings 纯镜像(2026-09-06 已同步 rust-v0.153.4: 顶层92+v2共613文件, 28增/32改)"
+    },
+    {
+      "path": "app-server-protocol-noop-macros",
+      "lines": 17,
+      "dest": "EXCLUDED",
+      "code": "E4-rust-glue",
+      "note": "Rust-specific glue/tests with no JS counterpart problem"
+    },
+    {
+      "path": "app-server-test-client",
+      "lines": 3756,
+      "dest": "EXCLUDED",
+      "code": "E4-rust-glue",
+      "note": "Rust-specific glue/tests with no JS counterpart problem"
+    },
+    {
+      "path": "app-server-transport",
+      "lines": 15273,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "app-server/tests/common",
+      "lines": 0,
+      "dest": "EXCLUDED",
+      "code": "E4-rust-glue",
+      "note": "Rust-specific glue/tests with no JS counterpart problem"
+    },
+    {
+      "path": "apply-patch",
+      "lines": 5441,
+      "dest": "codex-edit-fusion",
+      "code": "",
+      "note": "",
+      "status": "distilled",
+      "audit": "v4aParser+seekSequence 四级降级匹配+原子写已实现(277行,10测试); 完整补丁协议面未全量移植; 上游 0.149→0.153.4 零变更无需跟进"
+    },
+    {
+      "path": "arg0",
+      "lines": 683,
+      "dest": "EXCLUDED",
+      "code": "E4-rust-glue",
+      "note": "Rust-specific glue/tests with no JS counterpart problem"
+    },
+    {
+      "path": "async-utils",
+      "lines": 70,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "aws-auth",
+      "lines": 432,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "backend-client",
+      "lines": 2539,
+      "dest": "EXCLUDED",
+      "code": "E1-openai-bound",
+      "note": "client of OpenAI cloud services; useless without their backend"
+    },
+    {
+      "path": "build-info",
+      "lines": 224,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "bwrap",
+      "lines": 135,
+      "dest": "codex-sandbox-bin",
+      "code": "",
+      "note": "",
+      "status": "design-only",
+      "audit": "无 bwrap 产物"
+    },
+    {
+      "path": "chatgpt",
+      "lines": 900,
+      "dest": "EXCLUDED",
+      "code": "E1-openai-bound",
+      "note": "client of OpenAI cloud services; useless without their backend"
+    },
+    {
+      "path": "cli",
+      "lines": 29170,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "cloud-config",
+      "lines": 2529,
+      "dest": "EXCLUDED",
+      "code": "E1-openai-bound",
+      "note": "client of OpenAI cloud services; useless without their backend"
+    },
+    {
+      "path": "cloud-tasks",
+      "lines": 4935,
+      "dest": "EXCLUDED",
+      "code": "E2-ui-form",
+      "note": "ratatui terminal rendering paradigm; dsh ships Web UI"
+    },
+    {
+      "path": "cloud-tasks-client",
+      "lines": 1031,
+      "dest": "EXCLUDED",
+      "code": "E1-openai-bound",
+      "note": "client of OpenAI cloud services; useless without their backend"
+    },
+    {
+      "path": "cloud-tasks-mock-client",
+      "lines": 248,
+      "dest": "EXCLUDED",
+      "code": "E1-openai-bound",
+      "note": "client of OpenAI cloud services; useless without their backend"
+    },
+    {
+      "path": "code-mode",
+      "lines": 8769,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "code-mode-host",
+      "lines": 8558,
+      "dest": "EXCLUDED",
+      "code": "E3-v8-node-native",
+      "note": "Node.js itself is V8; dsh PTC already equivalent"
+    },
+    {
+      "path": "code-mode-protocol",
+      "lines": 4147,
+      "dest": "codex-schema",
+      "code": "",
+      "note": "",
+      "status": "distilled",
+      "audit": "手写草图 M1; 上游 runtime.rs +94 新增在蒸馏面外"
+    },
+    {
+      "path": "code-mode-runtime",
+      "lines": 6554,
+      "dest": "EXCLUDED",
+      "code": "E3-v8-node-native",
+      "note": "Node.js itself is V8; dsh PTC already equivalent"
+    },
+    {
+      "path": "codex-api",
+      "lines": 13810,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "codex-backend-openapi-models",
+      "lines": 943,
+      "dest": "EXCLUDED",
+      "code": "E1-openai-bound",
+      "note": "client of OpenAI cloud services; useless without their backend"
+    },
+    {
+      "path": "codex-client",
+      "lines": 171,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "codex-experimental-api-macros",
+      "lines": 281,
+      "dest": "EXCLUDED",
+      "code": "E4-rust-glue",
+      "note": "Rust-specific glue/tests with no JS counterpart problem"
+    },
+    {
+      "path": "codex-home",
+      "lines": 201,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "codex-mcp",
+      "lines": 17353,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "collaboration-mode-templates",
+      "lines": 2,
+      "dest": "codex-prompts",
+      "code": "",
+      "note": "",
+      "status": "design-only",
+      "audit": "dest 资产中未见对应模板"
+    },
+    {
+      "path": "config",
+      "lines": 22666,
+      "dest": "codex-config-importer",
+      "code": "",
+      "note": "",
+      "status": "distilled",
+      "audit": "dest 仅 tomlImporter.ts: 蒸馏 model/model_provider/model_providers.base_url 三键到 cordis llm-route patch; 22666 行 config crate 的其余面未实现"
+    },
+    {
+      "path": "connectors",
+      "lines": 4551,
+      "dest": "EXCLUDED",
+      "code": "E1-openai-bound",
+      "note": "client of OpenAI cloud services; useless without their backend"
+    },
+    {
+      "path": "context-fragments",
+      "lines": 170,
+      "dest": "codex-config-importer",
+      "code": "",
+      "note": "",
+      "status": "design-only",
+      "audit": "2026-09-06 核实: dest 无本路径实现"
+    },
+    {
+      "path": "core",
+      "lines": 297838,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "core-api",
+      "lines": 132,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "core-plugins",
+      "lines": 39173,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "manifest/marketplace format reference",
+      "status": "design-only",
+      "audit": "2026-09-06 判定: dest 改 EXCLUDED/E5 — 同 plugin 条目, cordis 插件体系即等价层"
+    },
+    {
+      "path": "core/tests/common",
+      "lines": 0,
+      "dest": "EXCLUDED",
+      "code": "E4-rust-glue",
+      "note": "Rust-specific glue/tests with no JS counterpart problem"
+    },
+    {
+      "path": "diagnostics",
+      "lines": 238,
+      "dest": "codex-sandbox-bin",
+      "code": "",
+      "note": "",
+      "status": "design-only",
+      "audit": "2026-09-06 核实: dest 无本路径实现"
+    },
+    {
+      "path": "exec",
+      "lines": 10096,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "exec-server",
+      "lines": 44444,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "",
+      "status": "design-only",
+      "audit": "2026-09-06 查证后改判: dest 改 EXCLUDED/E5 — exec-server 是 codex 自有架构的 JSON-RPC 子进程控制服务器(pty + 沙箱 helper 调度), dsh 的 dsh-subprocess-local/dsh-terminal-bash/pwsh + dsh-sandbox-local 即等价层, 44444 行移植属重复建设; 协议类型已由 codex-schema 蒸馏"
+    },
+    {
+      "path": "exec-server-protocol",
+      "lines": 1818,
+      "dest": "codex-schema",
+      "code": "",
+      "note": "",
+      "status": "distilled",
+      "audit": "手写草图 M1; 上游 protocol.rs +59 细节未逐一复核"
+    },
+    {
+      "path": "exec-server/tests/support",
+      "lines": 0,
+      "dest": "EXCLUDED",
+      "code": "E4-rust-glue",
+      "note": "Rust-specific glue/tests with no JS counterpart problem"
+    },
+    {
+      "path": "execpolicy",
+      "lines": 2698,
+      "dest": "codex-policy-engine",
+      "code": "",
+      "note": "",
+      "status": "distilled",
+      "audit": "rule/policy 规则引擎+starlarkLite 已实现(316行,8测试); 上游 0.149→0.153.4 execpolicy 零变更"
+    },
+    {
+      "path": "ext/agent",
+      "lines": 157,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "ext/connectors",
+      "lines": 70,
+      "dest": "EXCLUDED",
+      "code": "E1-openai-bound",
+      "note": "client of OpenAI cloud services; useless without their backend"
+    },
+    {
+      "path": "ext/extension-api",
+      "lines": 2346,
+      "dest": "codex-schema",
+      "code": "",
+      "note": "",
+      "status": "design-only",
+      "audit": "2026-09-06 核实: dest 无本路径实现"
+    },
+    {
+      "path": "ext/git-attribution",
+      "lines": 406,
+      "dest": "EXCLUDED",
+      "code": "E4-rust-glue",
+      "note": "Rust-specific glue/tests with no JS counterpart problem"
+    },
+    {
+      "path": "ext/goal",
+      "lines": 4200,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "ext/guardian-v2",
+      "lines": 6379,
+      "dest": "codex-prompts",
+      "code": "PROMPT-ONLY",
+      "note": "only classifier_instructions.md + pattern doc; code is OpenAI-bound",
+      "status": "design-only",
+      "audit": "2026-09-06 核实: dest 无 guardian 相关资产或代码"
+    },
+    {
+      "path": "ext/history-notes",
+      "lines": 967,
+      "dest": "codex-session-kit",
+      "code": "",
+      "note": "",
+      "status": "design-only",
+      "audit": "2026-09-06 核实: dest 无本路径实现"
+    },
+    {
+      "path": "ext/image-generation",
+      "lines": 1219,
+      "dest": "EXCLUDED",
+      "code": "E1-openai-bound",
+      "note": "client of OpenAI cloud services; useless without their backend"
+    },
+    {
+      "path": "ext/items",
+      "lines": 317,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "ext/mcp",
+      "lines": 1551,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "ext/memories",
+      "lines": 2262,
+      "dest": "codex-session-kit",
+      "code": "",
+      "note": "",
+      "status": "design-only",
+      "audit": "结构化记忆格式未实现"
+    },
+    {
+      "path": "ext/queue",
+      "lines": 1503,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "ext/skills",
+      "lines": 19787,
+      "dest": "codex-skills-kit",
+      "code": "PARTIAL",
+      "note": "render.rs + dynamic_skill_selector only",
+      "status": "distilled",
+      "audit": "预算公式+目录渲染 + 2026-09-06 二轮新增执行器 executor.ts (skillRead: 权限围栏/256KiB 上限/分页游标, skillList, 对应上游 tools/read.rs); 10 测试; 上游别名选择算法仍在蒸馏面外"
+    },
+    {
+      "path": "ext/web-search",
+      "lines": 806,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "external-agent-migration",
+      "lines": 14999,
+      "dest": "codex-session-kit",
+      "code": "",
+      "note": "",
+      "status": "distilled",
+      "audit": "claudeCode.ts Claude Code 会话容错导入并归一为 dsh 事件"
+    },
+    {
+      "path": "features",
+      "lines": 2760,
+      "dest": "codex-config-importer",
+      "code": "",
+      "note": "",
+      "status": "design-only",
+      "audit": "2026-09-06 核实: dest 无本路径实现"
+    },
+    {
+      "path": "feedback",
+      "lines": 1245,
+      "dest": "EXCLUDED",
+      "code": "E1-openai-bound",
+      "note": "client of OpenAI cloud services; useless without their backend"
+    },
+    {
+      "path": "file-search",
+      "lines": 1207,
+      "dest": "codex-session-kit",
+      "code": "",
+      "note": "",
+      "status": "design-only",
+      "audit": "2026-09-06 核实: dest 无本路径实现"
+    },
+    {
+      "path": "file-system",
+      "lines": 600,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "file-watcher",
+      "lines": 1318,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "git-utils",
+      "lines": 3936,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "history",
+      "lines": 1129,
+      "dest": "codex-schema",
+      "code": "",
+      "note": "",
+      "status": "distilled",
+      "audit": "手写草图 M1, 2026-09-06 已补 RolloutItem::TokenUsageRecord/RealtimeItem"
+    },
+    {
+      "path": "hooks",
+      "lines": 13208,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "http-client",
+      "lines": 8152,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "install-context",
+      "lines": 796,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "keyring-store",
+      "lines": 201,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "linux-sandbox",
+      "lines": 8631,
+      "dest": "codex-sandbox-bin",
+      "code": "",
+      "note": "",
+      "status": "implemented",
+      "audit": "vendor 保持在 0.149 构建 (49MB); 上游 0.153.4 release 已不再附带 linux-sandbox 资产, 重 vendor 需 musl 自建"
+    },
+    {
+      "path": "lmstudio",
+      "lines": 414,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "login",
+      "lines": 14521,
+      "dest": "EXCLUDED",
+      "code": "E1-openai-bound",
+      "note": "client of OpenAI cloud services; useless without their backend"
+    },
+    {
+      "path": "mcp-server",
+      "lines": 3333,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "mcp-server/tests/common",
+      "lines": 0,
+      "dest": "EXCLUDED",
+      "code": "E4-rust-glue",
+      "note": "Rust-specific glue/tests with no JS counterpart problem"
+    },
+    {
+      "path": "memories/read",
+      "lines": 201,
+      "dest": "codex-session-kit",
+      "code": "",
+      "note": "",
+      "status": "distilled",
+      "audit": "同一 StructuredMemoryStore 读面(readMemory/listOrigins)"
+    },
+    {
+      "path": "memories/write",
+      "lines": 4293,
+      "dest": "codex-session-kit",
+      "code": "",
+      "note": "",
+      "status": "distilled",
+      "audit": "2026-09-06 二轮新增 structuredMemory.ts: 上游文件格式落地(raw_memories.md 分节 + rollout_summaries/ + 增长守卫 rebuild + forget + 大小上限); 5 测试; LLM 整合管线(phase1/phase2)不在蒸馏面内"
+    },
+    {
+      "path": "message-history",
+      "lines": 1271,
+      "dest": "codex-session-kit",
+      "code": "",
+      "note": "",
+      "status": "design-only",
+      "audit": "toDshEvents 为事件归一, 非历史持久化"
+    },
+    {
+      "path": "model-provider",
+      "lines": 4264,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "model-provider-info",
+      "lines": 1166,
+      "dest": "codex-config-importer",
+      "code": "",
+      "note": "",
+      "status": "distilled",
+      "audit": "同 tomlImporter 三键; 0.153.4 新增 Bedrock 模型常量与 supports_codex_backend_routes 与键无关未引入"
+    },
+    {
+      "path": "models-manager",
+      "lines": 2865,
+      "dest": "EXCLUDED",
+      "code": "E1-openai-bound",
+      "note": "client of OpenAI cloud services; useless without their backend"
+    },
+    {
+      "path": "network-proxy",
+      "lines": 16834,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "ollama",
+      "lines": 1005,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "otel",
+      "lines": 7446,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "plugin",
+      "lines": 829,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "manifest/marketplace format reference",
+      "status": "design-only",
+      "audit": "2026-09-06 判定: dest 改 EXCLUDED/E5 — dsh 的 cordis 插件体系(name/inject/apply)即等价层; pack 保留为集成清单/胶水"
+    },
+    {
+      "path": "process-hardening",
+      "lines": 165,
+      "dest": "codex-sandbox-bin",
+      "code": "",
+      "note": "",
+      "status": "design-only",
+      "audit": "可能已内嵌于二进制, 未验证"
+    },
+    {
+      "path": "prompts",
+      "lines": 1564,
+      "dest": "codex-prompts",
+      "code": "",
+      "note": "",
+      "status": "distilled",
+      "audit": "2026-09-06 核实: 13 个模板资产与 rust-v0.153.4 逐字节一致(无需刷新); 上游 +5.6k 变更在蒸馏面外"
+    },
+    {
+      "path": "protocol",
+      "lines": 23577,
+      "dest": "codex-schema",
+      "code": "",
+      "note": "",
+      "status": "distilled",
+      "audit": "手写草图 @ts-nocheck M1 + 2026-09-06 三轮升级: protocol/exec-server-protocol/code-mode-protocol 三面各增零依赖运行时校验器 validateXxx(15 测试), history 已先行; 覆盖仍为蒸馏面子集"
+    },
+    {
+      "path": "response-debug-context",
+      "lines": 150,
+      "dest": "codex-config-importer",
+      "code": "",
+      "note": "",
+      "status": "design-only",
+      "audit": "2026-09-06 核实: dest 无本路径实现"
+    },
+    {
+      "path": "responses-api-proxy",
+      "lines": 875,
+      "dest": "EXCLUDED",
+      "code": "E1-openai-bound",
+      "note": "client of OpenAI cloud services; useless without their backend"
+    },
+    {
+      "path": "rmcp-client",
+      "lines": 23256,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "rollout",
+      "lines": 13749,
+      "dest": "codex-session-kit",
+      "code": "",
+      "note": "",
+      "status": "distilled",
+      "audit": "容错 JSONL 解析 + 2026-09-06 二轮新增 replay.ts (seq 编号回放/atSeq fork-resume 切片/消息抽取/坏行计数); 4 测试; 上游压缩/ordinal/持久化度量未移植"
+    },
+    {
+      "path": "rollout-trace",
+      "lines": 12381,
+      "dest": "codex-session-kit",
+      "code": "",
+      "note": "",
+      "status": "design-only",
+      "audit": "2026-09-06 核实: dest 无本路径实现"
+    },
+    {
+      "path": "sandboxing",
+      "lines": 7797,
+      "dest": "codex-sandbox-bin",
+      "code": "",
+      "note": "",
+      "status": "distilled",
+      "audit": "策略库无独立 JS 面, 仅以编译产物形态内嵌于上述二进制"
+    },
+    {
+      "path": "secrets",
+      "lines": 875,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "shell-command",
+      "lines": 5839,
+      "dest": "codex-policy-engine",
+      "code": "",
+      "note": "",
+      "status": "distilled",
+      "audit": "2026-09-06 已移植并二轮加深: commandSafety.ts 分类器 + shellParser.ts 语义解析器(引号/命令替换 $( )与反引号/heredoc/控制算符), dangerousCommandMatchLine 堵住 echo $(rm -rf /) 式逃逸; 共 18 测试。仍未移植: parse_command 全量 bash 文法与 shell_detect 提权选路"
+    },
+    {
+      "path": "shell-escalation",
+      "lines": 2078,
+      "dest": "codex-sandbox-bin",
+      "code": "",
+      "note": "",
+      "status": "design-only",
+      "audit": "无独立产物(可能部分内嵌 command-runner, 未验证)"
+    },
+    {
+      "path": "skills",
+      "lines": 2244,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "state",
+      "lines": 20397,
+      "dest": "codex-session-kit",
+      "code": "",
+      "note": "",
+      "status": "distilled",
+      "audit": "sessionIndex node:sqlite 会话镜像, 仅 id/cwd/originator 三字段"
+    },
+    {
+      "path": "stdio-to-uds",
+      "lines": 197,
+      "dest": "EXCLUDED",
+      "code": "E4-rust-glue",
+      "note": "Rust-specific glue/tests with no JS counterpart problem"
+    },
+    {
+      "path": "terminal-detection",
+      "lines": 1396,
+      "dest": "codex-config-importer",
+      "code": "",
+      "note": "",
+      "status": "design-only",
+      "audit": "2026-09-06 核实: dest 无本路径实现"
+    },
+    {
+      "path": "test-binary-support",
+      "lines": 70,
+      "dest": "EXCLUDED",
+      "code": "E4-rust-glue",
+      "note": "Rust-specific glue/tests with no JS counterpart problem"
+    },
+    {
+      "path": "thread-manager-sample",
+      "lines": 399,
+      "dest": "EXCLUDED",
+      "code": "E4-rust-glue",
+      "note": "Rust-specific glue/tests with no JS counterpart problem"
+    },
+    {
+      "path": "thread-store",
+      "lines": 27738,
+      "dest": "codex-session-kit",
+      "code": "",
+      "note": "",
+      "status": "design-only",
+      "audit": "无 thread 生命周期 API"
+    },
+    {
+      "path": "tools",
+      "lines": 6421,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "tui",
+      "lines": 248475,
+      "dest": "EXCLUDED",
+      "code": "E2-ui-form",
+      "note": "ratatui terminal rendering paradigm; dsh ships Web UI"
+    },
+    {
+      "path": "uds",
+      "lines": 380,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "utils/absolute-path",
+      "lines": 816,
+      "dest": "codex-config-importer",
+      "code": "",
+      "note": "",
+      "status": "design-only",
+      "audit": "2026-09-06 核实: dest 无本路径实现"
+    },
+    {
+      "path": "utils/approval-presets",
+      "lines": 73,
+      "dest": "codex-policy-engine",
+      "code": "",
+      "note": "",
+      "status": "design-only",
+      "audit": "2026-09-06 核实: dest 无本路径实现"
+    },
+    {
+      "path": "utils/audio",
+      "lines": 391,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "utils/cache",
+      "lines": 168,
+      "dest": "codex-config-importer",
+      "code": "",
+      "note": "",
+      "status": "design-only",
+      "audit": "2026-09-06 核实: dest 无本路径实现"
+    },
+    {
+      "path": "utils/cargo-bin",
+      "lines": 215,
+      "dest": "EXCLUDED",
+      "code": "E4-rust-glue",
+      "note": "Rust-specific glue/tests with no JS counterpart problem"
+    },
+    {
+      "path": "utils/cli",
+      "lines": 566,
+      "dest": "EXCLUDED",
+      "code": "E4-rust-glue",
+      "note": "Rust-specific glue/tests with no JS counterpart problem"
+    },
+    {
+      "path": "utils/elapsed",
+      "lines": 60,
+      "dest": "codex-config-importer",
+      "code": "",
+      "note": "",
+      "status": "design-only",
+      "audit": "2026-09-06 核实: dest 无本路径实现"
+    },
+    {
+      "path": "utils/fuzzy-match",
+      "lines": 154,
+      "dest": "codex-config-importer",
+      "code": "",
+      "note": "",
+      "status": "design-only",
+      "audit": "2026-09-06 核实: dest 无本路径实现"
+    },
+    {
+      "path": "utils/home-dir",
+      "lines": 123,
+      "dest": "codex-config-importer",
+      "code": "",
+      "note": "",
+      "status": "design-only",
+      "audit": "2026-09-06 核实: dest 无本路径实现"
+    },
+    {
+      "path": "utils/image",
+      "lines": 949,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "utils/json-to-toml",
+      "lines": 73,
+      "dest": "codex-config-importer",
+      "code": "",
+      "note": "",
+      "status": "design-only",
+      "audit": "2026-09-06 核实: dest 无本路径实现"
+    },
+    {
+      "path": "utils/oss",
+      "lines": 55,
+      "dest": "EXCLUDED",
+      "code": "E4-rust-glue",
+      "note": "Rust-specific glue/tests with no JS counterpart problem"
+    },
+    {
+      "path": "utils/output-truncation",
+      "lines": 492,
+      "dest": "codex-policy-engine",
+      "code": "",
+      "note": "",
+      "status": "distilled",
+      "audit": "2026-09-06 已移植: src/outputTruncation.ts (truncateMiddle/bytes+tokens 预算/空文本项跳过/省略计数), 基于 rust-v0.153.4; 8 测试"
+    },
+    {
+      "path": "utils/path-uri",
+      "lines": 2899,
+      "dest": "codex-config-importer",
+      "code": "",
+      "note": "",
+      "status": "design-only",
+      "audit": "2026-09-06 核实: dest 无本路径实现"
+    },
+    {
+      "path": "utils/path-utils",
+      "lines": 304,
+      "dest": "codex-config-importer",
+      "code": "",
+      "note": "",
+      "status": "design-only",
+      "audit": "2026-09-06 核实: dest 无本路径实现"
+    },
+    {
+      "path": "utils/plugins",
+      "lines": 404,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "manifest/marketplace format reference",
+      "status": "design-only",
+      "audit": "2026-09-06 判定: dest 改 EXCLUDED/E5 — 同 plugin 条目"
+    },
+    {
+      "path": "utils/pty",
+      "lines": 4334,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "utils/readiness",
+      "lines": 290,
+      "dest": "codex-config-importer",
+      "code": "",
+      "note": "",
+      "status": "design-only",
+      "audit": "2026-09-06 核实: dest 无本路径实现"
+    },
+    {
+      "path": "utils/redacted-string",
+      "lines": 41,
+      "dest": "codex-config-importer",
+      "code": "",
+      "note": "",
+      "status": "design-only",
+      "audit": "2026-09-06 核实: dest 无本路径实现"
+    },
+    {
+      "path": "utils/rustls-provider",
+      "lines": 71,
+      "dest": "EXCLUDED",
+      "code": "E4-rust-glue",
+      "note": "Rust-specific glue/tests with no JS counterpart problem"
+    },
+    {
+      "path": "utils/sandbox-summary",
+      "lines": 172,
+      "dest": "codex-sandbox-bin",
+      "code": "",
+      "note": "",
+      "status": "design-only",
+      "audit": "2026-09-06 核实: dest 无本路径实现"
+    },
+    {
+      "path": "utils/sleep-inhibitor",
+      "lines": 550,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "utils/stream-parser",
+      "lines": 1315,
+      "dest": "codex-config-importer",
+      "code": "",
+      "note": "",
+      "status": "design-only",
+      "audit": "2026-09-06 核实: dest 无本路径实现"
+    },
+    {
+      "path": "utils/string",
+      "lines": 487,
+      "dest": "codex-config-importer",
+      "code": "",
+      "note": "",
+      "status": "design-only",
+      "audit": "2026-09-06 核实: dest 无本路径实现"
+    },
+    {
+      "path": "utils/template",
+      "lines": 382,
+      "dest": "codex-config-importer",
+      "code": "",
+      "note": "",
+      "status": "design-only",
+      "audit": "2026-09-06 核实: dest 无本路径实现"
+    },
+    {
+      "path": "v8-poc",
+      "lines": 73,
+      "dest": "EXCLUDED",
+      "code": "E3-v8-node-native",
+      "note": "Node.js itself is V8; dsh PTC already equivalent"
+    },
+    {
+      "path": "websocket-client",
+      "lines": 1079,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+    },
+    {
+      "path": "windows-sandbox-rs",
+      "lines": 18491,
+      "dest": "codex-sandbox-bin",
+      "code": "",
+      "note": "",
+      "status": "implemented",
+      "audit": "2026-09-06 重 vendor: bin/windows-x64 两 exe 已更新至 rust-v0.153.4 官方 release 资产 (command-runner 8.2MB + sandbox-setup 15.4MB)"
+    },
+    {
+      "path": "workload-identity",
+      "lines": 812,
+      "dest": "EXCLUDED",
+      "code": "E1-openai-bound",
+      "note": "client of OpenAI cloud services; useless without their backend"
+    },
+    {
+      "path": "agent-roles",
+      "lines": 0,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "audit": "dsh 有 dsh-agent-presets/agent-default-model 等价面; 2026-09-06 准入"
+    },
+    {
+      "path": "config-schema",
+      "lines": 0,
+      "dest": "EXCLUDED",
+      "code": "E4-rust-glue",
+      "audit": "release 工具二进制, 无 JS 对应问题; 2026-09-06 准入"
+    },
+    {
+      "path": "guardian-context",
+      "lines": 0,
+      "dest": "codex-prompts",
+      "audit": "Guardian 审查/评分共享上下文段, 归 prompts 蒸馏件; 2026-09-06 准入, 待下轮蒸馏",
+      "status": "design-only"
+    },
+    {
+      "path": "otel-trace-websocket",
+      "lines": 0,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "audit": "dsh 有 dsh-session-telemetry-otel 等价遥测面; 2026-09-06 准入"
+    },
+    {
+      "path": "realtime-webrtc",
+      "lines": 0,
+      "dest": "EXCLUDED",
+      "code": "E1-openai-bound",
+      "audit": "realtime 语音为 OpenAI 云服务客户端; 2026-09-06 准入"
+    },
+    {
+      "path": "utils/git-discovery",
+      "lines": 0,
+      "dest": "codex-config-importer",
+      "audit": "utils 家族新成员, 归 config-importer; 2026-09-06 准入, 待下轮蒸馏",
+      "status": "design-only"
+    },
+    {
+      "path": "voice-host",
+      "lines": 0,
+      "dest": "EXCLUDED",
+      "code": "E4-rust-glue",
+      "audit": "私有语音 helper 原生基座(inherited-pipe), 无 JS 对应问题; 2026-09-06 准入"
+    },
+    {
+      "path": "worktree",
+      "lines": 0,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "audit": "dsh workspace 体系即等价层; 2026-09-06 准入"
+    }
+  ]
 }

@@ -11,8 +11,14 @@ export interface DynamicToolSpecNamespace { type: 'Namespace';  }
 export interface DynamicToolNamespaceToolFunction { type: 'Function';  }
 export interface EnvironmentConfigStateReady { None: 'Ready';  }
 export interface EnvironmentConfigStateFailed { None: 'Failed';  }
+// rust-v0.153.4 新增变体（2026-09-06 对齐）；Ready 的 payload 在上游为 EnvironmentConfig，本草图未展开。
+export interface EnvironmentConfigStateFromThread { None: 'FromThread';  }
 export interface ExecutedToolCallArgumentsRaw { None: 'Raw';     serde_json: unknown /* :Value */; }
 export interface ReasoningEffortCustom { None: 'Custom';  }
+// rust-v0.153.4 新增变体（2026-09-06 对齐）。
+export interface ReasoningEffortPersistent { None: 'Persistent';  }
+export interface TokenUsageRecord { thread_id: string;     turn_id: string;     session_id: string;     root_turn_id: string;     response_id: string;     usage: TokenUsage;     turn_token_usage: TokenUsage;     thread_token_usage: TokenUsage; }
+export interface RealtimeItem { id: string;     realtime_session_id: string;     content: RealtimeItemContent; }
 export interface ParsedCommandRead { type: 'Read';     cmd: string;     name: string;     path: PathBuf; }
 export interface ParsedCommandListFiles { type: 'ListFiles';     cmd: string;     path: string | null; }
 export interface ParsedCommandSearch { type: 'Search';     cmd: string;     query: string | null;     path: string | null; }
