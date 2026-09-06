@@ -40,7 +40,7 @@ export function validateWireContentItem(j: unknown): ValidationResult {
 
 // ── WireRuntimeResponse (None-tagged; Yielded/Terminated share shape, Result adds error_text) ──
 
-const WIRE_RUNTIME_RESPONSE_MEMBERS = {
+const WIRE_RUNTIME_RESPONSE_MEMBERS: Record<string, (v: Record<string, unknown>) => string | null> = {
   Yielded: (v) => requireFields(v, ['cell_id', 'content_items']),
   Terminated: (v) => requireFields(v, ['cell_id', 'content_items']),
   Result: (v) => requireFields(v, ['cell_id', 'content_items', 'error_text']),
@@ -52,7 +52,7 @@ export function validateWireRuntimeResponse(j: unknown): ValidationResult {
 
 // ── RuntimeResponse (CellId + FunctionCallOutputContentItem face) ───────────
 
-const RUNTIME_RESPONSE_MEMBERS = {
+const RUNTIME_RESPONSE_MEMBERS: Record<string, (v: Record<string, unknown>) => string | null> = {
   Yielded: (v) => requireFields(v, ['cell_id', 'content_items']),
   Terminated: (v) => requireFields(v, ['cell_id', 'content_items']),
   Result: (v) => requireFields(v, ['cell_id', 'content_items', 'error_text']),

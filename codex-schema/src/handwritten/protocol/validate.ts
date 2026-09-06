@@ -81,7 +81,7 @@ export const REASONING_EFFORT_VARIANTS = [
 ] as const
 
 export function validateReasoningEffort(j: unknown): ValidationResult {
-  if (typeof j === 'string' && REASONING_EFFORT_VARIANTS.includes(j)) return { ok: true, variant: j }
+  if (typeof j === 'string' && (REASONING_EFFORT_VARIANTS as readonly string[]).includes(j)) return { ok: true, variant: j }
   if (isObject(j) && typeof j.Custom === 'string') return { ok: true, variant: 'Custom' }
   return { ok: false, variant: null, error: 'unknown ReasoningEffort' }
 }
