@@ -1,0 +1,38 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - codex-config-importer
+          - codex-edit-fusion
+          - codex-net-guard
+          - codex-policy-engine
+          - codex-prompts
+          - codex-schema
+          - codex-session-kit
+          - codex-skills-kit
+          - codex-sandbox-bin
+          - dsh-codex-pack
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install dependencies
+        working-directory: ${{ matrix.package }}
+        run: pnpm install --no-frozen-lockfile --prefer-offline
+      - name: Test
+        working-directory: ${{ matrix.package }}
+        run: pnpm exec vitest run

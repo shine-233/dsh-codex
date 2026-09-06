@@ -15,14 +15,15 @@ export function schemaInfo() {
   }
 }
 
-export function apply(ctx, config = {}) {
-  if (!ctx?.tools?.register) return
-  const defineTool = (d) => d
-  ctx.tools.register(defineTool({
+export function apply(ctx: unknown, config: Record<string, unknown> = {}): void {
+  const c = ctx as { tools?: { register?: (d: unknown) => void } } | null
+  if (!c?.tools?.register) return
+  const defineTool = (d: unknown) => d
+  c.tools.register(defineTool({
     name: 'codex_schema_info',
     description: 'Provenance and coverage info for the ported openai/codex wire-protocol type contracts.',
     parameters: {},
-    output: { schema: { type: 'string' }, render: (_a, v) => [{ type: 'text', text: v }] },
+    output: { schema: { type: 'string' }, render: (_a: unknown, v: unknown) => [{ type: 'text', text: String(v) }] },
     async execute() { return JSON.stringify(schemaInfo(), null, 2) },
     timeoutMs: 3000,
   }))
