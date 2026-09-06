@@ -4,6 +4,8 @@
 import { Policy } from './policy.js';
 import { prefixRule, altsToken, singleToken } from './rule.js';
 import { parsePolicyFile } from './starlarkLite.js';
+import { dangerousCommandMatchLine } from './commandSafety.js';
+import { canonicalizeCommandForApproval } from './canonicalization.js';
 
 export const name = 'codex-policy-engine'
 export const inject = ['tools']
@@ -52,6 +54,16 @@ export function evaluate(policy, line) {
   return policy.check(tokenizeCommand(line))
 }
 
+/** Evaluate with a canonical-key cache: `/bin/bash -lc X` and `bash -c X` share one entry. */
+export function evaluateCached(policy, line, cache) {
+  const argv = tokenizeCommand(line)
+  const key = canonicalizeCommandForApproval(argv).join('\u0000')
+  if (cache?.has(key)) return cache.get(key)
+  const ev = policy.check(argv)
+  cache?.set(key, ev)
+  return ev
+}
+
 export function apply(ctx, config = {}) {
   const cfg = asRecord(config)
   const mode = cfg.mode === 'enforce' || cfg.mode === 'audit' ? cfg.mode : 'off'
@@ -66,6 +78,13 @@ export function apply(ctx, config = {}) {
   const isCommandTool = (toolName) => patterns.some((p) => wildcard(p, toolName))
 
   let policy = policyFromConfig(cfg)
+
+  // Approval-decision cache keyed on the canonicalized command (unified_exec
+  // idea: decisions stay stable and cheap across wrapper-path differences —
+  // `/bin/bash -lc` vs `bash -lc` hit the same entry). NOTE: caching here is
+  // evaluation memoization only; user-approval outcome memory needs an outcome
+  // feedback seam dsh does not expose yet.
+  const approvalCache = new Map()
 
   // Optional read-only inspection tool (always available).
   try {
@@ -84,6 +103,22 @@ export function apply(ctx, config = {}) {
         },
         timeoutMs: 3000,
       }))
+      // Dangerous-command classifier (ported from shell-command command_safety @0.153.4). Read-only.
+      const safetyPlatformDefault = process.platform === 'win32' ? 'windows' : 'posix'
+      ctx.tools.register(defineTool({
+        name: 'codex_command_safety_check',
+        description: 'Classify a command line with the ported openai/codex dangerous-command heuristics (forced rm, sudo/env/trap wrappers, sh -c literals, Windows ShellExecute/URL and force-delete patterns). Read-only.',
+        parameters: {
+          command: { type: 'string', required: true, description: 'raw command line to classify' },
+        },
+        output: { schema: { type: 'string' }, render: (_a, v) => [{ type: 'text', text: v }] },
+        async execute(args) {
+          const argv = tokenizeCommand(String(args?.command ?? ''))
+          const match = dangerousCommandMatch(argv, { platform: safetyPlatformDefault })
+          return JSON.stringify({ command: args?.command, platform: safetyPlatformDefault, match: match ?? null })
+        },
+        timeoutMs: 3000,
+      }))
     }
   } catch { /* tool seam unavailable on this host */ }
 
@@ -94,7 +129,26 @@ export function apply(ctx, config = {}) {
     const argv0 = String(exec?.name ?? '')
     const line = String(asRecord(exec?.arguments).command ?? '')
     if (!line.trim()) return next()
-    const ev = evaluate(policy, line)
+
+    // Shell-safety layer (opt-in via cfg.commandSafety: 'audit' | 'enforce').
+    // Policy allow-rules never waive the dangerous-command classifier:
+    // ForcedRm denies outright, other matches escalate to ask (audit logs-and-allows).
+    const safetyMode = cfg.commandSafety === 'audit' || cfg.commandSafety === 'enforce'
+      ? cfg.commandSafety : 'off'
+    if (safetyMode !== 'off') {
+      const safetyPlatform = cfg.commandSafetyPlatform === 'posix' || cfg.commandSafetyPlatform === 'windows'
+        ? cfg.commandSafetyPlatform
+        : (process.platform === 'win32' ? 'windows' : 'posix')
+      const dangerous = dangerousCommandMatchLine(line, { platform: safetyPlatform })
+      if (dangerous && safetyMode === 'enforce') {
+        if (dangerous === 'ForcedRm') {
+          return { kind: 'deny', reason: '[codex-policy-engine] forced removal rejected by command-safety classifier' }
+        }
+        return { kind: 'ask', reason: `[codex-policy-engine] command matches dangerous-command heuristics \`${line}\`` }
+      }
+    }
+
+    const ev = evaluateCached(policy, line)
     if (ev.decision === 'Allow') return next()
     if (ev.decision === 'Forbidden') {
       return { kind: 'deny', reason: `[codex-policy-engine] forbidden by rule (matched: ${ev.matchedPrograms.join(', ') || 'none'})` }
