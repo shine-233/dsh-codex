@@ -1,0 +1,559 @@
+{
+ "provenance": {
+  "source": "openai/codex rust-v0.153.4 (042fb41b7c813ac7999105e886b2b7aa715b5081)",
+  "files": [
+   "is_dangerous_command.rs",
+   "windows_dangerous_commands.rs"
+  ],
+  "extractedAt": "2026-09-06T11:10:35.054Z",
+  "extractor": "differential/extract-command-safety.mjs"
+ },
+ "posix": [
+  {
+   "fn": "rm_rf_is_dangerous",
+   "call": "dangerous_command_match",
+   "argv": [
+    "rm",
+    "-rf",
+    "/"
+   ],
+   "expected": "ForcedRm"
+  },
+  {
+   "fn": "rm_f_is_dangerous",
+   "call": "dangerous_command_match",
+   "argv": [
+    "rm",
+    "-f",
+    "/"
+   ],
+   "expected": "ForcedRm"
+  },
+  {
+   "fn": "forced_rm_variants_are_dangerous",
+   "call": "dangerous_command_match",
+   "argv": [
+    "/bin/rm",
+    "-fr",
+    "/tmp/example"
+   ],
+   "expected": "ForcedRm"
+  },
+  {
+   "fn": "forced_rm_variants_are_dangerous",
+   "call": "dangerous_command_match",
+   "argv": [
+    "rm",
+    "-r",
+    "-f",
+    "/tmp/example"
+   ],
+   "expected": "ForcedRm"
+  },
+  {
+   "fn": "forced_rm_variants_are_dangerous",
+   "call": "dangerous_command_match",
+   "argv": [
+    "rm",
+    "--force",
+    "/tmp/example"
+   ],
+   "expected": "ForcedRm"
+  },
+  {
+   "fn": "forced_rm_variants_are_dangerous",
+   "call": "dangerous_command_match",
+   "argv": [
+    "rm",
+    "/tmp/example",
+    "-f"
+   ],
+   "expected": "ForcedRm"
+  },
+  {
+   "fn": "forced_rm_variants_are_dangerous",
+   "call": "dangerous_command_match",
+   "argv": [
+    "sudo",
+    "rm",
+    "-rf",
+    "/tmp/example"
+   ],
+   "expected": "ForcedRm"
+  },
+  {
+   "fn": "forced_rm_variants_are_dangerous",
+   "call": "dangerous_command_match",
+   "argv": [
+    "env",
+    "TARGET=/tmp/example",
+    "rm",
+    "-rf",
+    "/tmp/example"
+   ],
+   "expected": "ForcedRm"
+  },
+  {
+   "fn": "non_forced_or_non_literal_rm_is_not_dangerous",
+   "call": "dangerous_command_match",
+   "argv": [
+    "rm",
+    "-r",
+    "/tmp/example"
+   ],
+   "expected": null
+  },
+  {
+   "fn": "non_forced_or_non_literal_rm_is_not_dangerous",
+   "call": "dangerous_command_match",
+   "argv": [
+    "rm",
+    "--",
+    "-f"
+   ],
+   "expected": null
+  },
+  {
+   "fn": "non_forced_or_non_literal_rm_is_not_dangerous",
+   "call": "dangerous_command_match",
+   "argv": [
+    "bash",
+    "-lc",
+    "echo 'rm -rf /tmp/example'"
+   ],
+   "expected": null
+  },
+  {
+   "fn": "non_forced_or_non_literal_rm_is_not_dangerous",
+   "call": "dangerous_command_match",
+   "argv": [
+    "bash",
+    "-lc",
+    "cmd=rm; $cmd -rf /tmp/example"
+   ],
+   "expected": null
+  },
+  {
+   "fn": "non_forced_or_non_literal_rm_is_not_dangerous",
+   "call": "dangerous_command_match",
+   "argv": [
+    "bash",
+    "-lc",
+    "if then rm -rf /tmp/example"
+   ],
+   "expected": null
+  },
+  {
+   "fn": "non_forced_or_non_literal_rm_is_not_dangerous",
+   "call": "dangerous_command_match",
+   "argv": [
+    "env",
+    "TARGET=/tmp/example",
+    "rm",
+    "-r",
+    "/tmp/example"
+   ],
+   "expected": null
+  },
+  {
+   "fn": "non_forced_or_non_literal_rm_is_not_dangerous",
+   "call": "dangerous_command_match",
+   "argv": [
+    "bash",
+    "-lc",
+    "trap 'echo rm -rf /tmp/example' EXIT"
+   ],
+   "expected": null
+  },
+  {
+   "fn": "direct_powershell_words_return_other_match_on_windows",
+   "call": "dangerous_powershell_words_match",
+   "argv": [
+    "Remove-Item",
+    "test",
+    "-Force"
+   ],
+   "expected": "Other"
+  }
+ ],
+ "windows": [
+  {
+   "fn": "powershell_start_process_url_is_dangerous",
+   "argv": [
+    "powershell",
+    "-NoLogo",
+    "-Command",
+    "Start-Process 'https://example.com'"
+   ],
+   "expected": true
+  },
+  {
+   "fn": "powershell_start_process_url_with_trailing_semicolon_is_dangerous",
+   "argv": [
+    "powershell",
+    "-Command",
+    "Start-Process('https://example.com');"
+   ],
+   "expected": true
+  },
+  {
+   "fn": "powershell_start_process_local_is_not_flagged",
+   "argv": [
+    "powershell",
+    "-Command",
+    "Start-Process notepad.exe"
+   ],
+   "expected": false
+  },
+  {
+   "fn": "cmd_start_with_url_is_dangerous",
+   "argv": [
+    "cmd",
+    "/c",
+    "start",
+    "https://example.com"
+   ],
+   "expected": true
+  },
+  {
+   "fn": "msedge_with_url_is_dangerous",
+   "argv": [
+    "msedge.exe",
+    "https://example.com"
+   ],
+   "expected": true
+  },
+  {
+   "fn": "explorer_with_directory_is_not_flagged",
+   "argv": [
+    "explorer.exe",
+    "."
+   ],
+   "expected": false
+  },
+  {
+   "fn": "powershell_remove_item_force_is_dangerous",
+   "argv": [
+    "powershell",
+    "-Command",
+    "Remove-Item test -Force"
+   ],
+   "expected": true
+  },
+  {
+   "fn": "powershell_remove_item_recurse_force_is_dangerous",
+   "argv": [
+    "powershell",
+    "-Command",
+    "Remove-Item test -Recurse -Force"
+   ],
+   "expected": true
+  },
+  {
+   "fn": "powershell_ri_alias_force_is_dangerous",
+   "argv": [
+    "pwsh",
+    "-Command",
+    "ri test -Force"
+   ],
+   "expected": true
+  },
+  {
+   "fn": "powershell_remove_item_without_force_is_not_flagged",
+   "argv": [
+    "powershell",
+    "-Command",
+    "Remove-Item test"
+   ],
+   "expected": false
+  },
+  {
+   "fn": "cmd_del_force_is_dangerous",
+   "argv": [
+    "cmd",
+    "/c",
+    "del",
+    "/f",
+    "test.txt"
+   ],
+   "expected": true
+  },
+  {
+   "fn": "cmd_erase_force_is_dangerous",
+   "argv": [
+    "cmd",
+    "/c",
+    "erase",
+    "/f",
+    "test.txt"
+   ],
+   "expected": true
+  },
+  {
+   "fn": "cmd_del_without_force_is_not_flagged",
+   "argv": [
+    "cmd",
+    "/c",
+    "del",
+    "test.txt"
+   ],
+   "expected": false
+  },
+  {
+   "fn": "cmd_rd_recursive_is_dangerous",
+   "argv": [
+    "cmd",
+    "/c",
+    "rd",
+    "/s",
+    "/q",
+    "test"
+   ],
+   "expected": true
+  },
+  {
+   "fn": "cmd_rd_without_quiet_is_not_flagged",
+   "argv": [
+    "cmd",
+    "/c",
+    "rd",
+    "/s",
+    "test"
+   ],
+   "expected": false
+  },
+  {
+   "fn": "cmd_rmdir_recursive_is_dangerous",
+   "argv": [
+    "cmd",
+    "/c",
+    "rmdir",
+    "/s",
+    "/q",
+    "test"
+   ],
+   "expected": true
+  },
+  {
+   "fn": "powershell_remove_item_path_recurse_force_is_dangerous",
+   "argv": [
+    "powershell",
+    "-Command",
+    "Remove-Item -Path 'test' -Recurse -Force"
+   ],
+   "expected": true
+  },
+  {
+   "fn": "powershell_remove_item_force_with_semicolon_is_dangerous",
+   "argv": [
+    "powershell",
+    "-Command",
+    "Remove-Item test -Force; Write-Host done"
+   ],
+   "expected": true
+  },
+  {
+   "fn": "powershell_remove_item_force_inside_block_is_dangerous",
+   "argv": [
+    "powershell",
+    "-Command",
+    "if ($true) { Remove-Item test -Force}"
+   ],
+   "expected": true
+  },
+  {
+   "fn": "powershell_remove_item_force_inside_brackets_is_dangerous",
+   "argv": [
+    "powershell",
+    "-Command",
+    "[void]( Remove-Item test -Force)]"
+   ],
+   "expected": true
+  },
+  {
+   "fn": "cmd_del_path_containing_f_is_not_flagged",
+   "argv": [
+    "cmd",
+    "/c",
+    "del",
+    "C:/foo/bar.txt"
+   ],
+   "expected": false
+  },
+  {
+   "fn": "cmd_rd_path_containing_s_is_not_flagged",
+   "argv": [
+    "cmd",
+    "/c",
+    "rd",
+    "C:/source"
+   ],
+   "expected": false
+  },
+  {
+   "fn": "cmd_bypass_chained_del_is_dangerous",
+   "argv": [
+    "cmd",
+    "/c",
+    "echo",
+    "hello",
+    "&",
+    "del",
+    "/f",
+    "file.txt"
+   ],
+   "expected": true
+  },
+  {
+   "fn": "powershell_chained_no_space_is_dangerous",
+   "argv": [
+    "powershell",
+    "-Command",
+    "Write-Host hi;Remove-Item -Force C:\\tmp"
+   ],
+   "expected": true
+  },
+  {
+   "fn": "powershell_comma_separated_is_dangerous",
+   "argv": [
+    "powershell",
+    "-Command",
+    "del,-Force,C:\\foo"
+   ],
+   "expected": true
+  },
+  {
+   "fn": "cmd_echo_del_is_not_dangerous",
+   "argv": [
+    "cmd",
+    "/c",
+    "echo",
+    "del",
+    "/f"
+   ],
+   "expected": false
+  },
+  {
+   "fn": "cmd_del_single_string_argument_is_dangerous",
+   "argv": [
+    "cmd",
+    "/c",
+    "del /f file.txt"
+   ],
+   "expected": true
+  },
+  {
+   "fn": "cmd_del_chained_single_string_argument_is_dangerous",
+   "argv": [
+    "cmd",
+    "/c",
+    "echo hello & del /f file.txt"
+   ],
+   "expected": true
+  },
+  {
+   "fn": "cmd_chained_no_space_del_is_dangerous",
+   "argv": [
+    "cmd",
+    "/c",
+    "echo hi&del /f file.txt"
+   ],
+   "expected": true
+  },
+  {
+   "fn": "cmd_chained_andand_no_space_del_is_dangerous",
+   "argv": [
+    "cmd",
+    "/c",
+    "echo hi&&del /f file.txt"
+   ],
+   "expected": true
+  },
+  {
+   "fn": "cmd_chained_oror_no_space_del_is_dangerous",
+   "argv": [
+    "cmd",
+    "/c",
+    "echo hi||del /f file.txt"
+   ],
+   "expected": true
+  },
+  {
+   "fn": "cmd_start_url_single_string_is_dangerous",
+   "argv": [
+    "cmd",
+    "/c",
+    "start https://example.com"
+   ],
+   "expected": true
+  },
+  {
+   "fn": "cmd_chained_no_space_rmdir_is_dangerous",
+   "argv": [
+    "cmd",
+    "/c",
+    "echo hi&rmdir /s /q testdir"
+   ],
+   "expected": true
+  },
+  {
+   "fn": "cmd_del_force_uppercase_flag_is_dangerous",
+   "argv": [
+    "cmd",
+    "/c",
+    "DEL",
+    "/F",
+    "file.txt"
+   ],
+   "expected": true
+  },
+  {
+   "fn": "cmdexe_r_del_force_is_dangerous",
+   "argv": [
+    "cmd.exe",
+    "/r",
+    "del",
+    "/f",
+    "file.txt"
+   ],
+   "expected": true
+  },
+  {
+   "fn": "cmd_start_quoted_url_single_string_is_dangerous",
+   "argv": [
+    "cmd",
+    "/c",
+    "start \"https://example.com\""
+   ],
+   "expected": true
+  },
+  {
+   "fn": "cmd_start_title_then_url_is_dangerous",
+   "argv": [
+    "cmd",
+    "/c",
+    "start \"\" https://example.com"
+   ],
+   "expected": true
+  },
+  {
+   "fn": "powershell_rm_alias_force_is_dangerous",
+   "argv": [
+    "powershell",
+    "-Command",
+    "rm test -Force"
+   ],
+   "expected": true
+  },
+  {
+   "fn": "powershell_benign_force_separate_command_is_not_dangerous",
+   "argv": [
+    "powershell",
+    "-Command",
+    "Get-ChildItem -Force; Remove-Item test"
+   ],
+   "expected": false
+  }
+ ],
+ "skippedDynamic": 2
+}

@@ -1,0 +1,66 @@
+{
+  "provenance": {
+    "source": "openai/codex rust-v0.153.4 (042fb41b7c813ac7999105e886b2b7aa715b5081)",
+    "files": ["utils/output-truncation/src/truncate_tests.rs"],
+    "transcribedAt": "2026-09-06",
+    "note": "hand-transcribed from the Rust assert_eq! values (multi-line expected strings)"
+  },
+  "formattedTruncateText": [
+    {
+      "fn": "truncate_bytes_less_than_placeholder_returns_placeholder",
+      "content": "example output",
+      "policy": { "kind": "bytes", "budget": 1 },
+      "expected": "Warning: truncated output (original token count: 4)\nTotal output lines: 1\n\n…13 chars truncated…t"
+    },
+    {
+      "fn": "truncate_tokens_less_than_placeholder_returns_placeholder",
+      "content": "example output",
+      "policy": { "kind": "tokens", "budget": 1 },
+      "expected": "Warning: truncated output (original token count: 4)\nTotal output lines: 1\n\nex…3 tokens truncated…ut"
+    },
+    {
+      "fn": "truncate_tokens_under_limit_returns_original",
+      "content": "example output",
+      "policy": { "kind": "tokens", "budget": 10 },
+      "expected": "example output"
+    },
+    {
+      "fn": "truncate_bytes_under_limit_returns_original",
+      "content": "example output",
+      "policy": { "kind": "bytes", "budget": 20 },
+      "expected": "example output"
+    },
+    {
+      "fn": "truncate_tokens_over_limit_returns_truncated",
+      "content": "this is an example of a long output that should be truncated",
+      "policy": { "kind": "tokens", "budget": 5 },
+      "expected": "Warning: truncated output (original token count: 15)\nTotal output lines: 1\n\nthis is an…10 tokens truncated… truncated"
+    },
+    {
+      "fn": "truncate_bytes_over_limit_returns_truncated",
+      "content": "this is an example of a long output that should be truncated",
+      "policy": { "kind": "bytes", "budget": 30 },
+      "expected": "Warning: truncated output (original token count: 15)\nTotal output lines: 1\n\nthis is an exam…30 chars truncated…ld be truncated"
+    },
+    {
+      "fn": "truncate_bytes_reports_original_line_count_when_truncated",
+      "content": "this is an example of a long output that should be truncated\nalso some other line",
+      "policy": { "kind": "bytes", "budget": 30 },
+      "expected": "Warning: truncated output (original token count: 21)\nTotal output lines: 2\n\nthis is an exam…51 chars truncated…some other line"
+    },
+    {
+      "fn": "truncate_tokens_reports_original_line_count_when_truncated",
+      "content": "this is an example of a long output that should be truncated\nalso some other line",
+      "policy": { "kind": "tokens", "budget": 10 },
+      "expected": "Warning: truncated output (original token count: 21)\nTotal output lines: 2\n\nthis is an example o…11 tokens truncated…also some other line"
+    }
+  ],
+  "truncateText": [
+    {
+      "fn": "truncate_middle_bytes_handles_utf8_content",
+      "content": "😀😀😀😀😀😀😀😀😀😀\nsecond line with text\n",
+      "policy": { "kind": "bytes", "budget": 20 },
+      "expected": "😀😀…21 chars truncated…with text\n"
+    }
+  ]
+}
