@@ -3,7 +3,7 @@
     "upstream": "openai/codex",
     "anchor_commit": "970b7f2ff4f6",
     "generated_at": "2026-08-22",
-    "status_audit_at": "2026-09-06"
+    "status_audit_at": "2026-09-07"
   },
   "entries": [
     {
@@ -148,11 +148,10 @@
     {
       "path": "bwrap",
       "lines": 135,
-      "dest": "codex-sandbox-bin",
-      "code": "",
-      "note": "",
-      "status": "design-only",
-      "audit": "维持仅设计: bubblewrap 为 Linux 专属启动器, 本套件 Windows/Linux 二进制未含 bwrap"
+      "dest": "EXCLUDED",
+      "code": "E5-vendor-binary",
+      "note": "no JS surface; vendored binary is the implementation",
+      "audit": "2026-09-07 收口: bubblewrap 为 Linux 专属启动器, 本套件 Windows/Linux 二进制未含 bwrap; 行为编译于 vendor 沙箱二进制, 无独立 JS 面, 二进制即实现; 改判 EXCLUDED/E5, 不再计入 design-only"
     },
     {
       "path": "chatgpt",
@@ -307,7 +306,8 @@
       "lines": 297838,
       "dest": "EXCLUDED",
       "code": "E5-equivalent-or-os",
-      "note": "dsh has equivalent layer or OS-bound; designs harvested where better"
+      "note": "dsh has equivalent layer or OS-bound; designs harvested where better",
+      "audit": "2026-09-06 收割审计: E5 维持, 但识别 6 个可收割设计(unified_exec 沙箱拒绝重试缓存/context_manager token 估算含图片字节/command_canonicalization/rollout 压缩/guardian 双缝/任务委托), 前 3 项已蒸馏落地, 详见 ROADMAP"
     },
     {
       "path": "core-api",
@@ -322,8 +322,7 @@
       "dest": "EXCLUDED",
       "code": "E5-equivalent-or-os",
       "note": "manifest/marketplace format reference",
-      "status": "design-only",
-      "audit": "2026-09-06 判定: dest 改 EXCLUDED/E5 — 同 plugin 条目, cordis 插件体系即等价层"
+      "audit": "2026-09-06 判定: dest 改 EXCLUDED/E5 — 同 plugin 条目, cordis 插件体系即等价层; 2026-09-07 移除遗留 status: design-only 标记"
     },
     {
       "path": "core/tests/common",
@@ -354,8 +353,7 @@
       "dest": "EXCLUDED",
       "code": "E5-equivalent-or-os",
       "note": "",
-      "status": "design-only",
-      "audit": "2026-09-06 查证后改判: dest 改 EXCLUDED/E5 — exec-server 是 codex 自有架构的 JSON-RPC 子进程控制服务器(pty + 沙箱 helper 调度), dsh 的 dsh-subprocess-local/dsh-terminal-bash/pwsh + dsh-sandbox-local 即等价层, 44444 行移植属重复建设; 协议类型已由 codex-schema 蒸馏"
+      "audit": "2026-09-06 查证后改判: dest 改 EXCLUDED/E5 — exec-server 是 codex 自有架构的 JSON-RPC 子进程控制服务器(pty + 沙箱 helper 调度), dsh 的 dsh-subprocess-local/dsh-terminal-bash/pwsh + dsh-sandbox-local 即等价层, 44444 行移植属重复建设; 协议类型已由 codex-schema 蒸馏; 2026-09-07 移除遗留 status: design-only 标记"
     },
     {
       "path": "exec-server-protocol",
@@ -478,10 +476,10 @@
       "path": "ext/skills",
       "lines": 19787,
       "dest": "codex-skills-kit",
-      "code": "PARTIAL",
-      "note": "render.rs + dynamic_skill_selector only",
+      "code": "distilled",
+      "note": "render.rs + dynamic_skill_selector (both distilled)",
       "status": "distilled",
-      "audit": "预算公式+目录渲染 + 2026-09-06 二轮新增执行器 executor.ts (skillRead: 权限围栏/256KiB 上限/分页游标, skillList, 对应上游 tools/read.rs); 10 测试; 上游别名选择算法仍在蒸馏面外"
+      "audit": "预算公式+目录渲染 + 2026-09-06 二轮新增执行器 executor.ts (skillRead: 权限围栏/256KiB 上限/分页游标, skillList, 对应上游 tools/read.rs); 10 测试; 2026-09-07 P1-2 新增 selector.ts (normalizeToken/buildAliasIndex/resolveAlias/selectSkills 别名解析+词法打分, codex_skill_select 工具), 11 测试; 上游别名选择算法已蒸馏"
     },
     {
       "path": "ext/web-search",
@@ -589,7 +587,7 @@
       "code": "",
       "note": "",
       "status": "implemented",
-      "audit": "vendor 保持在 0.149 构建 (49MB); 上游 0.153.4 release 已不再附带 linux-sandbox 资产, 重 vendor 需 musl 自建"
+      "audit": "2026-09-07 P0-2 处置: 正式冻结 vendor 0.149 — bin/linux-x64/codex-linux-sandbox 实测 49,198,120 bytes, sha256 d77ef2bf03d275b30381456d2efc07458e3db38756b796470c3cf201223b3a14; 上游 0.153.4 release 已不再附带 linux-sandbox 资产(无新版可跟进), musl 自建需 Rust 工具链+网络(沙箱不具备, 不伪造). 重启条件: ① dsh 需要更新行为且具备 Rust/musl 构建环境(按 BUILD.md: cargo build --release -p codex-linux-sandbox), 或 ② 上游恢复附带资产; 重建产物必须与冻结基线 sha256 比对. Windows 侧维持 0.153.4 时代二进制(2026-09-06 刷新: codex-command-runner.exe 8,204,592 B + codex-windows-sandbox-setup.exe 15,413,040 B); 二进制为 sandboxSummary.ts 运行时引用, 不可移除"
     },
     {
       "path": "lmstudio",
@@ -696,17 +694,15 @@
       "dest": "EXCLUDED",
       "code": "E5-equivalent-or-os",
       "note": "manifest/marketplace format reference",
-      "status": "design-only",
-      "audit": "2026-09-06 判定: dest 改 EXCLUDED/E5 — dsh 的 cordis 插件体系(name/inject/apply)即等价层; pack 保留为集成清单/胶水"
+      "audit": "2026-09-06 判定: dest 改 EXCLUDED/E5 — dsh 的 cordis 插件体系(name/inject/apply)即等价层; pack 保留为集成清单/胶水; 2026-09-07 移除遗留 status: design-only 标记"
     },
     {
       "path": "process-hardening",
       "lines": 165,
-      "dest": "codex-sandbox-bin",
-      "code": "",
-      "note": "",
-      "status": "design-only",
-      "audit": "维持仅设计: 加固旗标编译于 vendor 二进制内部"
+      "dest": "EXCLUDED",
+      "code": "E5-vendor-binary",
+      "note": "no JS surface; vendored binary is the implementation",
+      "audit": "2026-09-07 收口: 加固旗标编译于 vendor 沙箱二进制内部, 无独立 JS 面, 二进制即实现; 改判 EXCLUDED/E5, 不再计入 design-only"
     },
     {
       "path": "prompts",
@@ -756,7 +752,7 @@
       "code": "",
       "note": "",
       "status": "distilled",
-      "audit": "容错 JSONL 解析 + 2026-09-06 二轮新增 replay.ts (seq 编号回放/atSeq fork-resume 切片/消息抽取/坏行计数); 4 测试; 上游压缩/ordinal/持久化度量未移植"
+      "audit": "容错 JSONL 解析 + 2026-09-06 二轮新增 replay.ts (seq 编号回放/atSeq fork-resume 切片/消息抽取/坏行计数); 4 测试; 压缩已蒸馏(sessionCompression.ts, gzip+运行标记防重叠); 2026-09-07 P1-3 新增 rolloutMetrics.ts (ordinal/持久化/压缩度量: total/uncompressed/compressed/totalBytes/savedBytes/savedPct/ordinal/persisted, 3 测试)"
     },
     {
       "path": "rollout-trace",
@@ -790,16 +786,15 @@
       "code": "",
       "note": "",
       "status": "distilled",
-      "audit": "2026-09-06 已移植并二轮加深: commandSafety.ts 分类器 + shellParser.ts 语义解析器(引号/命令替换 $( )与反引号/heredoc/控制算符), dangerousCommandMatchLine 堵住 echo $(rm -rf /) 式逃逸; 共 18 测试。仍未移植: parse_command 全量 bash 文法与 shell_detect 提权选路"
+      "audit": "2026-09-06 三轮: 分类器+语义解析器+审批规范键(canonicalization, unified_exec 重试缓存思想)全部落地, /bin/bash -lc 与 bash -c 同键; 共 24 测试。2026-09-07: shell_detect 提权选路已落地(commandSafety.detectEscalation: sudo/doas/pkexec/gsudo/elevate/runas + su -c 路由, 含选项参数跳过); parse_command 全量 bash 文法维持缓议(本机无上游 rust 源码, 2,766 行全量移植不可信)"
     },
     {
       "path": "shell-escalation",
       "lines": 2078,
-      "dest": "codex-sandbox-bin",
-      "code": "",
-      "note": "",
-      "status": "design-only",
-      "audit": "维持仅设计: 提权决策内嵌于 vendor 二进制, JS 面无独立价值"
+      "dest": "EXCLUDED",
+      "code": "E5-vendor-binary",
+      "note": "no JS surface; vendored binary is the implementation",
+      "audit": "2026-09-07 收口: 提权决策内嵌于 vendor 沙箱二进制, JS 面无独立价值, 二进制即实现; 改判 EXCLUDED/E5, 不再计入 design-only"
     },
     {
       "path": "skills",
@@ -854,7 +849,7 @@
       "code": "",
       "note": "",
       "status": "distilled",
-      "audit": "2026-09-06 四轮: src/threadStore.ts (存储中立 thread 持久化契约 + 内存实现 + 队列提交)"
+      "audit": "2026-09-06 四轮: src/threadStore.ts (存储中立 thread 持久化契约 + 内存实现 + 队列提交); 2026-09-07 P1-4 新增 JsonlFileThreadStore (JSONL 落盘后端: 线程+队列双文件, 跨进程 durable, 坏行容忍) + createThreadStore 工厂 (file→durable, 默认内存), 4 测试"
     },
     {
       "path": "tools",
@@ -991,7 +986,7 @@
       "code": "",
       "note": "",
       "status": "distilled",
-      "audit": "2026-09-06 四轮: src/utils/pathUri.ts (file:// URI 双向转换)"
+      "audit": "2026-09-06 四轮: src/utils/pathUri.ts (file:// URI 与文件路径双向转换, Windows 盘符/编码处理)"
     },
     {
       "path": "utils/path-utils",
@@ -1008,8 +1003,7 @@
       "dest": "EXCLUDED",
       "code": "E5-equivalent-or-os",
       "note": "manifest/marketplace format reference",
-      "status": "design-only",
-      "audit": "2026-09-06 判定: dest 改 EXCLUDED/E5 — 同 plugin 条目"
+      "audit": "2026-09-06 判定: dest 改 EXCLUDED/E5 — 同 plugin 条目; 2026-09-07 移除遗留 status: design-only 标记"
     },
     {
       "path": "utils/pty",
@@ -1134,7 +1128,7 @@
       "path": "guardian-context",
       "lines": 0,
       "dest": "codex-prompts",
-      "audit": "2026-09-06 四轮: src/guardian.ts 蒸馏落地",
+      "audit": "2026-09-06 四轮: src/guardian.ts (同步审查+异步评分双提示词, 共享有界上下文节) — 即 guardian-context 的蒸馏落地",
       "status": "distilled"
     },
     {

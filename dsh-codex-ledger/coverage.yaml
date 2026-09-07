@@ -330,6 +330,7 @@ entries:
     note: "dsh has equivalent layer or OS-bound; designs harvested where better"
   - path: ext/skills
     lines: 19787
+    dest: codex-skills-kit
 
     status: distilled
     audit: "预算公式+目录渲染 + 2026-09-06 二轮新增执行器 executor.ts (skillRead: 权限围栏/256KiB 上限/分页游标, skillList, 对应上游 tools/read.rs); 10 测试; 2026-09-07 P1-2 新增 selector.ts (normalizeToken/buildAliasIndex/resolveAlias/selectSkills 别名解析+词法打分, codex_skill_select 工具), 11 测试; 上游别名选择算法已蒸馏"
@@ -427,11 +428,13 @@ entries:
     note: "Rust-specific glue/tests with no JS counterpart problem"
   - path: memories/read
     lines: 201
+    dest: codex-session-kit
 
     status: distilled
     audit: "同一 StructuredMemoryStore 读面(readMemory/listOrigins)"
   - path: memories/write
     lines: 4293
+    dest: codex-session-kit
 
     status: distilled
     audit: "2026-09-06 二轮新增 structuredMemory.ts: 上游文件格式落地(raw_memories.md 分节 + rollout_summaries/ + 增长守卫 rebuild + forget + 大小上限); 5 测试; LLM 整合管线(phase1/phase2)不在蒸馏面内"
@@ -509,6 +512,7 @@ entries:
     note: "dsh has equivalent layer or OS-bound; designs harvested where better"
   - path: rollout
     lines: 13749
+    dest: codex-session-kit
 
     status: distilled
     audit: "容错 JSONL 解析 + 2026-09-06 二轮新增 replay.ts (seq 编号回放/atSeq fork-resume 切片/消息抽取/坏行计数); 4 测试; 压缩已蒸馏(sessionCompression.ts, gzip+运行标记防重叠); 2026-09-07 P1-3 新增 rolloutMetrics.ts (ordinal/持久化/压缩度量: total/uncompressed/compressed/totalBytes/savedBytes/savedPct/ordinal/persisted, 3 测试)"
@@ -529,6 +533,7 @@ entries:
     note: "dsh has equivalent layer or OS-bound; designs harvested where better"
   - path: shell-command
     lines: 5839
+    dest: codex-policy-engine
     status: distilled
     audit: "2026-09-06 三轮: 分类器+语义解析器+审批规范键(canonicalization, unified_exec 重试缓存思想)全部落地, /bin/bash -lc 与 bash -c 同键; 共 24 测试。2026-09-07: shell_detect 提权选路已落地(commandSafety.detectEscalation: sudo/doas/pkexec/gsudo/elevate/runas + su -c 路由, 含选项参数跳过); parse_command 全量 bash 文法维持缓议(本机无上游 rust 源码, 2,766 行全量移植不可信)"
   - path: shell-escalation
@@ -649,6 +654,7 @@ entries:
     note: "Rust-specific glue/tests with no JS counterpart problem"
   - path: utils/output-truncation
     lines: 492
+    dest: codex-policy-engine
 
     status: distilled
     audit: "2026-09-06 已移植: src/outputTruncation.ts (truncateMiddle/bytes+tokens 预算/空文本项跳过/省略计数), 基于 rust-v0.153.4; 8 测试"
