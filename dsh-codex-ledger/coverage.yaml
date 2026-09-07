@@ -535,7 +535,7 @@ entries:
     lines: 5839
     dest: codex-policy-engine
     status: distilled
-    audit: "2026-09-06 三轮: 分类器+语义解析器+审批规范键(canonicalization, unified_exec 重试缓存思想)全部落地, /bin/bash -lc 与 bash -c 同键; 共 24 测试。2026-09-07: shell_detect 提权选路已落地(commandSafety.detectEscalation: sudo/doas/pkexec/gsudo/elevate/runas + su -c 路由, 含选项参数跳过); parse_command 全量 bash 文法维持缓议(本机无上游 rust 源码, 2,766 行全量移植不可信)"
+    audit: "2026-09-06 三轮: 分类器+语义解析器+审批规范键(canonicalization, unified_exec 重试缓存思想)全部落地, /bin/bash -lc 与 bash -c 同键; 共 24 测试。2026-09-07: shell_detect 提权选路已落地(commandSafety.detectEscalation: sudo/doas/pkexec/gsudo/elevate/runas + su -c 路由, 含选项参数跳过)。2026-09-07 续: P1-1 parse_command 全量 bash 文法已落地——缓议前提(本机无上游 rust 源码)因网络通路解除, 取 rust-v0.153.4 上游 parse_command.rs(2,766 行) + bash.rs(565 行) 逐条移植: 新增 codex-policy-engine/src/parseCommand/{shlex,bashWordSeq,shellDetect,powershellExtract,parseCommand}.ts 共 1,537 行 + test/parseCommand.test.ts 625 行/106 测试, 与上游 83(parse_command.rs)+23(bash.rs) 测试名 1:1 对齐(双向 comm diff 零漂移), 其中 6 个高危引号字面量按码点与上游原文逐字节校验; shlex 为 shlex-1.3.0 忠实移植(quote/split 分词与引号策略按 crates.io 源码核对)。policy-engine 测试 45→151 全绿。遗留: 上游 49 函数中 8 个 tree-sitter 节点遍历内部函数无对应物(手写词法器替代, 已写入模块头注释); parse_shell_lc_literal_commands 未按名移植, 其消费路径(危险检测递归)由 commandSafety.splitInvocationSegments 承担——行为等价近似, 非节点级忠实。同日去重: commandSafety.shlexSplit 改为复用忠实移植版, 消除包内双 shlex 实现漂移风险"
   - path: shell-escalation
     lines: 2078
     dest: EXCLUDED

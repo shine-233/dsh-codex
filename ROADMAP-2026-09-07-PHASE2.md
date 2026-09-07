@@ -57,7 +57,7 @@
 
 11b. **typecheck 打通与 types.ts 审计（同日续）**：网络通路确认后以 standalone TS 5.x 工具链（`~/.workbuddy/binaries/node/workspace`，不污染仓库 lockfile）跑通 `tsc --noEmit`——先修掉重写引入的 4 处 `ValidationResult` 导入冲突（TS2440），**全包 0 错误**。随后临时摘除 4 个 types.ts 的 `@ts-nocheck` 审计欠账：**366 处类型错误**（TS2304 缺失引用类型 WireCellId/CellId/ToolName 等 + TS2300 重复成员 + TS2686）——机械翻译的结构性缺陷，修复等价于按上游形状重写类型层 → 定性为后续 epic（需上游 codex 源码对照，网络已可用），本轮维持 pragma 不动。
 
-> **PHASE2 清单至此全部收口**：P0-1/P0-2/P1-1（半）/P1-2/P1-3/P1-4/P2-2 均已执行并有机器证据；唯一缓议 = P1-1 全量 bash 文法——**其前提（本机无上游源码）已因网络通路而解除**，可从 openai/codex 上游获取 parse_command 源码后按忠实度校验推进（下一轮候选）。P2-1/P2-3/P2-4 维持产品/环境决策类原状。
+> **PHASE2 清单至此全部收口**：P0-1/P0-2/**P1-1（全，含 parse_command 全量 bash 文法）**/P1-2/P1-3/P1-4/P2-2 均已执行并有机器证据（P1-1 的最后一块拼图 `parse_command` 已在本日续作中闭环，证据见下表与第六节）。P2-1/P2-3/P2-4 维持产品/环境决策类原状。
 
 ---
 
@@ -74,7 +74,7 @@
 ### P1 · 深化部分蒸馏（需立项，中等工作量）
 | # | 项 | 未移植子面 | 价值 |
 |---|---|---|---|
-| P1-1 | **shell-command / policy-engine** | `parse_command` 全量 bash 文法 + `shell_detect` 提权选路 | ✅ **提权选路半已执行（2026-09-07）**：`commandSafety.detectEscalation` 路由 sudo/doas/pkexec/gsudo/elevate/runas + su -c（含选项参数跳过），2 新测试，policy-engine 45/45 绿。`parse_command` 全量 bash 文法**维持缓议**：本机无上游 rust 源码，2,766 行全量移植无法机器校验忠实度，强行移植即造假 |
+| P1-1 | **shell-command / policy-engine** | `parse_command` 全量 bash 文法 + `shell_detect` 提权选路 | ✅ **已全部执行（2026-09-07 续）**：①提权选路 `commandSafety.detectEscalation`（sudo/doas/pkexec/gsudo/elevate/runas + su -c，含选项参数跳过），+2 测试。②**`parse_command` 全量 bash 文法已落地**——缓议前提（无上游 rust 源码）因网络通路解除，取 rust-v0.153.4 上游 `parse_command.rs`(2,766 行) + `bash.rs`(565 行) 逐条移植：新增 `codex-policy-engine/src/parseCommand/{shlex,bashWordSeq,shellDetect,powershellExtract,parseCommand}.ts` 共 **1,537 行** + `test/parseCommand.test.ts` **625 行 / 106 测试**，与上游 83+23 测试名 **1:1 对齐（双向 comm diff 零漂移）**；6 个高危引号字面量按码点与上游原文**逐字节校验**；`shlex` 为 shlex-1.3.0 忠实移植（quote/split 算法按 crates.io 源码核对）。证据：policy-engine **45 → 151 全绿**。遗留（已写入模块头注释）：8 个 tree-sitter 节点遍历内部函数无对应物（手写词法器替代）；`parse_shell_lc_literal_commands` 未按名移植，其消费路径由 `commandSafety.splitInvocationSegments` 承担（行为等价近似，非节点级忠实）。同日去重：`commandSafety.shlexSplit` 复用忠实移植版，消除包内双 shlex 实现漂移 |
 | P1-2 | **ext/skills dynamic_skill_selector** | ✅ **已执行（2026-09-07）**：`selectSkills`/`resolveAlias`/`buildAliasIndex`/`normalizeToken` 别名解析+词法打分蒸馏落地，+11 测试，skills-kit 21/21 绿；注册 `codex_skill_select` dsh 工具（注入缝） | 提升技能自动选择的命中率 |
 | P1-3 | **rollout 持久化度量** | ✅ **已执行（2026-09-07）**：`rolloutMetrics.ts` 落地 ordinal/持久化/压缩度量（total/uncompressed/compressed/totalBytes/savedBytes/savedPct/ordinal/persisted），+3 测试，session-kit 34/34 绿；台账 rollout 条目同步 | 会话日志的可观测性与增量回放 |
 | P1-4 | **thread-store 持久后端** | ✅ **已执行（2026-09-07）**：`JsonlFileThreadStore` JSONL 落盘后端（线程+队列双文件、跨进程 durable、坏行容忍、零原生依赖）+ `createThreadStore` 工厂（file→durable，默认内存），+4 测试；sqlite 后端按需另立项 | 若 dsh 需要跨进程 durable thread，需补一个后端（file/sqlite） |
@@ -113,3 +113,30 @@
 - `codex-skills-kit/test/executor.test.ts`（fixture 迁移 tmpdir，消除 repo 本地 rmSync 依赖，见二.8）
 - `codex-schema/src/handwritten/zodUnion.ts` + 五面 validate.ts zod 重写 + `test/validatorSemantics.test.ts`（P2-2，见二.11）
 - `dsh-codex-ledger/scripts/check_yaml_json_consistency.mjs`（台账双件一致性守卫 + 全量镜像同步）
+- `codex-policy-engine/src/parseCommand/shlex.ts`（shlex-1.3.0 忠实移植：`shlexSplit`/`shlexQuote`/`shlexTryJoin`/`shlexJoin`）
+- `codex-policy-engine/src/parseCommand/bashWordSeq.ts`（bash.rs 词序列接受契约的手写词法器实现，替代 tree-sitter）
+- `codex-policy-engine/src/parseCommand/shellDetect.ts` / `powershellExtract.ts`（shell 类型判别 + PowerShell `-Command` 提取）
+- `codex-policy-engine/src/parseCommand/parseCommand.ts`（parse_command.rs 全量分类器，1,025 行）
+- `codex-policy-engine/test/parseCommand.test.ts`（106 测试，与上游 83+23 逐名对齐）
+
+---
+
+## 六、P1-1 续作：`parse_command` 全量 bash 文法（2026-09-07 晚）
+
+**前提解除**：此前「无上游 rust 源码 → 2,766 行全量移植不可信、强行移植即造假」的缓议理由已不成立——网络通路可用后取得 `openai/codex` rust-v0.153.4 的 `shell-command/src/parse_command.rs`（2,766 行 / 38 函数）与 `bash.rs`（565 行），逐函数、逐测试比对移植。
+
+| 校验项 | 方法 | 结果 |
+|---|---|---|
+| 测试名覆盖 | 上游 83 + 23 测试名 ↔ 移植 `it()` 名双向 `comm` diff | **106 = 106，双向零漂移** |
+| 高危字面量 | 6 个含多层转义的引号脚本按码点数组独立重建后比对 | **逐字节一致**（`ALL LITERALS MATCH UPSTREAM SOURCES`） |
+| shlex 语义 | 拉取 crates.io `shlex-1.3.0` 源码核对 `quote`/`unquoted_ok`/`quoting_strategy`/`next_word` | 分词与引号策略按源码实现，非猜测 |
+| 函数面 | 上游 49 函数 → camelCase 归一后比对 | 8 个 tree-sitter 节点遍历内部函数无对应物（手写词法器替代，模块头已注明）；`parse_shell_lc_literal_commands` 未按名移植，消费路径由 `splitInvocationSegments` 承担 |
+| 回归 | policy-engine 全包 vitest | **45 → 151 全绿** |
+| 全量回归 | 10 包逐包 vitest 实测求和 | **354 passed / 0 failed**（原 248 + 106；config-importer 18 / edit-fusion 10 / net-guard 3 / policy-engine **151** / prompts 6 / sandbox-bin 4 / schema 34 / session-kit 34 / skills-kit 21 / dsh-codex-pack 73） |
+| 台账一致性 | `check_yaml_json_consistency.mjs` | 改后 1 处 DRIFT → `--fix` 同步 → 复检 `[OK]`（150 条目） |
+| 类型 | standalone TS 5.x `tsc --noEmit` | 新增模块 **0 错误**（包内剩余 37 项为既有 `@types/node` 缺失与 `dsh-plugin.ts` 隐式 any） |
+
+**过程中发现并修复的真实缺陷（非测试缺陷）**：
+1. `summarizeMainTokens` 对空 token 数组崩溃（`head.toLowerCase()` on undefined）——上游 `split_first()` 落 catch-all `Unknown{cmd:""}`，补守卫对齐。
+2. `src/index.ts` 重复导出 `shlexSplit`（commandSafety 与 shlex 各一份）→ 导致 `policy.test.ts`/`starlarkLite.test.ts` **整文件 import 失败**；根治方式是**去重**：`commandSafety.shlexSplit` 改为复用忠实移植版，包内不再有第二套 shlex 实现。
+3. 补测 3 条上游用例（`preserves_quoted_literals` / `rejects_double_quoted_escapes` / `rejects_runtime_expansion_in_plain_words`）后，暴露并确认了双引号内 `\n` 字面量**应被接受**（仅 `\` 后跟 `" \ $ \`` 或换行才构成 escape_sequence）——与移植实现一致。

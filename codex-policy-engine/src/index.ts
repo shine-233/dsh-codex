@@ -12,3 +12,10 @@ export {
   truncateFunctionOutputItems, approxTokenCount, approxBytesForTokens, approxTokensFromByteCount,
   type TruncationPolicy, type OutputContentItem,
 } from './outputTruncation.js';
+export {
+  parseCommand, parseCommandImpl, parseShellScript, isSmallFormattingCommand, isPathish,
+  shlexSplitSafe, extractBashCommand, parseShellLcPlainCommands,
+  type ParsedCommand,
+} from './parseCommand/parseCommand.js';
+export { parseShellScriptIntoCommands, type WordSeq } from './parseCommand/bashWordSeq.js';
+export { shlexJoin } from './parseCommand/shlex.js';

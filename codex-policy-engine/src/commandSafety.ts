@@ -7,6 +7,7 @@
 // - the PowerShell invocation parser is a shlex-style best-effort, not a full PS parser.
 // Semantic line parsing (quotes/substitutions/heredocs) lives in shellParser.ts.
 import { shellSubCommands } from './shellParser.js'
+import { shlexSplit } from './parseCommand/shlex.js'
 
 export type DangerousPlatform = 'posix' | 'windows'
 export type DangerousMatch = 'ForcedRm' | 'Other'
@@ -20,30 +21,12 @@ const SEG_SEPS = [';', '|', '&', '\n', '\r', '\t']
 const SOFT_SEPS = ['{', '}', '(', ')', '[', ']', ',', ';']
 
 /** Quote-aware word split (shlex-style). Returns null on unbalanced quotes. */
-export function shlexSplit(src: string): string[] | null {
-  const out: string[] = []
-  let cur = ''
-  let q: string | null = null
-  let started = false
-  for (let i = 0; i < src.length; i++) {
-    const ch = src[i]
-    if (q) {
-      if (q === "'" && ch === "'") q = null
-      else if (q === '"' && ch === '"') q = null
-      else if (q === '"' && ch === '\\' && (src[i + 1] === '"' || src[i + 1] === '\\')) {
-        cur += src[++i]
-      } else cur += ch
-      continue
-    }
-    if (ch === "'" || ch === '"') { q = ch; started = true; continue }
-    if (ch === '\\') { cur += src[++i] ?? ''; continue }
-    if (/\s/.test(ch)) { if (cur || started) { out.push(cur); cur = ''; started = false } continue }
-    cur += ch
-  }
-  if (q) return null
-  if (cur || started) out.push(cur)
-  return out
-}
+/**
+ * Re-exported from the faithful shlex 1.3.0 port (upstream `command_safety.rs`
+ * calls the same `shlex::split`). Kept as the single shlex implementation in
+ * this package so danger detection and command parsing cannot diverge.
+ */
+export { shlexSplit } from './parseCommand/shlex.js';
 
 /** Split a command line into pipeline/sequence segments, then tokenize each. */
 export function splitInvocationSegments(line: string): string[][] {
