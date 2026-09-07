@@ -1,61 +1,45 @@
 // Runtime validators for the protocol sketch (M1 → executable).
-// Zero deps; guards mirror the sketch interfaces and the upstream
-// protocol crate shapes at rust-v0.153.4. Tolerant of extra keys.
+// Guards mirror the sketch interfaces and the upstream protocol crate shapes
+// at rust-v0.153.4. Tolerant of extra keys.
+// P2-2: per-variant payloads are zod schemas dispatched by the shared
+// sketch-union adapter (ok/variant/error contract semantic-locked by tests).
+import { z } from 'zod'
+import { zodUnion, sketchMember, zodNoneTagged, type ValidationResult } from '../zodUnion.js'
+
 export interface ValidationResult { ok: boolean; variant: string | null; error?: string }
-
-function isObject(v: unknown): v is Record<string, unknown> {
-  return typeof v === 'object' && v !== null && !Array.isArray(v)
-}
-
-function union(
-  j: unknown,
-  tagKey: string,
-  members: Record<string, (v: Record<string, unknown>) => string | null>,
-): ValidationResult {
-  if (!isObject(j)) return { ok: false, variant: null, error: 'not an object' }
-  const tag = j[tagKey]
-  if (typeof tag !== 'string') return { ok: false, variant: null, error: `missing string \`${tagKey}\`` }
-  const check = members[tag]
-  if (!check) return { ok: false, variant: tag, error: `unknown variant: ${tag}` }
-  const err = check(j)
-  return err ? { ok: false, variant: tag, error: err } : { ok: true, variant: tag }
-}
-
-const isStr = (v: unknown): boolean => typeof v === 'string'
-const isOptStr = (v: unknown): boolean => v === undefined || v === null || typeof v === 'string'
 
 // ── UserInput (turn_input.rs, serde tag = "type") ────────────────────────────
 
 export function validateUserInput(j: unknown): ValidationResult {
-  return union(j, 'type', {
-    Text: (v) => (isStr(v.text) ? null : 'Text requires string `text`'),
-    Image: (v) => (isStr(v.imageUrl) ? null : 'Image requires string `imageUrl`'),
-    LocalImage: (v) => (v.path !== undefined ? null : 'LocalImage requires `path`'),
-    Audio: (v) => (isStr(v.audioUrl) ? null : 'Audio requires string `audioUrl`'),
-    LocalAudio: (v) => (v.path !== undefined ? null : 'LocalAudio requires `path`'),
-    Skill: (v) => (isStr(v.name) && v.path !== undefined ? null : 'Skill requires `name` and `path`'),
-    Mention: (v) => (isStr(v.name) && isStr(v.path) ? null : 'Mention requires strings `name` and `path`'),
+  return zodUnion(j, 'type', {
+    Text: sketchMember({ strings: { text: 'Text requires string `text`' } }),
+    Image: sketchMember({ strings: { imageUrl: 'Image requires string `imageUrl`' } }),
+    LocalImage: sketchMember({ definedKeys: ['path'] }),
+    Audio: sketchMember({ strings: { audioUrl: 'Audio requires string `audioUrl`' } }),
+    LocalAudio: sketchMember({ definedKeys: ['path'] }),
+    Skill: sketchMember({ strings: { name: 'Skill requires `name` and `path`' }, definedKeys: ['path'] }),
+    Mention: sketchMember({ strings: { name: 'Mention requires strings `name` and `path`', path: 'Mention requires strings `name` and `path`' } }),
   })
 }
 
 // ── ParsedCommand (shell-command analysis face) ─────────────────────────────
 
 export function validateParsedCommand(j: unknown): ValidationResult {
-  return union(j, 'type', {
-    Read: (v) => (isStr(v.cmd) ? null : 'Read requires string `cmd`'),
-    ListFiles: (v) => (isStr(v.cmd) && isOptStr(v.path) ? null : 'ListFiles requires `cmd` and optional `path`'),
-    Search: (v) => (isStr(v.cmd) && isOptStr(v.query) && isOptStr(v.path) ? null : 'Search requires `cmd` + optional `query`/`path`'),
-    Unknown: (v) => (isStr(v.cmd) ? null : 'Unknown requires string `cmd`'),
+  return zodUnion(j, 'type', {
+    Read: sketchMember({ strings: { cmd: 'Read requires string `cmd`' } }),
+    ListFiles: sketchMember({ strings: { cmd: 'ListFiles requires `cmd` and optional `path`' }, optionalStrings: ['path'] }),
+    Search: sketchMember({ strings: { cmd: 'Search requires `cmd` + optional `query`/`path`' }, optionalStrings: ['query', 'path'] }),
+    Unknown: sketchMember({ strings: { cmd: 'Unknown requires string `cmd`' } }),
   })
 }
 
 // ── RawFileSystemPath (type-tagged) ─────────────────────────────────────────
 
 export function validateRawFileSystemPath(j: unknown): ValidationResult {
-  return union(j, 'type', {
-    Path: () => null,
-    GlobPattern: (v) => (isStr(v.pattern) ? null : 'GlobPattern requires string `pattern`'),
-    Special: (v) => (v.value !== undefined ? null : 'Special requires `value`'),
+  return zodUnion(j, 'type', {
+    Path: sketchMember(),
+    GlobPattern: sketchMember({ strings: { pattern: 'GlobPattern requires string `pattern`' } }),
+    Special: sketchMember({ definedKeys: ['value'] }),
   })
 }
 
@@ -64,14 +48,9 @@ export function validateRawFileSystemPath(j: unknown): ValidationResult {
 const ENVIRONMENT_CONFIG_STATE_VARIANTS = ['Ready', 'Failed', 'FromThread', 'Pending']
 
 export function validateEnvironmentConfigState(j: unknown): ValidationResult {
-  if (!isObject(j)) return { ok: false, variant: null, error: 'not an object' }
-  const tag = j.None
-  if (typeof tag !== 'string' || !ENVIRONMENT_CONFIG_STATE_VARIANTS.includes(tag)) {
-    return { ok: false, variant: null, error: `unknown EnvironmentConfigState variant: ${String(tag)}` }
-  }
   // Ready carries an EnvironmentConfig payload upstream; the sketch does not
   // expand it, so only the tag is enforced here.
-  return { ok: true, variant: tag }
+  return zodNoneTagged(j, ENVIRONMENT_CONFIG_STATE_VARIANTS, 'unknown EnvironmentConfigState variant')
 }
 
 // ── ReasoningEffort (openai_models.rs, 0.153.4 variant set) ─────────────────
@@ -80,8 +59,15 @@ export const REASONING_EFFORT_VARIANTS = [
   'None', 'Minimal', 'Low', 'Medium', 'High', 'XHigh', 'Max', 'Ultra', 'Persistent',
 ] as const
 
+const ReasoningEffortSchema = z.union([
+  z.enum(REASONING_EFFORT_VARIANTS),
+  z.object({ Custom: z.string() }).passthrough(),
+])
+
 export function validateReasoningEffort(j: unknown): ValidationResult {
-  if (typeof j === 'string' && (REASONING_EFFORT_VARIANTS as readonly string[]).includes(j)) return { ok: true, variant: j }
-  if (isObject(j) && typeof j.Custom === 'string') return { ok: true, variant: 'Custom' }
-  return { ok: false, variant: null, error: 'unknown ReasoningEffort' }
+  const r = ReasoningEffortSchema.safeParse(j)
+  if (!r.success) return { ok: false, variant: null, error: 'unknown ReasoningEffort' }
+  return typeof j === 'string'
+    ? { ok: true, variant: j }
+    : { ok: true, variant: 'Custom' }
 }

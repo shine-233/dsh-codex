@@ -550,7 +550,7 @@
       "code": "",
       "note": "",
       "status": "distilled",
-      "audit": "手写草图 M1, 2026-09-06 已补 RolloutItem::TokenUsageRecord/RealtimeItem"
+      "audit": "手写草图 M1, 2026-09-06 已补 RolloutItem::TokenUsageRecord/RealtimeItem; 2026-09-07 P2-2 validateRolloutItem zod 形式化(信封规则转 zod superRefine)"
     },
     {
       "path": "hooks",
@@ -720,7 +720,7 @@
       "code": "",
       "note": "",
       "status": "distilled",
-      "audit": "手写草图 @ts-nocheck M1 + 2026-09-06 三轮升级: protocol/exec-server-protocol/code-mode-protocol 三面各增零依赖运行时校验器 validateXxx(15 测试), history 已先行; 覆盖仍为蒸馏面子集"
+      "audit": "手写草图 @ts-nocheck M1 + 2026-09-06 三轮升级: protocol/exec-server-protocol/code-mode-protocol 三面各增零依赖运行时校验器 validateXxx(15 测试), history 已先行; 覆盖仍为蒸馏面子集; 2026-09-07 P2-2: 五面 validate.ts 全部 zod 形式化(zodUnion 分发器 + sketchMember/presenceKeys 字段 schema; 先以语义锁 17 测试钉死 ok/variant 契约再重写, 原契约测试零改动通过), zod 为显式 devDep^3.24.0(实测 3.25.76); types.ts z.infer 迁移与 ts-nocheck 清除为后续项"
     },
     {
       "path": "response-debug-context",

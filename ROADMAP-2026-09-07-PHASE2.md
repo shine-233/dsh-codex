@@ -53,7 +53,9 @@
 
 10. **P0-2 已执行（linux-sandbox 处置裁决）**：正式**冻结 vendor 0.149**——实测 `bin/linux-x64/codex-linux-sandbox` = 49,198,120 bytes，sha256 冻结基线 `d77ef2bf03d275b30381456d2efc07458e3db38756b796470c3cf201223b3a14`（写入台账 audit）；上游 0.153.4 release 已不附带该资产，无新版可跟进；本沙箱无 Rust/musl 工具链与网络，不伪造自建。显式重启条件：①具备 Rust/musl 环境按 `BUILD.md`（`cargo build --release -p codex-linux-sandbox`）自建，②上游恢复附带资产；重建产物必须与冻结基线 hash 比对。Windows 侧维持 2026-09-06 刷新的 0.153.4 时代二进制。该二进制为 `sandboxSummary.ts:18` 运行时引用，不可移除。
 
-> **PHASE2 清单至此全部收口**：P0-1/P0-2/P1-1（半）/P1-2/P1-3/P1-4 均已执行并有机器证据；唯一缓议 = P1-1 全量 bash 文法（无上游源码，忠实度不可机器校验）。P2 系列维持产品/环境决策类原状。
+11. **P2-2 已执行（schema 五面 validator zod 形式化）**：新增共享 `handwritten/zodUnion.ts`（tag 分发适配器原样保留 sketch 语义：non-object→variant null、非字符串 tag→missing string、未知 tag→variant=tag；`sketchMember`/`presenceKeys` 字段糖）。五面 validate.ts（extension-api / history / protocol / exec-server-protocol / code-mode-protocol，15 个 validateXxx）字段校验全部转 zod schema。方法：**先写 `test/validatorSemantics.test.ts`（17 测试）对旧守卫钉死 ok/variant/type 契约（含未断言角落：未知 tag 的 variant 标记、显式 undefined 键、数组非对象、null 拒收），再重写**；重写暴露并修复 1 处 zod 语义差（zod parse 丢弃显式 undefined 值键 → `presenceKeys` 改 `z.custom` 直测原始输入）。证据：schema **34/34 绿**（原 4 个契约测试文件零改动 + 语义锁 17）；全量 10 包 **248 passed / 0 failed**（231 + 17）。遗留：types.ts 的 z.infer 迁移与 @ts-nocheck 清除为后续项；`typecheck` 离线不可跑（monorepo 无 typescript，既有限制非本轮回归）。
+
+> **PHASE2 清单至此全部收口**：P0-1/P0-2/P1-1（半）/P1-2/P1-3/P1-4/P2-2 均已执行并有机器证据；唯一缓议 = P1-1 全量 bash 文法（无上游源码，忠实度不可机器校验）。P2-1/P2-3/P2-4 维持产品/环境决策类原状（vendor 对等 epic / LLM 管线 / guardian PROMPT-ONLY 符合预期）。
 
 ---
 
@@ -79,7 +81,7 @@
 | # | 项 | 说明 |
 |---|---|---|
 | P2-1 | **vendor 二进制行为（bwrap/shell-escalation/process-hardening）** | 已改判 E5。若 dsh 想要原生对等能力（不依赖 vendor exe），属独立产品 epic，不在 codex 移植范围内 |
-| P2-2 | **codex-schema protocol 草图 M1→zod 正式形状** | 当前手写守卫为 `@ts-nocheck` 子集 + 零依赖三元组校验；可升级为 zod 校验（需先在 schema 包显式声明 zod 依赖，避免幻影依赖） |
+| P2-2 | **codex-schema protocol 草图 M1→zod 正式形状** | ✅ **已执行（2026-09-07）**：五面 validate.ts 全部 zod 形式化（`zodUnion` 分发器 + `sketchMember`/`presenceKeys` 字段 schema）；先写语义锁 17 测试钉死 ok/variant 契约再重写，**原契约测试零改动通过**；修复 1 处 zod 语义差（显式 undefined 键被 parse 丢弃 → `presenceKeys` 改 `z.custom` 直测原始输入）。zod 本就是显式 devDep（^3.24.0，实测 3.25.76，非幻影依赖）。遗留：types.ts z.infer 迁移 + ts-nocheck 清除（后续项）；`typecheck` 离线不可跑（monorepo 无 typescript，既有限制） |
 | P2-3 | **memories/write LLM 整合管线 (phase1/phase2)** | 需 LLM，超出蒸馏面，属 dsh 自有能力 |
 | P2-4 | **ext/guardian-v2** | 仅 PROMPT-ONLY 蒸馏（分类器代码 OpenAI 绑定），符合预期 |
 
@@ -107,3 +109,5 @@
 - `codex-session-kit/src/rolloutMetrics.ts` + `test/rolloutMetrics.test.ts`（P1-3 ordinal/持久化/压缩度量）
 - `codex-session-kit/src/threadStore.ts` + `test/threadStore.test.ts`（P1-4 durable JSONL 后端 + createThreadStore 工厂）
 - `codex-skills-kit/test/executor.test.ts`（fixture 迁移 tmpdir，消除 repo 本地 rmSync 依赖，见二.8）
+- `codex-schema/src/handwritten/zodUnion.ts` + 五面 validate.ts zod 重写 + `test/validatorSemantics.test.ts`（P2-2，见二.11）
+- `dsh-codex-ledger/scripts/check_yaml_json_consistency.mjs`（台账双件一致性守卫 + 全量镜像同步）

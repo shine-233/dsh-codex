@@ -1,7 +1,11 @@
 // Runtime validators for the history RolloutItem union — the first M1 sketch
-// upgraded from a mechanical translation to executable validation (zero deps,
-// hand-rolled guards so the types-only package stays dependency-free).
+// upgraded from a mechanical translation to executable validation.
 // Source shape: openai/codex history crate at rust-v0.153.4.
+// P2-2: the envelope + payload-object rules are zod-superRefine-backed; the
+// {ok, type, error} contract is unchanged (semantic-locked by tests).
+import { z } from 'zod'
+import { isPlainObject, type ValidationResult } from '../zodUnion.js'
+
 export type RolloutItemType =
   | 'session_meta'
   | 'response_item'
@@ -27,31 +31,29 @@ export interface ValidatedRolloutItem {
   error?: string
 }
 
-function isObject(v: unknown): v is Record<string, unknown> {
-  return typeof v === 'object' && v !== null && !Array.isArray(v)
-}
-
 /**
  * Validate one parsed rollout JSONL line as a RolloutItem. Tolerant on payload
  * shape (payloads vary across upstream versions) but strict on the envelope:
  * an object with a known string `type` and (except session_meta) a `payload`
- * member.
+ * member; token_usage_record / realtime_item payloads must be objects.
  */
 export function validateRolloutItem(j: unknown): ValidatedRolloutItem {
-  if (!isObject(j)) return { ok: false, type: null, error: 'line is not an object' }
-  const type = j.type
-  if (typeof type !== 'string') return { ok: false, type: null, error: 'missing string `type`' }
-  if (!KNOWN_TYPES.includes(type as RolloutItemType)) {
-    return { ok: false, type: null, error: `unknown RolloutItem type: ${type}` }
+  if (!isPlainObject(j)) return { ok: false, type: null, error: 'line is not an object' }
+  if (typeof j.type !== 'string') return { ok: false, type: null, error: 'missing string `type`' }
+  if (!KNOWN_TYPES.includes(j.type as RolloutItemType)) {
+    return { ok: false, type: null, error: `unknown RolloutItem type: ${j.type}` }
   }
-  if (type !== 'session_meta' && !('payload' in j)) {
-    return { ok: false, type: type as RolloutItemType, error: `${type} missing payload` }
-  }
-  if (type === 'token_usage_record' && !isObject(j.payload)) {
-    return { ok: false, type: 'token_usage_record', error: 'token_usage_record payload must be an object' }
-  }
-  if (type === 'realtime_item' && !isObject(j.payload)) {
-    return { ok: false, type: 'realtime_item', error: 'realtime_item payload must be an object' }
-  }
-  return { ok: true, type: type as RolloutItemType }
+  const type = j.type as RolloutItemType
+  const EnvelopeSchema = z.object({ type: z.literal(type) }).passthrough().superRefine((v, ctx) => {
+    if (v.type !== 'session_meta' && !('payload' in (v as Record<string, unknown>))) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: `${v.type} missing payload` })
+    }
+    if ((v.type === 'token_usage_record' || v.type === 'realtime_item') && !isPlainObject((v as Record<string, unknown>).payload)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: `${v.type} payload must be an object` })
+    }
+  })
+  const r = EnvelopeSchema.safeParse(j)
+  return r.success
+    ? { ok: true, type }
+    : { ok: false, type, error: r.error.issues[0]?.message ?? 'invalid rollout item' }
 }

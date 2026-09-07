@@ -1,97 +1,73 @@
 // Runtime validators for the code-mode-protocol sketch (M1 → executable).
-// Zero deps; guards mirror the sketch interfaces (upstream rust-v0.153.4).
+// Guards mirror the sketch interfaces (upstream rust-v0.153.4).
+// P2-2: payloads formalized as zod schemas; contract semantic-locked by tests.
+import { zodUnion, sketchMember, presenceKeys, type ValidationResult } from '../zodUnion.js'
+
 export interface ValidationResult { ok: boolean; variant: string | null; error?: string }
-
-function isObject(v: unknown): v is Record<string, unknown> {
-  return typeof v === 'object' && v !== null && !Array.isArray(v)
-}
-
-function union(
-  j: unknown,
-  tagKey: string,
-  members: Record<string, (v: Record<string, unknown>) => string | null>,
-): ValidationResult {
-  if (!isObject(j)) return { ok: false, variant: null, error: 'not an object' }
-  const tag = j[tagKey]
-  if (typeof tag !== 'string') return { ok: false, variant: null, error: `missing string \`${tagKey}\`` }
-  const check = members[tag]
-  if (!check) return { ok: false, variant: tag, error: `unknown variant: ${tag}` }
-  const err = check(j)
-  return err ? { ok: false, variant: tag, error: err } : { ok: true, variant: tag }
-}
-
-const isStr = (v: unknown): boolean => typeof v === 'string'
-const isArr = (v: unknown): boolean => Array.isArray(v)
-
-function requireFields(v: Record<string, unknown>, fields: string[]): string | null {
-  for (const f of fields) if (!(f in v)) return `missing \`${f}\``
-  return null
-}
 
 // ── WireContentItem (type-tagged) ───────────────────────────────────────────
 
+const WIRE_CONTENT_ITEM_MEMBERS = {
+  InputText: sketchMember({ strings: { text: 'InputText requires string `text`' } }),
+  InputImage: sketchMember({ strings: { imageUrl: 'InputImage requires string `imageUrl`' } }),
+  InputAudio: sketchMember({ strings: { audioUrl: 'InputAudio requires string `audioUrl`' } }),
+}
+
 export function validateWireContentItem(j: unknown): ValidationResult {
-  return union(j, 'type', {
-    InputText: (v) => (isStr(v.text) ? null : 'InputText requires string `text`'),
-    InputImage: (v) => (isStr(v.imageUrl) ? null : 'InputImage requires string `imageUrl`'),
-    InputAudio: (v) => (isStr(v.audioUrl) ? null : 'InputAudio requires string `audioUrl`'),
-  })
+  return zodUnion(j, 'type', WIRE_CONTENT_ITEM_MEMBERS)
 }
 
 // ── WireRuntimeResponse (None-tagged; Yielded/Terminated share shape, Result adds error_text) ──
 
-const WIRE_RUNTIME_RESPONSE_MEMBERS: Record<string, (v: Record<string, unknown>) => string | null> = {
-  Yielded: (v) => requireFields(v, ['cell_id', 'content_items']),
-  Terminated: (v) => requireFields(v, ['cell_id', 'content_items']),
-  Result: (v) => requireFields(v, ['cell_id', 'content_items', 'error_text']),
-}
-
 export function validateWireRuntimeResponse(j: unknown): ValidationResult {
-  return union(j, 'None', WIRE_RUNTIME_RESPONSE_MEMBERS)
+  return zodUnion(j, 'None', {
+    Yielded: presenceKeys('cell_id', 'content_items'),
+    Terminated: presenceKeys('cell_id', 'content_items'),
+    Result: presenceKeys('cell_id', 'content_items', 'error_text'),
+  })
 }
 
 // ── RuntimeResponse (CellId + FunctionCallOutputContentItem face) ───────────
 
-const RUNTIME_RESPONSE_MEMBERS: Record<string, (v: Record<string, unknown>) => string | null> = {
-  Yielded: (v) => requireFields(v, ['cell_id', 'content_items']),
-  Terminated: (v) => requireFields(v, ['cell_id', 'content_items']),
-  Result: (v) => requireFields(v, ['cell_id', 'content_items', 'error_text']),
-}
-
 export function validateRuntimeResponse(j: unknown): ValidationResult {
-  return union(j, 'None', RUNTIME_RESPONSE_MEMBERS)
+  return zodUnion(j, 'None', {
+    Yielded: presenceKeys('cell_id', 'content_items'),
+    Terminated: presenceKeys('cell_id', 'content_items'),
+    Result: presenceKeys('cell_id', 'content_items', 'error_text'),
+  })
 }
 
 // ── WaitOutcome / WaitToPendingOutcome (None-tagged: LiveCell | MissingCell) ──
 
-const WAIT_MEMBERS = {
-  LiveCell: () => null,
-  MissingCell: () => null,
-}
-
 export function validateWaitOutcome(j: unknown): ValidationResult {
-  return union(j, 'None', WAIT_MEMBERS)
+  return zodUnion(j, 'None', {
+    LiveCell: sketchMember(),
+    MissingCell: sketchMember(),
+  })
 }
 
 export function validateWaitToPendingOutcome(j: unknown): ValidationResult {
-  return union(j, 'None', WAIT_MEMBERS)
+  return zodUnion(j, 'None', {
+    LiveCell: sketchMember(),
+    MissingCell: sketchMember(),
+  })
 }
 
 // ── ExecuteToPendingOutcome (None-tagged; Pending carries cell/work items) ──
 
 export function validateExecuteToPendingOutcome(j: unknown): ValidationResult {
-  return union(j, 'None', {
-    Pending: (v) => requireFields(v, ['cell_id', 'content_items', 'pending_tool_call_ids']),
-    Completed: () => null,
+  return zodUnion(j, 'None', {
+    Pending: presenceKeys('cell_id', 'content_items', 'pending_tool_call_ids'),
+    Completed: sketchMember(),
   })
 }
 
 // ── FunctionCallOutputContentItem (code-mode face; type-tagged) ─────────────
 
 export function validateFunctionCallOutputContentItem(j: unknown): ValidationResult {
-  return union(j, 'type', {
-    InputText: (v) => (isStr(v.text) ? null : 'InputText requires string `text`'),
-    InputImage: (v) => (isStr(v.imageUrl) ? null : 'InputImage requires string `imageUrl`'),
-    InputAudio: (v) => (isStr(v.audioUrl) ? null : 'InputAudio requires string `audioUrl`'),
+  return zodUnion(j, 'type', {
+    InputText: sketchMember({ strings: { text: 'InputText requires string `text`' } }),
+    InputImage: sketchMember({ strings: { imageUrl: 'InputImage requires string `imageUrl`' } }),
+    InputAudio: sketchMember({ strings: { audioUrl: 'InputAudio requires string `audioUrl`' } }),
   })
 }
