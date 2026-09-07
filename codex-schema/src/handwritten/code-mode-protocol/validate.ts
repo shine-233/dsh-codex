@@ -1,7 +1,7 @@
 // Runtime validators for the code-mode-protocol sketch (M1 → executable).
 // Guards mirror the sketch interfaces (upstream rust-v0.153.4).
 // P2-2: payloads formalized as zod schemas; contract semantic-locked by tests.
-import { zodUnion, sketchMember, presenceKeys, type ValidationResult } from '../zodUnion.js'
+import { zodUnion, sketchMember, presenceKeys } from '../zodUnion.js'
 
 export interface ValidationResult { ok: boolean; variant: string | null; error?: string }
 

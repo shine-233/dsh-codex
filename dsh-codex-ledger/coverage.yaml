@@ -494,7 +494,7 @@ entries:
     lines: 23577
     dest: codex-schema
     status: distilled
-    audit: "手写草图 @ts-nocheck M1 + 2026-09-06 三轮升级: protocol/exec-server-protocol/code-mode-protocol 三面各增零依赖运行时校验器 validateXxx(15 测试), history 已先行; 覆盖仍为蒸馏面子集; 2026-09-07 P2-2: 五面 validate.ts 全部 zod 形式化(zodUnion 分发器 + sketchMember/presenceKeys 字段 schema; 先以语义锁 17 测试钉死 ok/variant 契约再重写, 原契约测试零改动通过), zod 为显式 devDep^3.24.0(实测 3.25.76); types.ts z.infer 迁移与 ts-nocheck 清除为后续项"
+    audit: "手写草图 @ts-nocheck M1 + 2026-09-06 三轮升级: protocol/exec-server-protocol/code-mode-protocol 三面各增零依赖运行时校验器 validateXxx(15 测试), history 已先行; 覆盖仍为蒸馏面子集; 2026-09-07 P2-2: 五面 validate.ts 全部 zod 形式化(zodUnion 分发器 + sketchMember/presenceKeys 字段 schema; 先以语义锁 17 测试钉死 ok/variant 契约再重写, 原契约测试零改动通过), zod 为显式 devDep^3.24.0(实测 3.25.76); 2026-09-07 续: tsc --noEmit 全包 0 错误(standalone TS5 工具链), 摘 @ts-nocheck 审计实测 366 处类型错误(机械翻译结构性缺陷) → types.ts 重写列为后续 epic"
   - path: response-debug-context
     lines: 150
     dest: codex-config-importer

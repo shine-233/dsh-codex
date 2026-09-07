@@ -4,7 +4,7 @@
 // P2-2: per-variant payloads are zod schemas dispatched by the shared
 // sketch-union adapter (ok/variant/error contract semantic-locked by tests).
 import { z } from 'zod'
-import { zodUnion, sketchMember, zodNoneTagged, type ValidationResult } from '../zodUnion.js'
+import { zodUnion, sketchMember, zodNoneTagged } from '../zodUnion.js'
 
 export interface ValidationResult { ok: boolean; variant: string | null; error?: string }
 

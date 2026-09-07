@@ -4,7 +4,7 @@
 // (single source for the future z.infer types); the ok/variant/error contract
 // is unchanged (semantic-locked by test/validatorSemantics.test.ts).
 import { z } from 'zod'
-import { isPlainObject, firstIssue, type ValidationResult } from '../zodUnion.js'
+import { isPlainObject, firstIssue } from '../zodUnion.js'
 
 export interface ValidationResult { ok: boolean; variant: string | null; error?: string }
 

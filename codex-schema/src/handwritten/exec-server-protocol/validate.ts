@@ -2,7 +2,7 @@
 // Guards mirror the sketch interfaces (upstream rust-v0.153.4).
 // P2-2: payloads formalized as zod schemas; contract semantic-locked by tests.
 import { z } from 'zod'
-import { zodUnion, sketchMember, zodNoneTagged, isPlainObject, type ValidationResult } from '../zodUnion.js'
+import { zodUnion, sketchMember, zodNoneTagged, isPlainObject } from '../zodUnion.js'
 
 export interface ValidationResult { ok: boolean; variant: string | null; error?: string }
 
