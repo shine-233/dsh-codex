@@ -35,3 +35,12 @@ describe('canonicalization (ported from core/src/command_canonicalization.rs, 0.
     expect(cache.size).toBe(1);
   });
 });
+
+import { BUILT_IN_PRESETS, presetById } from '../src/approvalPresets';
+describe('approvalPresets (ported from utils/approval-presets, 0.153.4)', () => {
+  it('exposes the three built-in presets', () => {
+    expect(BUILT_IN_PRESETS.map((p) => p.id)).toEqual(['read-only', 'workspace', 'danger-full-access']);
+    expect(presetById('workspace')?.approval).toBe('on-failure');
+    expect(presetById('nope')).toBeNull();
+  });
+});

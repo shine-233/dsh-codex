@@ -1,16 +1,24 @@
-import { describe, it, expect, beforeAll } from 'vitest';
-import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { mkdirSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { skillList, skillRead, MAX_SKILL_RESOURCE_CONTENT_BYTES } from '../src/executor';
 
-const root = join(__dirname, 'fixtures-skills');
+// Fixtures live in a fresh OS-temp dir per run: no repo litter, no hidden
+// reset state, and rmSync stays on tmpdir paths (repo-local rmSync is routed
+// through the sandbox trash helper, which must not be a test dependency).
+let root: string;
 
 beforeAll(() => {
-  rmSync(root, { recursive: true, force: true });
+  root = mkdtempSync(join(tmpdir(), 'skill-fixtures-'));
   const pkg = join(root, 'my-skill');
   mkdirSync(join(pkg, 'docs'), { recursive: true });
   writeFileSync(join(pkg, 'SKILL.md'), '# My Skill\nDoes things.');
   writeFileSync(join(pkg, 'docs', 'guide.md'), 'guide body');
+});
+
+afterAll(() => {
+  rmSync(root, { recursive: true, force: true });
 });
 
 describe('skillRead/skillList (distilled from ext/skills tools/read.rs)', () => {

@@ -19,6 +19,15 @@ export function truncateDescription(s: string, max: number = MAX_DESCRIPTION_CHA
 
 export interface SkillEntry { name: string; description: string }
 
+// Dynamic skill selector (ext/skills alias resolution + lexical scoring).
+export {
+  normalizeToken,
+  buildAliasIndex,
+  resolveAlias,
+  selectSkills,
+} from './selector.js'
+export type { SkillWithAliases, SelectOptions } from './selector.js'
+
 /** Render catalog entries under a character budget, dropping lowest-priority tails. */
 export function renderCatalog(entries: SkillEntry[], budgetChars: number): {
   text: string; included: number; omitted: number } {

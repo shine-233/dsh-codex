@@ -28,3 +28,8 @@ export function buildSystemPrompt(relPaths: string[], vars: Record<string,string
   return relPaths.map(p => loadTemplate(p)).join('\n\n')
     .replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] ?? '{{'+k+'}}');
 }
+
+export {
+  buildSyncReviewPrompt, buildAsyncScoringPrompt, sharedContextSection,
+  type GuardianTranscriptEntry, type GuardianConfig,
+} from './guardian.js';

@@ -38,21 +38,24 @@ describe('MemoryStore', () => {
   });
 });
 
-describe('SessionIndex (node:sqlite mirror)', () => {
+describe('SessionIndex (session mirror)', () => {
   it('rebuilds and searches', async () => {
-    let DatabaseSync: any;
-    try { ({ DatabaseSync } = await import('node:sqlite')); }
-    catch { console.warn('node:sqlite unavailable; skipping'); return; }
+    // Works with node:sqlite when present, otherwise falls back to the pure-JS
+    // store — no skip, so the index logic is always verified.
     const { SessionIndex } = await import('../src/sessionIndex.js');
     const dir = mkdtempSync(join(tmpdir(),'si-'));
     writeFileSync(join(dir,'a.jsonl'), JSON.stringify({type:'session_header',payload:{id:'sess_A',cwd:'C:/work'}})+'\n');
     writeFileSync(join(dir,'b.jsonl'), JSON.stringify({type:'session_header',payload:{id:'sess_B',cwd:'D:/x'}})+'\n');
     const dbFile = join(dir,'index.db');
     const ix = new SessionIndex(dbFile);
-    expect(ix.rebuildFrom(dir)).toBe(2);
-    expect(ix.count()).toBe(2);
-    expect(ix.search('sess_A')[0].cwd).toBe('C:/work');
-    rmSync(dir,{recursive:true,force:true});
+    try {
+      expect(ix.rebuildFrom(dir)).toBe(2);
+      expect(ix.count()).toBe(2);
+      expect(ix.search('sess_A')[0].cwd).toBe('C:/work');
+    } finally {
+      ix.close();
+      rmSync(dir,{recursive:true,force:true});
+    }
   });
 });
 

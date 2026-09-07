@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  '@deepseek-ai/cordis': link:C:/Users/Zz/Documents/projects/_local-managed-20260906/deepseek-harness/vendor/cordis
+  '@deepseek-ai/schemastery': link:C:/Users/Zz/Documents/projects/_local-managed-20260906/deepseek-harness/vendor/schemastery
+  '@deepseek-ai/dsh-tools': link:C:/Users/Zz/Documents/projects/_local-managed-20260906/deepseek-harness/packages/core/tools
+
 importers:
 
   .:

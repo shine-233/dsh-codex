@@ -1,7 +1,7 @@
 // dsh plugin entry for codex-skills-kit (budget math from openai/codex ext/skills render.rs)
 import { readdirSync, readFileSync, existsSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { catalogBudgetTokens, renderCatalog } from './index.js';
+import { catalogBudgetTokens, renderCatalog, selectSkills } from './index.js';
 
 export const name = 'codex-skills-kit'
 export const inject = ['tools']
@@ -47,6 +47,34 @@ export function apply(ctx, config = {}) {
     },
     timeoutMs: 5000,
   }))
+
+  // Dynamic skill selector: alias resolution + lexical scoring against a query.
+  ctx.tools.register(defineTool({
+    name: 'codex_skill_select',
+    description: 'Pick the most relevant skills for a free-text query using the openai/codex dynamic skill selector (alias resolution + lexical scoring).',
+    parameters: {
+      query: { type: 'string', description: 'free-text query describing the task' },
+      dir: { type: 'string', description: 'directory whose subfolders each contain SKILL.md' },
+      entries: { type: 'array', description: 'explicit [{name, description, aliases?}] entries' },
+      limit: { type: 'number', description: 'max skills to return' },
+    },
+    output: { schema: { type: 'string' }, render: (_a, v) => [{ type: 'text', text: v }] },
+    async execute(args) {
+      let entries = Array.isArray(args?.entries) ? args.entries : []
+      if (!entries.length && typeof args?.dir === 'string') entries = readSkillDir(String(args.dir))
+      if (!entries.length && typeof cfg.catalogDir === 'string') entries = readSkillDir(cfg.catalogDir)
+      const skills = entries.map((e) => ({
+        name: String(e?.name ?? '?'),
+        description: String(e?.description ?? ''),
+        aliases: Array.isArray(e?.aliases) ? e.aliases.map(String) : [],
+      }))
+      const picked = selectSkills(String(args?.query ?? ''), skills, {
+        limit: Number.isFinite(args?.limit) ? Number(args.limit) : 5,
+      })
+      return JSON.stringify({ selected: picked.map((s) => s.name) }, null, 2)
+    },
+    timeoutMs: 5000,
+  }))
 }
 
-export { catalogBudgetTokens, renderCatalog }
+export { catalogBudgetTokens, renderCatalog, selectSkills }

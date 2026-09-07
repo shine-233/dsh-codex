@@ -5,6 +5,7 @@ import {
   executableBasename,
   isDangerousPowershellWords,
   shlexSplit,
+  detectEscalation,
 } from '../src/commandSafety';
 
 describe('commandSafety (ported from shell-command command_safety, rust-v0.153.4)', () => {
@@ -21,6 +22,35 @@ describe('commandSafety (ported from shell-command command_safety, rust-v0.153.4
     expect(dangerousCommandMatch(['sudo', 'rm', '-rf', '/'], { platform: 'posix' })).toBe('ForcedRm');
     expect(dangerousCommandMatch(['env', 'VAR=1', 'rm', '-rf', '/'], { platform: 'posix' })).toBe('ForcedRm');
     expect(dangerousCommandMatch(['env', '-i', 'rm', '-rf', '/'], { platform: 'posix' })).toBe('ForcedRm');
+  });
+  it('routes privilege-escalation wrappers (shell_detect escalation routing)', () => {
+    // posix: doas / pkexec / su -c, including when the escalator carries its own flags
+    expect(dangerousCommandMatch(['doas', 'rm', '-rf', '/'], { platform: 'posix' })).toBe('ForcedRm');
+    expect(dangerousCommandMatch(['pkexec', 'rm', '-rf', '/'], { platform: 'posix' })).toBe('ForcedRm');
+    expect(dangerousCommandMatch(['sudo', '-u', 'root', 'rm', '-rf', '/'], { platform: 'posix' })).toBe('ForcedRm');
+    expect(dangerousCommandMatch(['su', '-c', 'rm -rf /'], { platform: 'posix' })).toBe('ForcedRm');
+    expect(dangerousCommandMatch(['su', '-c', 'echo safe'], { platform: 'posix' })).toBeNull();
+    expect(dangerousCommandMatch(['doas', 'rm', 'file'], { platform: 'posix' })).toBeNull();
+    // windows: runas / gsudo / elevate, with their own option flags stripped
+    expect(dangerousCommandMatch(['runas', '/user:Administrator', 'cmd', '/c', 'del', '/f', 'C:\\x'], { platform: 'windows' })).toBe('Other');
+    expect(dangerousCommandMatch(['gsudo', 'rm', '-rf', '/'], { platform: 'windows' })).toBe('ForcedRm');
+    expect(dangerousCommandMatch(['elevate', 'cmd', '/c', 'del', '/f', 'C:\\x'], { platform: 'windows' })).toBe('Other');
+    expect(dangerousCommandMatch(['runas', '/user:Admin', 'notepad'], { platform: 'windows' })).toBeNull();
+  });
+  it('detectEscalation reports inner command with the escalator flags stripped', () => {
+    expect(detectEscalation(['sudo', '-u', 'root', 'rm', '-rf', '/'], 'posix')).toEqual({
+      escalator: 'sudo',
+      rest: ['rm', '-rf', '/'],
+    });
+    expect(detectEscalation(['runas', '/user:Admin', 'cmd', '/c', 'del', '/f', 'x'], 'windows')).toEqual({
+      escalator: 'runas',
+      rest: ['cmd', '/c', 'del', '/f', 'x'],
+    });
+    expect(detectEscalation(['su', '-c', 'rm -rf /'], 'posix')).toEqual({
+      escalator: 'su',
+      rest: ['sh', '-c', 'rm -rf /'],
+    });
+    expect(detectEscalation(['rm', '-rf', '/'], 'posix')).toBeNull();
   });
   it('sees through sh -c literal scripts', () => {
     expect(dangerousCommandMatch(['sh', '-c', 'rm -rf /'], { platform: 'posix' })).toBe('ForcedRm');

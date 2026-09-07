@@ -208,11 +208,67 @@ function matchForExec(
   wrapperDepth: number,
   platform: DangerousPlatform,
 ): DangerousMatch | null {
+  // Privilege-escalation wrappers: route the inner command back through the
+  // classifier (shell_detect escalation routing). `sudo` was handled inline
+  // before; this generalizes to doas/pkexec/su -c (posix) and
+  // runas/gsudo/elevate (windows).
+  const esc = detectEscalation(command, platform)
+  if (esc) return matchWithDepth(esc.rest, wrapperDepth + 1, platform)
+
   const key = command.length ? executableNameLookupKey(command[0], platform) : null
   if (key === 'rm' && rmArgsIncludeForceOption(command.slice(1))) return 'ForcedRm'
-  if (key === 'sudo') return matchWithDepth(command.slice(1), wrapperDepth + 1, platform)
   if (key === 'env') return matchForEnv(command, wrapperDepth, platform)
   if (key === 'trap') return matchForTrap(command, wrapperDepth, platform)
+  return null
+}
+
+/**
+ * Skip an escalator's own leading options so they don't shadow the inner command.
+ * POSIX escalators use `-`-prefixed options; a single-letter `-X` may consume the
+ * following token as its argument (e.g. `sudo -u root …`). `runas` uses `/`-prefixed
+ * self-contained options (e.g. `/user:Admin`).
+ */
+function skipLeadingOptions(args: string[], platform: DangerousPlatform): string[] {
+  const isOpt = (t: string) => (platform === 'windows' ? /^[-/]/.test(t) : t.startsWith('-'))
+  let i = 0
+  while (i < args.length && isOpt(args[i])) {
+    i++
+    if (platform !== 'windows' && /^-[a-zA-Z]$/.test(args[i - 1] ?? '')) {
+      if (i < args.length) i++ // single-letter option consumes its argument
+    }
+  }
+  return args.slice(i)
+}
+
+export interface Escalation {
+  escalator: string
+  rest: string[]
+}
+
+/**
+ * Detect a privilege-escalation wrapper and return the inner command to classify.
+ * Closes the "shell_detect escalation routing" gap. Returns null when the command
+ * is not an escalator (or `su` invoked without `-c`). PowerShell `-Verb RunAs`
+ * inside a quoted script is intentionally NOT handled here — the PS parser is
+ * best-effort (see file header) and the verb lives inside the script token.
+ */
+export function detectEscalation(command: string[], platform: DangerousPlatform): Escalation | null {
+  if (!command.length) return null
+  const key = executableNameLookupKey(command[0], platform)
+  if (!key) return null
+
+  if (key === 'sudo' || key === 'doas' || key === 'pkexec' || key === 'gsudo' || key === 'elevate') {
+    return { escalator: key, rest: skipLeadingOptions(command.slice(1), 'posix') }
+  }
+  if (key === 'runas') {
+    return { escalator: 'runas', rest: skipLeadingOptions(command.slice(1), 'windows') }
+  }
+  if (key === 'su') {
+    const cIdx = command.findIndex((t, i) => i > 0 && (t === '-c' || t === '--command'))
+    if (cIdx > 0 && typeof command[cIdx + 1] === 'string') {
+      return { escalator: 'su', rest: ['sh', '-c', command[cIdx + 1]] }
+    }
+  }
   return null
 }
 
