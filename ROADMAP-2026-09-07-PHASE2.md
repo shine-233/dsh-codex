@@ -136,6 +136,15 @@
 | 台账一致性 | `check_yaml_json_consistency.mjs` | 改后 1 处 DRIFT → `--fix` 同步 → 复检 `[OK]`（150 条目） |
 | 类型 | standalone TS 5.x `tsc --noEmit` | 新增模块 **0 错误**（包内剩余 37 项为既有 `@types/node` 缺失与 `dsh-plugin.ts` 隐式 any） |
 
+**上游面核验（同日 20:1x，独立于"测试跑绿"的第二意见）**：
+
+| 核验 | 方法 | 结果 |
+|---|---|---|
+| 移植源 = 锚点 | GitHub raw 取 tag `rust-v0.153.4` 的 `parse_command.rs`/`bash.rs`，去 CR 后与本地快照 `cmp` | **逐字节一致**（2766 / 565 行）——P1-1 的 v0.153.4 锚点说法由此证成，非口头声称 |
+| 台账无遗漏 | GitHub trees API 取 v0.153.4 完整树（**7,837 路径，truncated=false**），按 `Cargo.toml` 还原 crate 集合 | 上游 **149 crates**，台账 **NEW-UNREGISTERED = 0** |
+| 台账无孤儿 | 台账标"已移植"条目回查路径是否存在 | **MISSING-BUT-PORTED = 0**（150 = 149 crates + 工作区根 `.`） |
+| 本地 `verify_coverage.py` | 对本机稀疏快照运行 | **仍 FAIL（20 条 MISSING-BUT-PORTED）——但属本地快照不全所致**（该快照仅 3 个 Cargo.toml，无 `codex-rs/utils` 等），非台账缺陷；已用上两行的 trees API 路径替代取证。注：git fetch 取锚点 sha/tag 均因 SSL 握手失败不可用，改用 curl + API 通路 |
+
 **过程中发现并修复的真实缺陷（非测试缺陷）**：
 1. `summarizeMainTokens` 对空 token 数组崩溃（`head.toLowerCase()` on undefined）——上游 `split_first()` 落 catch-all `Unknown{cmd:""}`，补守卫对齐。
 2. `src/index.ts` 重复导出 `shlexSplit`（commandSafety 与 shlex 各一份）→ 导致 `policy.test.ts`/`starlarkLite.test.ts` **整文件 import 失败**；根治方式是**去重**：`commandSafety.shlexSplit` 改为复用忠实移植版，包内不再有第二套 shlex 实现。
