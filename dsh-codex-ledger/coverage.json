@@ -19,8 +19,8 @@
       "dest": "codex-session-kit",
       "code": "",
       "note": "",
-      "status": "design-only",
-      "audit": "2026-09-06 核实: dest 无本路径实现"
+      "status": "distilled",
+      "audit": "2026-09-06 四轮: src/agentGraph.ts (agent 节点+spawn 边+状态迁移, JSONL 重放)"
     },
     {
       "path": "agent-identity",
@@ -152,7 +152,7 @@
       "code": "",
       "note": "",
       "status": "design-only",
-      "audit": "无 bwrap 产物"
+      "audit": "维持仅设计: bubblewrap 为 Linux 专属启动器, 本套件 Windows/Linux 二进制未含 bwrap"
     },
     {
       "path": "chatgpt",
@@ -274,8 +274,8 @@
       "dest": "codex-prompts",
       "code": "",
       "note": "",
-      "status": "design-only",
-      "audit": "dest 资产中未见对应模板"
+      "status": "implemented",
+      "audit": "2026-09-06 四轮: collaboration 模板资产已从 0.153.4 拷入 (default.md/plan.md)"
     },
     {
       "path": "config",
@@ -299,8 +299,8 @@
       "dest": "codex-config-importer",
       "code": "",
       "note": "",
-      "status": "design-only",
-      "audit": "2026-09-06 核实: dest 无本路径实现"
+      "status": "distilled",
+      "audit": "2026-09-06 四轮: src/utils/contextFragments.ts (带来源注解的上下文片段, 按 key 归并)"
     },
     {
       "path": "core",
@@ -338,8 +338,8 @@
       "dest": "codex-sandbox-bin",
       "code": "",
       "note": "",
-      "status": "design-only",
-      "audit": "2026-09-06 核实: dest 无本路径实现"
+      "status": "implemented",
+      "audit": "2026-09-06 四轮: src/sandboxSummary.ts diagnostics 面 (计数器/gauge 快照)"
     },
     {
       "path": "exec",
@@ -402,8 +402,8 @@
       "dest": "codex-schema",
       "code": "",
       "note": "",
-      "status": "design-only",
-      "audit": "2026-09-06 核实: dest 无本路径实现"
+      "status": "distilled",
+      "audit": "2026-09-06 四轮: handwritten/extension-api/validate.ts (扩展工具_spec 运行时守卫)"
     },
     {
       "path": "ext/git-attribution",
@@ -425,8 +425,8 @@
       "dest": "codex-prompts",
       "code": "PROMPT-ONLY",
       "note": "only classifier_instructions.md + pattern doc; code is OpenAI-bound",
-      "status": "design-only",
-      "audit": "2026-09-06 核实: dest 无 guardian 相关资产或代码"
+      "status": "distilled",
+      "audit": "2026-09-06 四轮: src/guardian.ts (同步审查+异步评分双提示词, 有界转录, 共享上下文节)"
     },
     {
       "path": "ext/history-notes",
@@ -434,8 +434,8 @@
       "dest": "codex-session-kit",
       "code": "",
       "note": "",
-      "status": "design-only",
-      "audit": "2026-09-06 核实: dest 无本路径实现"
+      "status": "distilled",
+      "audit": "2026-09-06 四轮: src/extNotes.ts (同上, 按 thread+key 归组的笔记)"
     },
     {
       "path": "ext/image-generation",
@@ -464,8 +464,8 @@
       "dest": "codex-session-kit",
       "code": "",
       "note": "",
-      "status": "design-only",
-      "audit": "结构化记忆格式未实现"
+      "status": "distilled",
+      "audit": "2026-09-06 四轮: src/extNotes.ts (本地 JSONL 后端的扩展记忆/笔记面)"
     },
     {
       "path": "ext/queue",
@@ -505,8 +505,8 @@
       "dest": "codex-config-importer",
       "code": "",
       "note": "",
-      "status": "design-only",
-      "audit": "2026-09-06 核实: dest 无本路径实现"
+      "status": "distilled",
+      "audit": "2026-09-06 四轮: src/utils/features.ts ([features] 表解析: 裸 bool 与 enabled+payload 双形态, 未知特性保留)"
     },
     {
       "path": "feedback",
@@ -521,8 +521,8 @@
       "dest": "codex-session-kit",
       "code": "",
       "note": "",
-      "status": "design-only",
-      "audit": "2026-09-06 核实: dest 无本路径实现"
+      "status": "distilled",
+      "audit": "2026-09-06 四轮: src/fileSearch.ts (递归文件搜索, basename 子序列评分+前缀/全等加分)"
     },
     {
       "path": "file-system",
@@ -643,8 +643,8 @@
       "dest": "codex-session-kit",
       "code": "",
       "note": "",
-      "status": "design-only",
-      "audit": "toDshEvents 为事件归一, 非历史持久化"
+      "status": "distilled",
+      "audit": "2026-09-06 四轮: src/messageHistory.ts (history.jsonl 追加日志, 字节上限, 按 logId+offset 查找)"
     },
     {
       "path": "model-provider",
@@ -706,7 +706,7 @@
       "code": "",
       "note": "",
       "status": "design-only",
-      "audit": "可能已内嵌于二进制, 未验证"
+      "audit": "维持仅设计: 加固旗标编译于 vendor 二进制内部"
     },
     {
       "path": "prompts",
@@ -732,8 +732,8 @@
       "dest": "codex-config-importer",
       "code": "",
       "note": "",
-      "status": "design-only",
-      "audit": "2026-09-06 核实: dest 无本路径实现"
+      "status": "distilled",
+      "audit": "2026-09-06 四轮: src/utils/responseDebugContext.ts (有界调试信封, 错误长文截断)"
     },
     {
       "path": "responses-api-proxy",
@@ -764,8 +764,8 @@
       "dest": "codex-session-kit",
       "code": "",
       "note": "",
-      "status": "design-only",
-      "audit": "2026-09-06 核实: dest 无本路径实现"
+      "status": "distilled",
+      "audit": "2026-09-06 四轮: src/rolloutTrace.ts (trace 时间线+每轮汇总)"
     },
     {
       "path": "sandboxing",
@@ -799,7 +799,7 @@
       "code": "",
       "note": "",
       "status": "design-only",
-      "audit": "无独立产物(可能部分内嵌 command-runner, 未验证)"
+      "audit": "维持仅设计: 提权决策内嵌于 vendor 二进制, JS 面无独立价值"
     },
     {
       "path": "skills",
@@ -830,8 +830,8 @@
       "dest": "codex-config-importer",
       "code": "",
       "note": "",
-      "status": "design-only",
-      "audit": "2026-09-06 核实: dest 无本路径实现"
+      "status": "distilled",
+      "audit": "2026-09-06 四轮: src/utils/terminalDetection.ts (TerminalName/Multiplexer/user_agent 按 env 识别)"
     },
     {
       "path": "test-binary-support",
@@ -853,8 +853,8 @@
       "dest": "codex-session-kit",
       "code": "",
       "note": "",
-      "status": "design-only",
-      "audit": "无 thread 生命周期 API"
+      "status": "distilled",
+      "audit": "2026-09-06 四轮: src/threadStore.ts (存储中立 thread 持久化契约 + 内存实现 + 队列提交)"
     },
     {
       "path": "tools",
@@ -883,8 +883,8 @@
       "dest": "codex-config-importer",
       "code": "",
       "note": "",
-      "status": "design-only",
-      "audit": "2026-09-06 核实: dest 无本路径实现"
+      "status": "distilled",
+      "audit": "2026-09-06 四轮: src/utils/absolutePath.ts (AbsolutePathBuf: resolve/join/canonicalize/parent/mkdir)"
     },
     {
       "path": "utils/approval-presets",
@@ -892,8 +892,8 @@
       "dest": "codex-policy-engine",
       "code": "",
       "note": "",
-      "status": "design-only",
-      "audit": "2026-09-06 核实: dest 无本路径实现"
+      "status": "implemented",
+      "audit": "2026-09-06 四轮: policy-engine src/approvalPresets.ts (read-only/workspace/danger-full-access 三预设)"
     },
     {
       "path": "utils/audio",
@@ -908,8 +908,8 @@
       "dest": "codex-config-importer",
       "code": "",
       "note": "",
-      "status": "design-only",
-      "audit": "2026-09-06 核实: dest 无本路径实现"
+      "status": "distilled",
+      "audit": "2026-09-06 四轮: src/utils/cache.ts (BlockingLruCache: LRU+并发 get_or_insert 去重)"
     },
     {
       "path": "utils/cargo-bin",
@@ -931,8 +931,8 @@
       "dest": "codex-config-importer",
       "code": "",
       "note": "",
-      "status": "design-only",
-      "audit": "2026-09-06 核实: dest 无本路径实现"
+      "status": "distilled",
+      "audit": "2026-09-06 四轮: src/utils/elapsed.ts (ms/s/m 时长格式化)"
     },
     {
       "path": "utils/fuzzy-match",
@@ -940,8 +940,8 @@
       "dest": "codex-config-importer",
       "code": "",
       "note": "",
-      "status": "design-only",
-      "audit": "2026-09-06 核实: dest 无本路径实现"
+      "status": "distilled",
+      "audit": "2026-09-06 四轮: src/utils/fuzzyMatch.ts (大小写不敏感子序列匹配+连续/词首加分)"
     },
     {
       "path": "utils/home-dir",
@@ -949,8 +949,8 @@
       "dest": "codex-config-importer",
       "code": "",
       "note": "",
-      "status": "design-only",
-      "audit": "2026-09-06 核实: dest 无本路径实现"
+      "status": "distilled",
+      "audit": "2026-09-06 四轮: src/utils/homeDir.ts (CODEX_HOME 覆盖校验 + ~/.codex 兜底)"
     },
     {
       "path": "utils/image",
@@ -965,8 +965,8 @@
       "dest": "codex-config-importer",
       "code": "",
       "note": "",
-      "status": "design-only",
-      "audit": "2026-09-06 核实: dest 无本路径实现"
+      "status": "distilled",
+      "audit": "2026-09-06 四轮: src/utils/jsonToToml.ts (null→空串/整数浮点区分/表与数组序列化)"
     },
     {
       "path": "utils/oss",
@@ -990,8 +990,8 @@
       "dest": "codex-config-importer",
       "code": "",
       "note": "",
-      "status": "design-only",
-      "audit": "2026-09-06 核实: dest 无本路径实现"
+      "status": "distilled",
+      "audit": "2026-09-06 四轮: src/utils/pathUri.ts (file:// URI 双向转换)"
     },
     {
       "path": "utils/path-utils",
@@ -999,8 +999,8 @@
       "dest": "codex-config-importer",
       "code": "",
       "note": "",
-      "status": "design-only",
-      "audit": "2026-09-06 核实: dest 无本路径实现"
+      "status": "distilled",
+      "audit": "2026-09-06 四轮: src/utils/pathUtils.ts (路径比较归一化/WSL 检测)"
     },
     {
       "path": "utils/plugins",
@@ -1024,8 +1024,8 @@
       "dest": "codex-config-importer",
       "code": "",
       "note": "",
-      "status": "design-only",
-      "audit": "2026-09-06 核实: dest 无本路径实现"
+      "status": "distilled",
+      "audit": "2026-09-06 四轮: src/utils/readiness.ts (token 制就绪追踪 + waitReady)"
     },
     {
       "path": "utils/redacted-string",
@@ -1033,8 +1033,8 @@
       "dest": "codex-config-importer",
       "code": "",
       "note": "",
-      "status": "design-only",
-      "audit": "2026-09-06 核实: dest 无本路径实现"
+      "status": "distilled",
+      "audit": "2026-09-06 四轮: src/utils/redactedString.ts (透明包装, 输出面固定 REDACTED)"
     },
     {
       "path": "utils/rustls-provider",
@@ -1049,8 +1049,8 @@
       "dest": "codex-sandbox-bin",
       "code": "",
       "note": "",
-      "status": "design-only",
-      "audit": "2026-09-06 核实: dest 无本路径实现"
+      "status": "implemented",
+      "audit": "2026-09-06 四轮: src/sandboxSummary.ts (当前平台二进制清点+完整性)"
     },
     {
       "path": "utils/sleep-inhibitor",
@@ -1065,8 +1065,8 @@
       "dest": "codex-config-importer",
       "code": "",
       "note": "",
-      "status": "design-only",
-      "audit": "2026-09-06 核实: dest 无本路径实现"
+      "status": "distilled",
+      "audit": "2026-09-06 四轮: src/utils/streamParser.ts (行分隔 JSON 增量读取, 跨 chunk 容错, 坏行计数)"
     },
     {
       "path": "utils/string",
@@ -1074,8 +1074,8 @@
       "dest": "codex-config-importer",
       "code": "",
       "note": "",
-      "status": "design-only",
-      "audit": "2026-09-06 核实: dest 无本路径实现"
+      "status": "distilled",
+      "audit": "2026-09-06 四轮: src/utils/string.ts (字节边界截取/度量标签清洗/UUID 查找/markdown 锚点归一)"
     },
     {
       "path": "utils/template",
@@ -1083,8 +1083,8 @@
       "dest": "codex-config-importer",
       "code": "",
       "note": "",
-      "status": "design-only",
-      "audit": "2026-09-06 核实: dest 无本路径实现"
+      "status": "distilled",
+      "audit": "2026-09-06 四轮: src/utils/template.ts ({{name}} 占位模板 parse/placeholders/render)"
     },
     {
       "path": "v8-poc",
@@ -1134,8 +1134,8 @@
       "path": "guardian-context",
       "lines": 0,
       "dest": "codex-prompts",
-      "audit": "Guardian 审查/评分共享上下文段, 归 prompts 蒸馏件; 2026-09-06 准入, 待下轮蒸馏",
-      "status": "design-only"
+      "audit": "2026-09-06 四轮: src/guardian.ts 蒸馏落地",
+      "status": "distilled"
     },
     {
       "path": "otel-trace-websocket",
@@ -1155,8 +1155,8 @@
       "path": "utils/git-discovery",
       "lines": 0,
       "dest": "codex-config-importer",
-      "audit": "utils 家族新成员, 归 config-importer; 2026-09-06 准入, 待下轮蒸馏",
-      "status": "design-only"
+      "audit": "2026-09-06 四轮: src/utils/gitDiscovery.ts (有界共享 git 根发现, 每 cwd 共享探测)",
+      "status": "distilled"
     },
     {
       "path": "voice-host",

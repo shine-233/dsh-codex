@@ -6,7 +6,7 @@ meta:
   # - 已同步: codex-schema 的 app-server-protocol ts-rs bindings（上游 60 个文件: 28 增/32 改，纯镜像替换）；
   #   手写草图补 EnvironmentConfigState::FromThread、ReasoningEffort::Persistent、RolloutItem::TokenUsageRecord/RealtimeItem。
   # - 已核实无需动作: codex-policy-engine（execpolicy 上游零变更）、codex-edit-fusion（apply-patch 零变更）、
-  #   codex-skills-kit（render.rs 预算公式常数未变，别名选择逻辑不在蒸馏面内）、codex-config-importer
+  #   codex-skills-kit（render.rs 预算公式常数未变；dynamic_skill_selector 别名选择算法已于 2026-09-07 P1-2 蒸馏落地）、codex-config-importer
   #   （蒸馏的 model/model_providers 键未受影响，model-provider-info 新增项与键无关）、codex-session-kit
   #   （解析器按字段宽松读取，天然容忍新增 RolloutItem 变体）。
   # - 待对齐: codex-prompts 资产（上游 +5.6k 行）、codex-sandbox-bin 二进制重 vendor（+6.6k）、
@@ -21,8 +21,8 @@ entries:
   - path: agent-graph-store
     lines: 436
     dest: codex-session-kit
-    status: design-only
-    audit: "2026-09-06 核实: dest 无本路径实现"
+    status: distilled
+    audit: "2026-09-06 四轮: src/agentGraph.ts (agent 节点+spawn 边+状态迁移, JSONL 重放)"
   - path: agent-identity
     lines: 902
     dest: EXCLUDED
@@ -110,9 +110,10 @@ entries:
     note: "dsh has equivalent layer or OS-bound; designs harvested where better"
   - path: bwrap
     lines: 135
-    dest: codex-sandbox-bin
-    status: design-only
-    audit: "无 bwrap 产物"
+    dest: EXCLUDED
+    code: E5-vendor-binary
+    audit: "2026-09-07 收口: bubblewrap 为 Linux 专属启动器, 本套件 Windows/Linux 二进制未含 bwrap; 行为编译于 vendor 沙箱二进制, 无独立 JS 面, 二进制即实现; 改判 EXCLUDED/E5, 不再计入 design-only"
+    note: "no JS surface; vendored binary is the implementation"
   - path: chatgpt
     lines: 900
     dest: EXCLUDED
@@ -196,8 +197,8 @@ entries:
   - path: collaboration-mode-templates
     lines: 2
     dest: codex-prompts
-    status: design-only
-    audit: "dest 资产中未见对应模板"
+    status: implemented
+    audit: "2026-09-06 四轮: collaboration 模板资产已从 0.153.4 拷入 (default.md/plan.md)"
   - path: config
     lines: 22666
     dest: codex-config-importer
@@ -211,8 +212,8 @@ entries:
   - path: context-fragments
     lines: 170
     dest: codex-config-importer
-    status: design-only
-    audit: "2026-09-06 核实: dest 无本路径实现"
+    status: distilled
+    audit: "2026-09-06 四轮: src/utils/contextFragments.ts (带来源注解的上下文片段, 按 key 归并)"
   - path: core
     lines: 297838
     dest: EXCLUDED
@@ -228,8 +229,7 @@ entries:
     lines: 39173
     dest: EXCLUDED
     code: E5-equivalent-or-os
-    status: design-only
-    audit: "2026-09-06 判定: dest 改 EXCLUDED/E5 — 同 plugin 条目, cordis 插件体系即等价层"
+    audit: "2026-09-06 判定: dest 改 EXCLUDED/E5 — 同 plugin 条目, cordis 插件体系即等价层; 2026-09-07 移除遗留 status: design-only 标记"
     note: "manifest/marketplace format reference"
   - path: core/tests/common
     lines: 0
@@ -239,8 +239,8 @@ entries:
   - path: diagnostics
     lines: 238
     dest: codex-sandbox-bin
-    status: design-only
-    audit: "2026-09-06 核实: dest 无本路径实现"
+    status: implemented
+    audit: "2026-09-06 四轮: src/sandboxSummary.ts diagnostics 面 (计数器/gauge 快照)"
   - path: exec
     lines: 10096
     dest: EXCLUDED
@@ -250,8 +250,7 @@ entries:
     lines: 44444
     dest: EXCLUDED
     code: E5-equivalent-or-os
-    status: design-only
-    audit: "2026-09-06 查证后改判: dest 改 EXCLUDED/E5 — exec-server 是 codex 自有架构的 JSON-RPC 子进程控制服务器(pty + 沙箱 helper 调度), dsh 的 dsh-subprocess-local/dsh-terminal-bash/pwsh + dsh-sandbox-local 即等价层, 44444 行移植属重复建设; 协议类型已由 codex-schema 蒸馏"
+    audit: "2026-09-06 查证后改判: dest 改 EXCLUDED/E5 — exec-server 是 codex 自有架构的 JSON-RPC 子进程控制服务器(pty + 沙箱 helper 调度), dsh 的 dsh-subprocess-local/dsh-terminal-bash/pwsh + dsh-sandbox-local 即等价层, 44444 行移植属重复建设; 协议类型已由 codex-schema 蒸馏; 2026-09-07 移除遗留 status: design-only 标记"
   - path: exec-server-protocol
     lines: 1818
     dest: codex-schema
@@ -280,8 +279,8 @@ entries:
   - path: ext/extension-api
     lines: 2346
     dest: codex-schema
-    status: design-only
-    audit: "2026-09-06 核实: dest 无本路径实现"
+    status: distilled
+    audit: "2026-09-06 四轮: handwritten/extension-api/validate.ts (扩展工具_spec 运行时守卫)"
   - path: ext/git-attribution
     lines: 406
     dest: EXCLUDED
@@ -295,15 +294,15 @@ entries:
   - path: ext/guardian-v2
     lines: 6379
     dest: codex-prompts
-    status: design-only
-    audit: "2026-09-06 核实: dest 无 guardian 相关资产或代码"
+    status: distilled
+    audit: "2026-09-06 四轮: src/guardian.ts (同步审查+异步评分双提示词, 有界转录, 共享上下文节)"
     code: PROMPT-ONLY
     note: "only classifier_instructions.md + pattern doc; code is OpenAI-bound"
   - path: ext/history-notes
     lines: 967
     dest: codex-session-kit
-    status: design-only
-    audit: "2026-09-06 核实: dest 无本路径实现"
+    status: distilled
+    audit: "2026-09-06 四轮: src/extNotes.ts (同上, 按 thread+key 归组的笔记)"
   - path: ext/image-generation
     lines: 1219
     dest: EXCLUDED
@@ -322,8 +321,8 @@ entries:
   - path: ext/memories
     lines: 2262
     dest: codex-session-kit
-    status: design-only
-    audit: "结构化记忆格式未实现"
+    status: distilled
+    audit: "2026-09-06 四轮: src/extNotes.ts (本地 JSONL 后端的扩展记忆/笔记面)"
   - path: ext/queue
     lines: 1503
     dest: EXCLUDED
@@ -333,9 +332,9 @@ entries:
     lines: 19787
 
     status: distilled
-    audit: "预算公式+目录渲染 + 2026-09-06 二轮新增执行器 executor.ts (skillRead: 权限围栏/256KiB 上限/分页游标, skillList, 对应上游 tools/read.rs); 10 测试; 上游别名选择算法仍在蒸馏面外"
-    code: PARTIAL
-    note: "render.rs + dynamic_skill_selector only"
+    audit: "预算公式+目录渲染 + 2026-09-06 二轮新增执行器 executor.ts (skillRead: 权限围栏/256KiB 上限/分页游标, skillList, 对应上游 tools/read.rs); 10 测试; 2026-09-07 P1-2 新增 selector.ts (normalizeToken/buildAliasIndex/resolveAlias/selectSkills 别名解析+词法打分, codex_skill_select 工具), 11 测试; 上游别名选择算法已蒸馏"
+    code: distilled
+    note: "render.rs + dynamic_skill_selector (both distilled)"
   - path: ext/web-search
     lines: 806
     dest: EXCLUDED
@@ -349,8 +348,8 @@ entries:
   - path: features
     lines: 2760
     dest: codex-config-importer
-    status: design-only
-    audit: "2026-09-06 核实: dest 无本路径实现"
+    status: distilled
+    audit: "2026-09-06 四轮: src/utils/features.ts ([features] 表解析: 裸 bool 与 enabled+payload 双形态, 未知特性保留)"
   - path: feedback
     lines: 1245
     dest: EXCLUDED
@@ -359,8 +358,8 @@ entries:
   - path: file-search
     lines: 1207
     dest: codex-session-kit
-    status: design-only
-    audit: "2026-09-06 核实: dest 无本路径实现"
+    status: distilled
+    audit: "2026-09-06 四轮: src/fileSearch.ts (递归文件搜索, basename 子序列评分+前缀/全等加分)"
   - path: file-system
     lines: 600
     dest: EXCLUDED
@@ -405,7 +404,7 @@ entries:
     lines: 8631
     dest: codex-sandbox-bin
     status: implemented
-    audit: "vendor 保持在 0.149 构建 (49MB); 上游 0.153.4 release 已不再附带 linux-sandbox 资产, 重 vendor 需 musl 自建"
+    audit: "2026-09-07 P0-2 处置: 正式冻结 vendor 0.149 — bin/linux-x64/codex-linux-sandbox 实测 49,198,120 bytes, sha256 d77ef2bf03d275b30381456d2efc07458e3db38756b796470c3cf201223b3a14; 上游 0.153.4 release 已不再附带 linux-sandbox 资产(无新版可跟进), musl 自建需 Rust 工具链+网络(沙箱不具备, 不伪造). 重启条件: ① dsh 需要更新行为且具备 Rust/musl 构建环境(按 BUILD.md: cargo build --release -p codex-linux-sandbox), 或 ② 上游恢复附带资产; 重建产物必须与冻结基线 sha256 比对. Windows 侧维持 0.153.4 时代二进制(2026-09-06 刷新: codex-command-runner.exe 8,204,592 B + codex-windows-sandbox-setup.exe 15,413,040 B); 二进制为 sandboxSummary.ts 运行时引用, 不可移除"
   - path: lmstudio
     lines: 414
     dest: EXCLUDED
@@ -439,8 +438,8 @@ entries:
   - path: message-history
     lines: 1271
     dest: codex-session-kit
-    status: design-only
-    audit: "toDshEvents 为事件归一, 非历史持久化"
+    status: distilled
+    audit: "2026-09-06 四轮: src/messageHistory.ts (history.jsonl 追加日志, 字节上限, 按 logId+offset 查找)"
   - path: model-provider
     lines: 4264
     dest: EXCLUDED
@@ -475,14 +474,14 @@ entries:
     lines: 829
     dest: EXCLUDED
     code: E5-equivalent-or-os
-    status: design-only
-    audit: "2026-09-06 判定: dest 改 EXCLUDED/E5 — dsh 的 cordis 插件体系(name/inject/apply)即等价层; pack 保留为集成清单/胶水"
+    audit: "2026-09-06 判定: dest 改 EXCLUDED/E5 — dsh 的 cordis 插件体系(name/inject/apply)即等价层; pack 保留为集成清单/胶水; 2026-09-07 移除遗留 status: design-only 标记"
     note: "manifest/marketplace format reference"
   - path: process-hardening
     lines: 165
-    dest: codex-sandbox-bin
-    status: design-only
-    audit: "可能已内嵌于二进制, 未验证"
+    dest: EXCLUDED
+    code: E5-vendor-binary
+    audit: "2026-09-07 收口: 加固旗标编译于 vendor 沙箱二进制内部, 无独立 JS 面, 二进制即实现; 改判 EXCLUDED/E5, 不再计入 design-only"
+    note: "no JS surface; vendored binary is the implementation"
   - path: prompts
     lines: 1564
     dest: codex-prompts
@@ -496,8 +495,8 @@ entries:
   - path: response-debug-context
     lines: 150
     dest: codex-config-importer
-    status: design-only
-    audit: "2026-09-06 核实: dest 无本路径实现"
+    status: distilled
+    audit: "2026-09-06 四轮: src/utils/responseDebugContext.ts (有界调试信封, 错误长文截断)"
   - path: responses-api-proxy
     lines: 875
     dest: EXCLUDED
@@ -512,12 +511,12 @@ entries:
     lines: 13749
 
     status: distilled
-    audit: "容错 JSONL 解析 + 2026-09-06 二轮新增 replay.ts (seq 编号回放/atSeq fork-resume 切片/消息抽取/坏行计数); 4 测试; 上游压缩/ordinal/持久化度量未移植"
+    audit: "容错 JSONL 解析 + 2026-09-06 二轮新增 replay.ts (seq 编号回放/atSeq fork-resume 切片/消息抽取/坏行计数); 4 测试; 压缩已蒸馏(sessionCompression.ts, gzip+运行标记防重叠); 2026-09-07 P1-3 新增 rolloutMetrics.ts (ordinal/持久化/压缩度量: total/uncompressed/compressed/totalBytes/savedBytes/savedPct/ordinal/persisted, 3 测试)"
   - path: rollout-trace
     lines: 12381
     dest: codex-session-kit
-    status: design-only
-    audit: "2026-09-06 核实: dest 无本路径实现"
+    status: distilled
+    audit: "2026-09-06 四轮: src/rolloutTrace.ts (trace 时间线+每轮汇总)"
   - path: sandboxing
     lines: 7797
     dest: codex-sandbox-bin
@@ -531,12 +530,13 @@ entries:
   - path: shell-command
     lines: 5839
     status: distilled
-    audit: "2026-09-06 三轮: 分类器+语义解析器+审批规范键(canonicalization, unified_exec 重试缓存思想)全部落地, /bin/bash -lc 与 bash -c 同键; 共 24 测试。仍未移植: parse_command 全量 bash 文法与 shell_detect 提权选路"
+    audit: "2026-09-06 三轮: 分类器+语义解析器+审批规范键(canonicalization, unified_exec 重试缓存思想)全部落地, /bin/bash -lc 与 bash -c 同键; 共 24 测试。2026-09-07: shell_detect 提权选路已落地(commandSafety.detectEscalation: sudo/doas/pkexec/gsudo/elevate/runas + su -c 路由, 含选项参数跳过); parse_command 全量 bash 文法维持缓议(本机无上游 rust 源码, 2,766 行全量移植不可信)"
   - path: shell-escalation
     lines: 2078
-    dest: codex-sandbox-bin
-    status: design-only
-    audit: "无独立产物(可能部分内嵌 command-runner, 未验证)"
+    dest: EXCLUDED
+    code: E5-vendor-binary
+    audit: "2026-09-07 收口: 提权决策内嵌于 vendor 沙箱二进制, JS 面无独立价值, 二进制即实现; 改判 EXCLUDED/E5, 不再计入 design-only"
+    note: "no JS surface; vendored binary is the implementation"
   - path: skills
     lines: 2244
     dest: EXCLUDED
@@ -555,8 +555,8 @@ entries:
   - path: terminal-detection
     lines: 1396
     dest: codex-config-importer
-    status: design-only
-    audit: "2026-09-06 核实: dest 无本路径实现"
+    status: distilled
+    audit: "2026-09-06 四轮: src/utils/terminalDetection.ts (TerminalName/Multiplexer/user_agent 按 env 识别)"
   - path: test-binary-support
     lines: 70
     dest: EXCLUDED
@@ -570,8 +570,8 @@ entries:
   - path: thread-store
     lines: 27738
     dest: codex-session-kit
-    status: design-only
-    audit: "无 thread 生命周期 API"
+    status: distilled
+    audit: "2026-09-06 四轮: src/threadStore.ts (存储中立 thread 持久化契约 + 内存实现 + 队列提交); 2026-09-07 P1-4 新增 JsonlFileThreadStore (JSONL 落盘后端: 线程+队列双文件, 跨进程 durable, 坏行容忍) + createThreadStore 工厂 (file→durable, 默认内存), 4 测试"
   - path: tools
     lines: 6421
     dest: EXCLUDED
@@ -590,13 +590,13 @@ entries:
   - path: utils/absolute-path
     lines: 816
     dest: codex-config-importer
-    status: design-only
-    audit: "2026-09-06 核实: dest 无本路径实现"
+    status: distilled
+    audit: "2026-09-06 四轮: src/utils/absolutePath.ts (AbsolutePathBuf: resolve/join/canonicalize/parent/mkdir)"
   - path: utils/approval-presets
     lines: 73
     dest: codex-policy-engine
-    status: design-only
-    audit: "2026-09-06 核实: dest 无本路径实现"
+    status: implemented
+    audit: "2026-09-06 四轮: policy-engine src/approvalPresets.ts (read-only/workspace/danger-full-access 三预设)"
   - path: utils/audio
     lines: 391
     dest: EXCLUDED
@@ -605,8 +605,8 @@ entries:
   - path: utils/cache
     lines: 168
     dest: codex-config-importer
-    status: design-only
-    audit: "2026-09-06 核实: dest 无本路径实现"
+    status: distilled
+    audit: "2026-09-06 四轮: src/utils/cache.ts (BlockingLruCache: LRU+并发 get_or_insert 去重)"
   - path: utils/cargo-bin
     lines: 215
     dest: EXCLUDED
@@ -620,18 +620,18 @@ entries:
   - path: utils/elapsed
     lines: 60
     dest: codex-config-importer
-    status: design-only
-    audit: "2026-09-06 核实: dest 无本路径实现"
+    status: distilled
+    audit: "2026-09-06 四轮: src/utils/elapsed.ts (ms/s/m 时长格式化)"
   - path: utils/fuzzy-match
     lines: 154
     dest: codex-config-importer
-    status: design-only
-    audit: "2026-09-06 核实: dest 无本路径实现"
+    status: distilled
+    audit: "2026-09-06 四轮: src/utils/fuzzyMatch.ts (大小写不敏感子序列匹配+连续/词首加分)"
   - path: utils/home-dir
     lines: 123
     dest: codex-config-importer
-    status: design-only
-    audit: "2026-09-06 核实: dest 无本路径实现"
+    status: distilled
+    audit: "2026-09-06 四轮: src/utils/homeDir.ts (CODEX_HOME 覆盖校验 + ~/.codex 兜底)"
   - path: utils/image
     lines: 949
     dest: EXCLUDED
@@ -640,8 +640,8 @@ entries:
   - path: utils/json-to-toml
     lines: 73
     dest: codex-config-importer
-    status: design-only
-    audit: "2026-09-06 核实: dest 无本路径实现"
+    status: distilled
+    audit: "2026-09-06 四轮: src/utils/jsonToToml.ts (null→空串/整数浮点区分/表与数组序列化)"
   - path: utils/oss
     lines: 55
     dest: EXCLUDED
@@ -655,19 +655,18 @@ entries:
   - path: utils/path-uri
     lines: 2899
     dest: codex-config-importer
-    status: design-only
-    audit: "2026-09-06 核实: dest 无本路径实现"
+    status: distilled
+    audit: "2026-09-06 四轮: src/utils/pathUri.ts (file:// URI 与文件路径双向转换, Windows 盘符/编码处理)"
   - path: utils/path-utils
     lines: 304
     dest: codex-config-importer
-    status: design-only
-    audit: "2026-09-06 核实: dest 无本路径实现"
+    status: distilled
+    audit: "2026-09-06 四轮: src/utils/pathUtils.ts (路径比较归一化/WSL 检测)"
   - path: utils/plugins
     lines: 404
     dest: EXCLUDED
     code: E5-equivalent-or-os
-    status: design-only
-    audit: "2026-09-06 判定: dest 改 EXCLUDED/E5 — 同 plugin 条目"
+    audit: "2026-09-06 判定: dest 改 EXCLUDED/E5 — 同 plugin 条目; 2026-09-07 移除遗留 status: design-only 标记"
     note: "manifest/marketplace format reference"
   - path: utils/pty
     lines: 4334
@@ -677,13 +676,13 @@ entries:
   - path: utils/readiness
     lines: 290
     dest: codex-config-importer
-    status: design-only
-    audit: "2026-09-06 核实: dest 无本路径实现"
+    status: distilled
+    audit: "2026-09-06 四轮: src/utils/readiness.ts (token 制就绪追踪 + waitReady)"
   - path: utils/redacted-string
     lines: 41
     dest: codex-config-importer
-    status: design-only
-    audit: "2026-09-06 核实: dest 无本路径实现"
+    status: distilled
+    audit: "2026-09-06 四轮: src/utils/redactedString.ts (透明包装, 输出面固定 REDACTED)"
   - path: utils/rustls-provider
     lines: 71
     dest: EXCLUDED
@@ -692,8 +691,8 @@ entries:
   - path: utils/sandbox-summary
     lines: 172
     dest: codex-sandbox-bin
-    status: design-only
-    audit: "2026-09-06 核实: dest 无本路径实现"
+    status: implemented
+    audit: "2026-09-06 四轮: src/sandboxSummary.ts (当前平台二进制清点+完整性)"
   - path: utils/sleep-inhibitor
     lines: 550
     dest: EXCLUDED
@@ -702,18 +701,18 @@ entries:
   - path: utils/stream-parser
     lines: 1315
     dest: codex-config-importer
-    status: design-only
-    audit: "2026-09-06 核实: dest 无本路径实现"
+    status: distilled
+    audit: "2026-09-06 四轮: src/utils/streamParser.ts (行分隔 JSON 增量读取, 跨 chunk 容错, 坏行计数)"
   - path: utils/string
     lines: 487
     dest: codex-config-importer
-    status: design-only
-    audit: "2026-09-06 核实: dest 无本路径实现"
+    status: distilled
+    audit: "2026-09-06 四轮: src/utils/string.ts (字节边界截取/度量标签清洗/UUID 查找/markdown 锚点归一)"
   - path: utils/template
     lines: 382
     dest: codex-config-importer
-    status: design-only
-    audit: "2026-09-06 核实: dest 无本路径实现"
+    status: distilled
+    audit: "2026-09-06 四轮: src/utils/template.ts ({{name}} 占位模板 parse/placeholders/render)"
   - path: v8-poc
     lines: 73
     dest: EXCLUDED
@@ -747,8 +746,8 @@ entries:
   - path: guardian-context
     lines: 0
     dest: codex-prompts
-    status: design-only
-    audit: "Guardian 审查/评分共享上下文段, 归 prompts 蒸馏件; 2026-09-06 准入, 待下轮蒸馏"
+    status: distilled
+    audit: "2026-09-06 四轮: src/guardian.ts (同步审查+异步评分双提示词, 共享有界上下文节) — 即 guardian-context 的蒸馏落地"
   - path: otel-trace-websocket
     lines: 0
     dest: EXCLUDED
@@ -762,8 +761,8 @@ entries:
   - path: utils/git-discovery
     lines: 0
     dest: codex-config-importer
-    status: design-only
-    audit: "utils 家族新成员, 归 config-importer; 2026-09-06 准入, 待下轮蒸馏"
+    status: distilled
+    audit: "2026-09-06 四轮: src/utils/gitDiscovery.ts (有界共享 git 根发现, 每 cwd 共享探测)"
   - path: voice-host
     lines: 0
     dest: EXCLUDED
