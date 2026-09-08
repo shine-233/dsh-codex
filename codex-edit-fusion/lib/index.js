@@ -1,8 +1,8 @@
-// dsh-codex/codex-edit-fusion/src/dsh-plugin.ts
-import { readFile, writeFile } from "node:fs/promises";
+// src/dsh-plugin.ts
+import { readFile, writeFile, rm } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
 
-// dsh-codex/codex-edit-fusion/src/v4aParser.ts
+// src/v4aParser.ts
 function parsePatch(text) {
   const lines = text.split(/\r?\n/);
   let i = 0;
@@ -11,21 +11,28 @@ function parsePatch(text) {
   i++;
   const patch = { updateFiles: [], addFiles: [], deleteFiles: [] };
   const readPath = (line, prefix) => line.slice(prefix.length).trim();
+  let ended = false;
   while (i < lines.length && !/^\*\*\* End Patch\s*$/.test(lines[i])) {
     const line = lines[i];
     if (line.startsWith("*** Add File: ")) {
       const path = readPath(line, "*** Add File: ");
       i++;
+      if (!path) throw new Error("v4a: add file path is empty");
       const body = [];
       while (i < lines.length && !/^\*\*\*/.test(lines[i])) {
         body.push(lines[i].replace(/^\+/, ""));
         i++;
       }
+      if (body.some((entry, index) => lines[i - body.length + index]?.startsWith("+") !== true)) {
+        throw new Error(`v4a: malformed add file body for ${path}`);
+      }
       patch.addFiles.push({ path, lines: body });
       continue;
     }
     if (line.startsWith("*** Delete File: ")) {
-      patch.deleteFiles.push(readPath(line, "*** Delete File: "));
+      const path = readPath(line, "*** Delete File: ");
+      if (!path) throw new Error("v4a: delete file path is empty");
+      patch.deleteFiles.push(path);
       i++;
       continue;
     }
@@ -33,6 +40,7 @@ function parsePatch(text) {
       let path = "";
       let moveTo;
       if (line.startsWith("*** Update File: ")) path = readPath(line, "*** Update File: ");
+      if (!path) throw new Error("v4a: update file path is empty");
       i++;
       if (i < lines.length && lines[i].startsWith("*** Move to: ")) {
         moveTo = readPath(lines[i], "*** Move to: ");
@@ -56,25 +64,36 @@ function parsePatch(text) {
             i++;
           }
           hunks.push({ changeContext: ctx || void 0, lines: hunkLines });
+          if (i < lines.length && /^\*\*\* End of File\s*$/.test(lines[i])) {
+            hunks[hunks.length - 1].eof = true;
+            i++;
+          }
         } else i++;
       }
+      if (hunks.length === 0 && !moveTo) throw new Error(`v4a: update file has no hunks: ${path}`);
       patch.updateFiles.push({ type: "UpdateFile", path, moveTo, hunks });
       continue;
     }
-    i++;
+    throw new Error(`v4a: unexpected directive: ${line}`);
   }
+  if (i < lines.length && /^\*\*\* End Patch\s*$/.test(lines[i])) ended = true;
+  if (!ended) throw new Error("v4a: missing *** End Patch");
   return patch;
 }
 function applyPatch(patch, files, locate) {
+  const original = new Map(files);
   const out = new Map(files);
   const results = [];
   const errors = [];
+  const lineEndings = /* @__PURE__ */ new Map();
+  for (const [path, content] of files) lineEndings.set(path, content.includes("\r\n") ? "\r\n" : "\n");
   const getLines = (p) => {
     const c = out.get(p);
-    return c === void 0 ? null : c.split("\n");
+    return c === void 0 ? null : c.split(/\r\n|\n/);
   };
   const setLines = (p, l) => {
-    out.set(p, l.join("\n"));
+    const eol = lineEndings.get(p) ?? "\n";
+    out.set(p, l.join(eol));
   };
   for (const del of patch.deleteFiles) {
     if (!out.has(del)) errors.push(`delete target missing: ${del}`);
@@ -91,7 +110,7 @@ function applyPatch(patch, files, locate) {
     }
   }
   for (const upd of patch.updateFiles) {
-    const cur = getLines(upd.path);
+    let cur = getLines(upd.path);
     if (cur === null) {
       errors.push(`update target missing: ${upd.path}`);
       continue;
@@ -100,7 +119,7 @@ function applyPatch(patch, files, locate) {
       const removePat = hunk.lines.filter((l) => l.kind === "remove" || l.kind === "context").map((l) => l.text);
       const anchorIdx = (() => {
         if (locate) {
-          const r = locate(cur, removePat, 0, false);
+          const r = locate(cur, removePat, 0, Boolean(hunk.eof));
           if (r !== null) return r;
           return null;
         }
@@ -122,12 +141,23 @@ function applyPatch(patch, files, locate) {
       const kept = cur.slice(0, base);
       const tail = cur.slice(base + removePat.length);
       const rebuilt = [];
+      let consumed = 0;
       for (const l of hunk.lines) {
-        if (l.kind === "remove") continue;
-        if (l.kind === "context") rebuilt.push(cur[base + hunk.lines.filter((x, idx) => x.kind === "context" && idx < hunk.lines.indexOf(l)).length] ?? l.text);
-        else rebuilt.push(l.text);
+        if (l.kind === "remove") {
+          consumed++;
+          continue;
+        }
+        if (l.kind === "context") {
+          rebuilt.push(cur[base + consumed] ?? l.text);
+          consumed++;
+        } else rebuilt.push(l.text);
       }
-      setLines(upd.path, [...kept, ...rebuilt, ...tail]);
+      cur = [...kept, ...rebuilt, ...tail];
+      setLines(upd.path, cur);
+    }
+    if (upd.moveTo && upd.moveTo !== upd.path && out.has(upd.moveTo)) {
+      errors.push(`move target already exists: ${upd.moveTo}`);
+      continue;
     }
     const finalPath = upd.moveTo ?? upd.path;
     if (upd.moveTo) {
@@ -136,10 +166,11 @@ function applyPatch(patch, files, locate) {
     }
     results.push({ file: finalPath, status: "applied", movedTo: upd.moveTo });
   }
+  if (errors.length > 0) return { files: original, results: [], errors };
   return { files: out, results, errors };
 }
 
-// dsh-codex/codex-edit-fusion/src/seekSequence.ts
+// src/seekSequence.ts
 var DASHES = ["\u2010", "\u2011", "\u2012", "\u2013", "\u2014", "\u2015", "\u2212"];
 var SINGLE_QUOTES = ["\u2018", "\u2019", "\u201A", "\u201B"];
 var DOUBLE_QUOTES = ["\u201C", "\u201D", "\u201E", "\u201F"];
@@ -153,7 +184,7 @@ function normalise(s) {
     return c;
   }).join("");
 }
-function seekSequence(lines, pattern, start, eof, updateFileMode) {
+function seekSequence(lines, pattern, start, eof = false, updateFileMode = "PreserveLineEndings") {
   if (pattern.length === 0) return start;
   if (pattern.length > lines.length) return null;
   const attempt = (searchStart) => {
@@ -186,7 +217,7 @@ function seekSequence(lines, pattern, start, eof, updateFileMode) {
   return null;
 }
 
-// dsh-codex/codex-edit-fusion/src/dsh-plugin.ts
+// src/dsh-plugin.ts
 var name = "codex-edit-fusion";
 var inject = ["tools"];
 function touchedPaths(patch) {
@@ -212,7 +243,8 @@ function apply(ctx, config = {}) {
     },
     output: { schema: { type: "string" }, render: (_a, v) => [{ type: "text", text: v }] },
     async execute(args) {
-      const base = resolve(isAbsolute(String(args?.cwd ?? "")) ? String(args.cwd) : join(process.cwd(), String(args?.cwd ?? ".")));
+      const configuredRoot = root ?? process.cwd();
+      const base = resolve(isAbsolute(String(args?.cwd ?? "")) ? String(args.cwd) : join(configuredRoot, String(args?.cwd ?? ".")));
       const patch = parsePatch(String(args?.patch ?? ""));
       const files = /* @__PURE__ */ new Map();
       for (const p of touchedPaths(patch)) {
@@ -222,18 +254,29 @@ function apply(ctx, config = {}) {
         }
       }
       const res = applyPatch(patch, files, (lines, pattern, start) => seekSequence(lines, pattern, start));
-      for (const [p, content] of res.files) {
-        if (content === files.get(p)) continue;
-        await writeFile(join(base, p), content, "utf8");
-      }
-      for (const del of patch.deleteFiles) {
-        try {
-          const { rm } = await import("node:fs/promises");
-          await rm(join(base, del));
-        } catch {
+      if (res.errors.length > 0) return JSON.stringify({ applied: [], errors: res.errors }, null, 2);
+      const touched = touchedPaths(patch);
+      try {
+        for (const [p, content] of res.files) {
+          if (content === files.get(p)) continue;
+          await writeFile(join(base, p), content, "utf8");
         }
+        for (const upd of patch.updateFiles) {
+          if (!upd.moveTo || upd.moveTo === upd.path) continue;
+          await rm(join(base, upd.path), { force: true });
+        }
+        for (const del of patch.deleteFiles) await rm(join(base, del), { force: true });
+      } catch (error) {
+        for (const p of touched) {
+          try {
+            if (files.has(p)) await writeFile(join(base, p), files.get(p), "utf8");
+            else await rm(join(base, p), { force: true });
+          } catch {
+          }
+        }
+        return JSON.stringify({ applied: [], errors: [`write transaction failed: ${String(error)}`] }, null, 2);
       }
-      return JSON.stringify({ applied: res.results, errors: res.errors }, null, 2);
+      return JSON.stringify({ applied: res.results, errors: [] }, null, 2);
     },
     timeoutMs: 15e3
   }));

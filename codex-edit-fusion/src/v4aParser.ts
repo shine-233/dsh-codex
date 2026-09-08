@@ -7,7 +7,7 @@ export interface FileChange {
   type: 'UpdateFile' | 'AddFile' | 'DeleteFile';
   path: string;
   moveTo?: string;
-  hunks: { changeContext?: string; lines: HunkLine[] }[];
+  hunks: { changeContext?: string; lines: HunkLine[]; eof?: boolean }[];
 }
 export interface Patch { updateFiles: FileChange[]; addFiles: { path: string; lines: string[] }[]; deleteFiles: string[] }
 
@@ -22,23 +22,31 @@ export function parsePatch(text: string): Patch {
   const readPath = (line: string, prefix: string): string =>
     line.slice(prefix.length).trim();
 
+  let ended = false;
   while (i < lines.length && !/^\*\*\* End Patch\s*$/.test(lines[i])) {
     const line = lines[i];
     if (line.startsWith('*** Add File: ')) {
       const path = readPath(line,'*** Add File: '); i++;
+      if (!path) throw new Error('v4a: add file path is empty');
       const body: string[] = [];
       while (i < lines.length && !/^\*\*\*/.test(lines[i])) { body.push(lines[i].replace(/^\+/,'')); i++; }
+      if (body.some((entry, index) => lines[i - body.length + index]?.startsWith('+') !== true)) {
+        throw new Error(`v4a: malformed add file body for ${path}`);
+      }
       patch.addFiles.push({ path, lines: body });
       continue;
     }
     if (line.startsWith('*** Delete File: ')) {
-      patch.deleteFiles.push(readPath(line,'*** Delete File: ')); i++;
+      const path = readPath(line,'*** Delete File: ');
+      if (!path) throw new Error('v4a: delete file path is empty');
+      patch.deleteFiles.push(path); i++;
       continue;
     }
     if (line.startsWith('*** Update File: ') || line.startsWith('*** Rename to: ')) {
       // handle both orders: "Update File:" then optional "Rename to:"
       let path = ''; let moveTo: string | undefined;
       if (line.startsWith('*** Update File: ')) path = readPath(line,'*** Update File: ');
+      if (!path) throw new Error('v4a: update file path is empty');
       i++;
       if (i < lines.length && lines[i].startsWith('*** Move to: ')) {
         moveTo = readPath(lines[i],'*** Move to: '); i++;
@@ -60,13 +68,20 @@ export function parsePatch(text: string): Patch {
             i++;
           }
           hunks.push({ changeContext: ctx || undefined, lines: hunkLines });
+          if (i < lines.length && /^\*\*\* End of File\s*$/.test(lines[i])) {
+            (hunks[hunks.length - 1] as { changeContext?: string; lines: HunkLine[]; eof?: boolean }).eof = true;
+            i++;
+          }
         } else i++;
       }
+      if (hunks.length === 0 && !moveTo) throw new Error(`v4a: update file has no hunks: ${path}`);
       patch.updateFiles.push({ type:'UpdateFile', path, moveTo, hunks });
       continue;
     }
-    i++;
+    throw new Error(`v4a: unexpected directive: ${line}`);
   }
+  if (i < lines.length && /^\*\*\* End Patch\s*$/.test(lines[i])) ended = true;
+  if (!ended) throw new Error('v4a: missing *** End Patch');
   return patch;
 }
 
@@ -82,12 +97,21 @@ export function applyPatch(
   files: Map<string, string>,
   locate?: (lines: string[], pattern: string[], start: number, eof: boolean) => number | null,
 ): { files: Map<string,string>; results: ApplyResult[]; errors: string[] } {
+  // Stage every operation in an isolated map. The caller only receives the
+  // staged map when the complete patch validates; this prevents partial
+  // application when a later hunk/file fails.
+  const original = new Map(files);
   const out = new Map(files);
   const results: ApplyResult[] = []; const errors: string[] = [];
+  const lineEndings = new Map<string, string>();
+  for (const [path, content] of files) lineEndings.set(path, content.includes('\r\n') ? '\r\n' : '\n');
   const getLines = (p: string): string[] | null => {
-    const c = out.get(p); return c === undefined ? null : c.split('\n');
+    const c = out.get(p); return c === undefined ? null : c.split(/\r\n|\n/);
   };
-  const setLines = (p: string, l: string[]) => { out.set(p, l.join('\n')); };
+  const setLines = (p: string, l: string[]) => {
+    const eol = lineEndings.get(p) ?? '\n';
+    out.set(p, l.join(eol));
+  };
 
   for (const del of patch.deleteFiles) {
     if (!out.has(del)) errors.push(`delete target missing: ${del}`);
@@ -98,14 +122,14 @@ export function applyPatch(
     else { out.set(add.path, add.lines.join('\n')); results.push({ file:add.path, status:'applied' }); }
   }
   for (const upd of patch.updateFiles) {
-    const cur = getLines(upd.path);
+    let cur = getLines(upd.path);
     if (cur === null) { errors.push(`update target missing: ${upd.path}`); continue; }
     for (const hunk of upd.hunks) {
       const removePat = hunk.lines.filter((l)=>l.kind==='remove'||l.kind==='context')
                                    .map((l)=>l.text);
       const anchorIdx = (()=>{
         if (locate) {
-          const r = locate(cur, removePat, 0, false);
+          const r = locate(cur, removePat, 0, Boolean((hunk as { eof?: boolean }).eof),);
           if (r !== null) return r;
           return null;
         }
@@ -121,16 +145,23 @@ export function applyPatch(
       const kept = cur.slice(0, base);
       const tail = cur.slice(base + removePat.length);
       const rebuilt: string[] = [];
+      let consumed = 0;
       for (const l of hunk.lines) {
-        if (l.kind==='remove') continue;
-        if (l.kind==='context') rebuilt.push(cur[base + hunk.lines.filter((x,idx)=>x.kind==='context'&&idx < hunk.lines.indexOf(l)).length] ?? l.text);
+        if (l.kind==='remove') { consumed++; continue; }
+        if (l.kind==='context') { rebuilt.push(cur[base + consumed] ?? l.text); consumed++; }
         else rebuilt.push(l.text);
       }
-      setLines(upd.path, [...kept, ...rebuilt, ...tail]);
+      cur = [...kept, ...rebuilt, ...tail];
+      setLines(upd.path, cur);
+    }
+    if (upd.moveTo && upd.moveTo !== upd.path && out.has(upd.moveTo)) {
+      errors.push(`move target already exists: ${upd.moveTo}`);
+      continue;
     }
     const finalPath = upd.moveTo ?? upd.path;
     if (upd.moveTo) { out.set(upd.moveTo, out.get(upd.path)!); out.delete(upd.path); }
     results.push({ file: finalPath, status:'applied', movedTo: upd.moveTo });
   }
+  if (errors.length > 0) return { files: original, results: [], errors };
   return { files: out, results, errors };
 }

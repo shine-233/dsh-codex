@@ -33,8 +33,8 @@ export function seekSequence(
   lines: string[],
   pattern: string[],
   start: number,
-  eof: boolean,
-  updateFileMode: UpdateFileMode,
+  eof = false,
+  updateFileMode: UpdateFileMode = 'PreserveLineEndings',
 ): number | null {
   if (pattern.length === 0) return start;
   if (pattern.length > lines.length) return null;

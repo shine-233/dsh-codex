@@ -35,4 +35,137 @@ describe('V4A parser + applier', () => {
     expect(out.has('src/old.ts')).toBe(false);
     expect(results.length).toBe(3);
   });
+
+  it('does not partially commit when a later hunk fails', () => {
+    const files = new Map([['src/app.ts', 'one\ntwo\nthree']]);
+    const patch = parsePatch([
+      '*** Begin Patch',
+      '*** Update File: src/app.ts',
+      '@@',
+      '-one',
+      '+ONE',
+      '@@',
+      '-missing',
+      '+MISSING',
+      '*** End Patch',
+    ].join('\n'));
+
+    const result = applyPatch(patch, files);
+
+    expect(result.errors).toEqual(['hunk not found in src/app.ts']);
+    expect(result.results).toEqual([]);
+    expect(result.files).toEqual(files);
+    expect(result.files.get('src/app.ts')).toBe('one\ntwo\nthree');
+  });
+
+  it('does not partially commit an earlier file when a later file fails', () => {
+    const files = new Map([
+      ['a.txt', 'old'],
+      ['b.txt', 'present'],
+    ]);
+    const patch = parsePatch([
+      '*** Begin Patch',
+      '*** Update File: a.txt',
+      '@@',
+      '-old',
+      '+new',
+      '*** Update File: missing.txt',
+      '@@',
+      '-nope',
+      '+still missing',
+      '*** End Patch',
+    ].join('\n'));
+
+    const result = applyPatch(patch, files);
+
+    expect(result.errors).toContain('update target missing: missing.txt');
+    expect(result.results).toEqual([]);
+    expect(result.files).toEqual(files);
+    expect(result.files.get('a.txt')).toBe('old');
+  });
+
+  it('rejects a move into an existing file without changing either file', () => {
+    const files = new Map([
+      ['from.txt', 'source'],
+      ['to.txt', 'destination'],
+    ]);
+    const patch = parsePatch([
+      '*** Begin Patch',
+      '*** Update File: from.txt',
+      '*** Move to: to.txt',
+      '*** End Patch',
+    ].join('\n'));
+
+    const result = applyPatch(patch, files);
+
+    expect(result.errors).toEqual(['move target already exists: to.txt']);
+    expect(result.results).toEqual([]);
+    expect(result.files).toEqual(files);
+  });
+
+  it('applies multiple hunks against the result of the previous hunk', () => {
+    const files = new Map([['src/app.ts', 'one\ntwo\nthree\nfour']]);
+    const patch = parsePatch([
+      '*** Begin Patch',
+      '*** Update File: src/app.ts',
+      '@@',
+      '-one',
+      '+ONE',
+      '@@',
+      '-three',
+      '+THREE',
+      '*** End Patch',
+    ].join('\n'));
+
+    const result = applyPatch(patch, files);
+
+    expect(result.errors).toEqual([]);
+    expect(result.files.get('src/app.ts')).toBe('ONE\ntwo\nTHREE\nfour');
+  });
+
+  it('preserves CRLF line endings when updating a Windows file', () => {
+    const files = new Map([['win.txt', 'one\r\ntwo\r\nthree\r\n']]);
+    const patch = parsePatch([
+      '*** Begin Patch', '*** Update File: win.txt', '@@',
+      '-two', '+TWO', '*** End Patch',
+    ].join('\n'));
+    const result = applyPatch(patch, files);
+    expect(result.errors).toEqual([]);
+    expect(result.files.get('win.txt')).toBe('one\r\nTWO\r\nthree\r\n');
+  });
+
+  it('uses the EOF marker for an append hunk and exposes it to the locator', () => {
+    const files = new Map([['tail.txt', 'first\nlast']]);
+    const seen: boolean[] = [];
+    const patch = parsePatch([
+      '*** Begin Patch', '*** Update File: tail.txt', '@@',
+      '+appended', '*** End of File', '*** End Patch',
+    ].join('\n'));
+    const result = applyPatch(patch, files, (_lines, _pattern, _start, eof) => {
+      seen.push(eof);
+      return null;
+    });
+    expect(result.errors).toEqual([]);
+    expect(seen).toEqual([true]);
+    expect(result.files.get('tail.txt')).toBe('first\nlast\nappended');
+  });
+
+  it('rejects malformed patches instead of silently ignoring directives', () => {
+    expect(() => parsePatch('*** Begin Patch\n*** Bogus: file\n*** End Patch')).toThrow(/unexpected directive/);
+    expect(() => parsePatch('*** Begin Patch\n*** Update File: x\n@@\n-old\n+new')).toThrow(/missing \*\*\* End Patch/);
+    expect(() => parsePatch('*** Begin Patch\n*** Add File: x\nnot-prefixed\n*** End Patch')).toThrow(/malformed add file body/);
+  });
+
+  it('rolls back a multi-file patch when a move boundary fails', () => {
+    const files = new Map([['a.txt', 'A'], ['b.txt', 'B']]);
+    const patch = parsePatch([
+      '*** Begin Patch', '*** Update File: a.txt', '*** Move to: c.txt',
+      '*** Update File: b.txt', '*** Move to: c.txt',
+      '*** End Patch',
+    ].join('\n'));
+    const result = applyPatch(patch, files);
+    expect(result.errors).toEqual(['move target already exists: c.txt']);
+    expect(result.results).toEqual([]);
+    expect(result.files).toEqual(files);
+  });
 });
