@@ -3,7 +3,12 @@ import {
   validateUserInput, validateParsedCommand, validateRawFileSystemPath,
   validateEnvironmentConfigState, validateReasoningEffort,
 } from '../src/handwritten/protocol/validate';
-import { validateNetworkPolicyDecision, validateRequestId, validateJSONRPCMessage } from '../src/handwritten/exec-server-protocol/validate';
+import {
+  validateEnvironmentInfo,
+  validateNetworkPolicyDecision,
+  validateRequestId,
+  validateJSONRPCMessage,
+} from '../src/handwritten/exec-server-protocol/validate';
 import {
   validateWireContentItem, validateWireRuntimeResponse, validateRuntimeResponse,
   validateWaitOutcome, validateExecuteToPendingOutcome, validateFunctionCallOutputContentItem,
@@ -42,6 +47,20 @@ describe('protocol validators (M1 → executable)', () => {
 });
 
 describe('exec-server-protocol validators (M1 → executable)', () => {
+  it('EnvironmentInfo accepts legacy metadata and optional opaque providerId', () => {
+    const legacy = {
+      shell: { name: 'powershell', path: 'powershell.exe' },
+      executorVersion: '0.0.0',
+      cwd: null,
+    };
+    expect(validateEnvironmentInfo(legacy).ok).toBe(true);
+    expect(validateEnvironmentInfo({
+      ...legacy,
+      providerId: 'sha256:e0a0cebe63ab8189ffe3eed378ccf6aa89ef15bc75e39dbbf1fc55951ec6888b',
+    }).ok).toBe(true);
+    expect(validateEnvironmentInfo({ ...legacy, providerId: 42 }).ok).toBe(false);
+    expect(validateEnvironmentInfo({ executorVersion: '1.2.3' }).ok).toBe(false);
+  });
   it('NetworkPolicyDecision: Deny/Ask both require reason', () => {
     expect(validateNetworkPolicyDecision({ type: 'Deny', reason: 'r' }).ok).toBe(true);
     expect(validateNetworkPolicyDecision({ type: 'Ask' }).ok).toBe(false);

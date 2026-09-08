@@ -6,6 +6,22 @@ import { zodUnion, sketchMember, zodNoneTagged, isPlainObject } from '../zodUnio
 
 export interface ValidationResult { ok: boolean; variant: string | null; error?: string }
 
+const EnvironmentInfoSchema = z.object({
+  shell: z.object({ name: z.string(), path: z.string() }).passthrough(),
+  executorVersion: z.string(),
+  providerId: z.string().optional(),
+  cwd: z.string().nullable().optional(),
+  userHomeDir: z.string().nullable().optional(),
+  platformOs: z.string().nullable().optional(),
+}).passthrough()
+
+export function validateEnvironmentInfo(j: unknown): ValidationResult {
+  const result = EnvironmentInfoSchema.safeParse(j)
+  return result.success
+    ? { ok: true, variant: 'EnvironmentInfo' }
+    : { ok: false, variant: null, error: result.error.issues[0]?.message ?? 'invalid EnvironmentInfo' }
+}
+
 // ── ExecServerNetworkPolicyDecision (type-tagged; both variants carry reason) ──
 
 export function validateNetworkPolicyDecision(j: unknown): ValidationResult {
