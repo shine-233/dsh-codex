@@ -55,14 +55,94 @@ describe('fileSearch (distilled from file-search crate)', () => {
 describe('agentGraph (distilled from agent-graph-store crate)', () => {
   it('records spawn edges and status transitions with JSONL persistence', () => {
     const file = join(tmp, 'graph.jsonl');
-    const g = new AgentGraphStore(file);
-    g.addAgent('parent', 'root');
-    g.addAgent('child', 'sub');
-    g.addSpawnEdge('parent', 'child', 'running');
-    g.setEdgeStatus('child', 'completed');
-    const g2 = new AgentGraphStore(file); // rebuild from log
-    expect(g2.nodeCount()).toBe(2);
-    expect(g2.childrenOf('parent')[0].status).toBe('completed');
+    const graph = new AgentGraphStore(file);
+    graph.addAgent('parent', 'root');
+    graph.addAgent('child', 'sub');
+    graph.addSpawnEdge('parent', 'child', 'running');
+    graph.setEdgeStatus('child', 'completed');
+    const reopened = new AgentGraphStore(file);
+    expect(reopened.nodeCount()).toBe(2);
+    expect(reopened.childrenOf('parent')[0].status).toBe('completed');
+  });
+
+  it('renders persisted direct v2 children with loaded agents first', () => {
+    const file = join(tmp, 'v2-roster.jsonl');
+    const graph = new AgentGraphStore(file);
+    graph.addAgent('parent', 'root', '/root');
+    graph.addAgent('unloaded', 'alpha', '/root/alpha');
+    graph.addAgent('loaded', 'worker', '/root/worker');
+    graph.addAgent('grandchild', 'nested', '/root/worker/nested');
+    graph.addSpawnEdge('parent', 'unloaded');
+    graph.addSpawnEdge('parent', 'unloaded'); // replayed duplicate edge must not duplicate the roster
+    graph.addSpawnEdge('parent', 'loaded');
+    graph.addSpawnEdge('loaded', 'grandchild');
+
+    const reopened = new AgentGraphStore(file);
+    expect(reopened.formatEnvironmentContextSubagents('parent', ['loaded'])).toBe(
+      '<agent name="/root/worker" />\n<agent name="/root/alpha" />',
+    );
+  });
+
+  it('requires roster edges to target canonical direct-child paths', () => {
+    const graph = new AgentGraphStore();
+    graph.addAgent('missing-parent-path', 'missing');
+    graph.addAgent('parent', 'root', '/root');
+    graph.addAgent('child', 'child', '/root/child');
+    graph.addAgent('cross-parent', 'cross', '/other/child');
+    graph.addAgent('linked-grandchild', 'nested', '/root/child/nested');
+    graph.addSpawnEdge('missing-parent-path', 'child');
+    graph.addSpawnEdge('parent', 'child');
+    graph.addSpawnEdge('parent', 'cross-parent');
+    graph.addSpawnEdge('parent', 'linked-grandchild');
+
+    expect(graph.formatEnvironmentContextSubagents('missing-parent-path', [])).toBe('');
+    expect(graph.formatEnvironmentContextSubagents('parent', [])).toBe(
+      '<agent name="/root/child" />',
+    );
+  });
+
+  it('charges escaped UTF-8 paths against the exact roster byte envelope', () => {
+    const wrapperBytes = Buffer.byteLength('  <subagents>\n  </subagents>\n');
+    const renderedBytes = (path: string) => Buffer.byteLength(
+      `    <agent name="${path}" />\n`,
+    ) + wrapperBytes;
+    const escapedPrefix = '/root/&amp;&quot;&lt;&gt;';
+    const fittingPath = escapedPrefix + '界'.repeat(316);
+    const oversizedPath = fittingPath + 'x';
+    expect(renderedBytes(fittingPath)).toBe(1024);
+    expect(renderedBytes(oversizedPath)).toBe(1025);
+
+    const graph = new AgentGraphStore();
+    graph.addAgent('parent', 'root', '/root');
+    graph.addAgent('fits', 'fits', '/root/&"<>界'.replace('界', '界'.repeat(316)));
+    graph.addAgent('too-large', 'too large', '/root/&"<>界'.replace('界', '界'.repeat(316) + 'x'));
+    graph.addSpawnEdge('parent', 'fits');
+    graph.addSpawnEdge('parent', 'too-large');
+    expect(graph.formatEnvironmentContextSubagents('parent', [])).toBe(
+      `<agent name="${fittingPath}" />`,
+    );
+  });
+
+  it('caps a v2 roster at eight agents and 1,024 rendered bytes', () => {
+    const graph = new AgentGraphStore();
+    graph.addAgent('parent', 'root', '/root');
+    for (let i = 0; i < 10; i++) {
+      const id = `child-${i}`;
+      graph.addAgent(id, id, `/root/${String(i).padStart(2, '0')}`);
+      graph.addSpawnEdge('parent', id);
+    }
+    expect(graph.formatEnvironmentContextSubagents('parent', []).split('\n')).toHaveLength(8);
+
+    const longGraph = new AgentGraphStore();
+    const longPath = `/root/${'x'.repeat(990)}`;
+    longGraph.addAgent('parent', 'root', '/root');
+    longGraph.addAgent('too-long', 'too long', longPath);
+    longGraph.addAgent('fits', 'fits', '/root/fits');
+    longGraph.addSpawnEdge('parent', 'too-long');
+    longGraph.addSpawnEdge('parent', 'fits');
+    expect(longGraph.formatEnvironmentContextSubagents('parent', [])).toBe(
+      '<agent name="/root/fits" />',
+    );
   });
 });
 

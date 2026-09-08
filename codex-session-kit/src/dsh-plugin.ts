@@ -3,6 +3,7 @@
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { listSessions, parseRolloutFile, toDshEvents, MemoryStore } from './index.js';
+import { AgentGraphStore, MAX_ENVIRONMENT_SUBAGENTS, MAX_ENVIRONMENT_SUBAGENT_BYTES } from './agentGraph.js';
 
 export const name = 'codex-session-kit'
 export const inject = ['tools']
@@ -70,3 +71,4 @@ export function apply(ctx, config = {}) {
 }
 
 export { listSessions, parseRolloutFile, toDshEvents, MemoryStore }
+export { AgentGraphStore, MAX_ENVIRONMENT_SUBAGENTS, MAX_ENVIRONMENT_SUBAGENT_BYTES }
