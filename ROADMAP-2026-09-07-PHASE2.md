@@ -63,6 +63,14 @@
 
 ## 三、仍存在的「真实」工作（按优先级）
 
+### 2026-09-07 续作：配置导入器第一刀已落地
+
+- `codex-config-importer/src/tomlImporter.ts` 不再按逗号/引号做脆弱字符串切分：现在支持字符串内逗号和 `#`、基本转义、科学计数法、嵌套数组与 inline table，并继续保持未知/未映射键可读而不影响 patch 生成。
+- 新增 3 个回归用例，导入器测试从 18 增至 **21 passed / 0 failed**；同步重建 `lib/index.js`，避免 dsh 通过 package exports 继续执行旧实现。
+- 脱敏真实形状 fixture 已覆盖多行基本字符串（含字符串内 `#`）、日期样式原文保留、嵌套 provider table 与两个 `[[mcp_servers]]` 数组表；`stripComment` 不再因某一物理行的注释截断后续多行值。
+- 包 README 自初始版本就把 `parseTomlLite` 列为独立库公共 API，但历史 bundle 漏导出；现由 `src/dsh-plugin.ts` 显式重导出并让测试从该 package 入口取用。重建 bundle 后 public-export smoke 已同时验证 `apply` / `parseTomlLite` / `tomlToCordisPatch` 以及注册工具与直接 helper 输出一致。
+- 边界仍明确：这不是完整 TOML 1.0 解析器；日期/时间仍按原文保留，多行字面字符串、quoted dotted keys 与完整日期语义尚未覆盖。bare dotted keys 已按上游真实 `model_providers.<id>.auth.timeout_ms` 路径落地，并阻断原型污染路径；继续扩展仍必须由脱敏真实配置形状驱动。
+
 下面这些**不是** design-only，而是「已蒸馏但部分子面未移植」或「环境/产品决策类」缺口。它们才是下一阶段该啃的硬骨头。
 
 ### P0 · 立即可做、可验证
@@ -149,3 +157,53 @@
 1. `summarizeMainTokens` 对空 token 数组崩溃（`head.toLowerCase()` on undefined）——上游 `split_first()` 落 catch-all `Unknown{cmd:""}`，补守卫对齐。
 2. `src/index.ts` 重复导出 `shlexSplit`（commandSafety 与 shlex 各一份）→ 导致 `policy.test.ts`/`starlarkLite.test.ts` **整文件 import 失败**；根治方式是**去重**：`commandSafety.shlexSplit` 改为复用忠实移植版，包内不再有第二套 shlex 实现。
 3. 补测 3 条上游用例（`preserves_quoted_literals` / `rejects_double_quoted_escapes` / `rejects_runtime_expansion_in_plain_words`）后，暴露并确认了双引号内 `\n` 字面量**应被接受**（仅 `\` 后跟 `" \ $ \`` 或换行才构成 escape_sequence）——与移植实现一致。
+
+## 七、下一轮执行记录（2026-09-07）
+
+- **approval/evidence freshness（续作）**：`codex-policy-engine/src/approvalEvidence.ts` 提供无 OpenAI 绑定的审批证据不变量，按资源指纹和决策绑定，拒绝 invalid-window / revoked / not-yet-valid / resource-mismatch / decision-mismatch / expired 六类失效；`test/approvalEvidence.test.ts` 4 条行为测试全绿。尚未接入 dsh runtime 的实际 approval feedback seam，也不宣称完成 extension decision API。
+
+- `codex-edit-fusion` 已补全 patch 级事务边界：任一 hunk/file/move 冲突时回滚整个 patch，结果不再出现早期文件已改、后期文件失败的半提交；多 hunk 改为消费前一 hunk 结果；新增目标冲突拒绝。测试 **14/14**。
+- `dsh-codex-pack` 新增 `validatePackLayout()`、`scripts/check-pack.mjs`、`npm run check:pack` 与 `npm run pack:dry`；本地 preflight **7 个 sibling modules 通过**，pack dry-run 共 21 个文件。
+- `dsh-codex-pack` 继续执行：新增 `buildInstallPlan()` / `InstallationPlan`，`install()` 不再只是日志 stub，而是读取 manifest、执行 preflight 并返回确定性的 dependencies/bundles/patchPath 计划；不写入用户 profile。新增测试后 pack **75/75** 通过。下一步才是显式授权后的 profile writer。
+- 上游 17 提交筛选记录见 `dsh-codex-pack/docs/UPSTREAM-17-COMMIT-REVIEW.md`：extension decision 最小适配层已落地；stale approval/evidence freshness 已落地为无 OpenAI 绑定不变量；DSH MCP tools-only/runtime 缺口已核实，user-verification 与 elicitation 保持不广告且暂不迁移；Guardian connection pool 暂不迁移。
+- `codex-schema` 类型层四个可控分面已落地：`exec-server-protocol` 完成结构化 wire contracts，`protocol` 完成基础别名与兼容开放记录，`history` 按当前消费面拆出 rollout envelope、MCP resource origin checkpoint、initial-history/window/legacy 兼容类型，`code-mode-protocol`（2026-09-07）移除机械翻译文件的 `@ts-nocheck`，为 content items、runtime/wait/execute outcomes、tool definitions 补齐命名接口与 tagged unions，并保留 `codemodeprotocol_Structs` 开放兼容导出。四者均以 standalone TypeScript 5.7 `tsc --noEmit` **0 错误** 和 schema 全包测试通过验证。`history` 对未被 DSH 消费且未核实的上游 payload 明确保留 `unknown`；`code-mode-protocol` 的能力协商、错误载荷和 session/provider 运行时面仍未核实，不宣称完整上游协议覆盖。
+
+- **policy-engine DSH 适配器已修复并执行（2026-09-07 续）**：`codex_command_safety_check` 原调用未定义的 `dangerousCommandMatch`，实际执行会抛 `ReferenceError`；现改为复用已导入的 `dangerousCommandMatchLine`。同时将既有 `approvalCache` 真正传入 `evaluateCached`，仅缓存规范化命令的静态 `Policy.check()` 结果，明确不缓存 `allowed-once` 或任何用户审批结果。新增 `test/dsh-plugin.test.ts` 4 条插件缝测试（工具执行、waterfall 透传、allow/deny/ask 映射、规范化缓存边界），policy-engine **159 passed / 0 failed**；重建 `lib/index.js` 后 package-export smoke 得到 `ForcedRm`。当时 standalone `tsc --noEmit` 暴露 33 项工程欠账（缺 `@types/node`、`dsh-plugin.ts` 隐式 any、`shellParser.ts` 1 处结构错误）；已于 2026-09-08 00:12 全部清零，见下方执行记录。
+
+- **云端/本地同步与 CI（2026-09-07 23:4x +08:00）**：`active/dsh-codex-monorepo` 本地 HEAD 与 GitHub `shine-233/dsh-codex@main` 均为 `7ce2d733d61d5aac0406fd4186ba34f5c6f390d5`，ahead/behind 为 0/0、无开放 PR；但最新 GitHub Actions run `34123388436` 为 **failure**，根因是 config-importer 的 4 个 Windows 专属路径断言在 Ubuntu runner 上失败（14 passed / 4 failed），不是“云端全绿”。当前工作树的 Codex 续作仍未提交/推送，故“提交点同步”不等于“工作树功能已同步”。下一项优先修 CI 跨平台测试，再推进 extension decision/runtime feedback seam。
+
+- **CI 跨平台测试修复 + 全量回归（2026-09-07 23:56 +08:00）**：`codex-config-importer/test/utils.test.ts` 已移除 4 处 Windows/本地 checkout 假设：绝对路径用 host-native `resolve`/`join`，大小写比较按 `process.platform`，git root 按实际目录结构比较，Windows file URI 在 POSIX 主机预期正斜杠。config-importer 本地 **21/21**；10 包逐包 Vitest 合计 **372 passed / 0 failed / 0 skipped**（config-importer 21 / edit-fusion 14 / net-guard 3 / policy-engine 159 / prompts 6 / schema 34 / session-kit 34 / skills-kit 21 / sandbox-bin 4 / pack 76；36 test files）。pack preflight **7 sibling modules OK**，`npm pack --dry-run` **23 files**，台账 YAML/JSON **150/150 语义一致**。由于本轮未获 commit/push 授权，Ubuntu Actions 尚无新 run；只能宣称本地修复已验证，不能宣称云端 CI 已转绿。
+
+- **policy-engine 类型欠账已清零（2026-09-08 00:12 +08:00）**：为 `dsh-plugin.ts` 的配置、工具注册、waterfall 与静态求值缓存补最小本地类型，规则 decision 改为运行时白名单守卫；`shellParser.ts` 构造 `ShellInvocation` 时补齐 `substitutions` 必需字段；`package.json` 固定 `@types/node 26.4.1` / `typescript 5.9.3` / `vitest 2.1.9` 并同步 pnpm lock。`pnpm run typecheck` **0 错误**（此前 33 项 `process`/`Buffer`、implicit-any 与结构错误全部消除），测试仍 **159/159**，重建 package bundle 后 smoke 仍为 `ForcedRm`。这只清理类型与适配器边界，不代表 DSH 已暴露 extension approval outcome feedback。
+
+- **extension decision/runtime feedback 最小适配层已执行（2026-09-08 00:25 +08:00）**：对照上游 `e1eb98461` 的 `ApprovalReviewContributor`/`ApprovalDecisionInput` 以及本地 DSH 实际契约，新增可选 `decisionAdapter`：从 `tools/pre-execute` 传递 host-owned `callId` / `rootCallId` / toolName / arguments / `AbortSignal`，仅映射 delegate→`next()`、ask、deny；缺身份、已取消、同步抛错或异步拒绝均 fail closed。新增独立 `runtimeObserver` 监听 `tools/result`，按调用 ID 观察 authoritative 最终结果，但明确**不把它宣称为审批 outcome**。新增 3 测试覆盖三态映射、异常/缺身份关闭、最终结果观察，policy-engine **162/162**，typecheck **0 错误**。经 DSH 源码核验，审批 ask 仍由 ToolRuntime 调 `ApprovalService`，内部只有一次性 `allowed-once/rejected/cancelled/unavailable`；没有通用 `approval/result` 或 `approval/feedback` 事件，因此不伪造可复用审批记忆，也不把 `approvalEvidence.ts` 接成 remembered grant。
+
+- **policy-engine 公共 API 与全仓终态验证（2026-09-08 00:33 +08:00）**：`src/index.ts` 现保留原 package/plugin exports（`name` / `inject` / `apply` / evaluate helpers），并公开导出 `ExtensionDecision*` 与 `ExtensionRuntime*` 类型；插件测试改从 package index 导入并以 TypeScript 编译期实例钉住类型面。README 明确 adapter 存在时接管本插件的 pre-execute 分支，`delegate` 只进入后续 waterfall、不回落到同插件本地规则。由 `src/index.ts` 重建 ESM bundle（78.2 kB），package-export smoke 同时检查 8 个既有/新增导出并得到 `public-export-smoke: codex-policy-engine tools deny`；陈旧 `package-lock.json` 的旧包名/宽版本也已按当前 package metadata 同步（主工作流仍使用 pnpm）。随后逐包实跑 10 包 **375 passed / 0 failed / 0 skipped**（config-importer 21 / edit-fusion 14 / net-guard 3 / policy-engine 162 / prompts 6 / sandbox-bin 4 / schema 34 / session-kit 34 / skills-kit 21 / pack 76）；policy typecheck **0 错误**。pack preflight **7 sibling modules OK**，dry-run **23 files / 17.3 kB packed / 53.0 kB unpacked**，台账 YAML/JSON **150/150 语义一致**。`npm pack` 仍仅有 pnpm 注入 env config 与缺 `.npmignore` 的非致命 warning。补充：npm 对这份兼容 lockfile 报出 **5 项 dev-only tooling advisory（3 moderate / 1 high / 1 critical）**，核心为 Vitest UI server `GHSA-5xrq-8626-4rwp` 与 Vite 路径/UNC 开发服务器问题；当前只运行非监听的 `vitest run`，但仍应跨 10 包统一升级。未执行 `npm audit fix --force`，避免未经评估的 breaking upgrade；该跨包升级已拆为独立待办，不混入本轮迁移实现。
+
+- **config-importer 脱敏 fixture、包 API 与 bundle 已收口（2026-09-08 01:03 +08:00）**：代表性 `config.toml` 现覆盖 feature array、日期样式原文、多行基本字符串内 `#`、provider table 与两个 `[[mcp_servers]]`；修复逻辑行注释处理，避免注释截断多行值后续物理行。测试 **21/21**。README 自初始提交就承诺公开 `parseTomlLite`，但历史 runtime bundle 实际只导出 plugin/helper，形成文档—产物不一致；现由 `src/dsh-plugin.ts` 显式重导出，测试改从该 package 入口导入，重建 ESM bundle 后 `public-export-smoke: apply parseTomlLite tomlToCordisPatch OK`，并验证注册工具输出与 helper 一致。没有读取真实用户 `~/.codex`，fixture 不含凭据；仍不宣称完整 TOML 1.0，dotted keys、多行字面字符串与完整日期语义继续保留为证据驱动边界。
+
+- **MCP user-verification/elicitation 准入核验已完成（2026-09-08）**：读取 DSH 主 MCP client 后确认它是 tools-only bridge，初始化明确为 `{ capabilities: {} }`，没有 elicitation/user-verification/auth-change handler、proof-capable provider、account identity 或 auth epoch；`user-questions`/`user-approval` 也不足以承载结构化 proof。故当前能力保持不广告，不在迁移包伪造 gate。只有 trusted-host opt-in、精确模式 capability、connection-generation 单 owner、proof 保密、请求关联、全生命周期 cancellation 与单调 auth/account epoch 同时存在时才可重启；详细裁决已写入 `UPSTREAM-17-COMMIT-REVIEW.md`。
+
+- **extension API 类型项已裁决为“不机械迁移”**：路线图所指 `codex-schema/src/handwritten/extension-api/types.ts` 在当前 checkout 与已检历史均不存在；本地只有 validator 使用的四字段 `ExtensionToolSpec`，生成的 `DynamicToolFunctionSpec` 是 app-server wire 类型，而上游 Rust contributor/executor traits 是进程内 API。当前没有真实消费方要求独立 types 文件，因此不新增虚构 runtime/type surface；未来若消费方出现，只先抽取 validator 的最小本地接口。
+
+- **GitHub/本地/上游刷新核验（2026-09-08 01:2x +08:00）**：`shine-233/dsh-codex` GitHub `main`、本地 HEAD 与本地 `origin/main` 仍同为 `7ce2d733d61d5aac0406fd4186ba34f5c6f390d5`，ahead/behind 0/0、开放 PR 0；但工作树续作尚未提交/推送，最新 Actions 仍是旧 SHA 上的 run `34123388436` failure，不能称云端已同步功能或 CI 已绿。上游本地 `openai/codex` checkout 仍为 `121f91fd5d9dc66017866ce9bdc49f1e182721df`；已执行 `git fetch origin main --prune`，本地 remote-tracking `origin/main` 现与 GitHub 实时 `main` 同为 `adee0b04fa27a8ba5d2e3612b900363cffe72930`，checkout 相对其 **behind 29 / ahead 0**。先前审阅边界 `f3f53ee` 之后新增 12 个非 merge 提交，必须按 `f3f53ee..adee0b0` 增量筛选；未审阅前不能把刷新后的 remote ref 当作已迁移能力。
+
+- **config-importer bare dotted keys 已继续执行（2026-09-08 01:21 +08:00）**：对照上游真实字段路径 `model_providers.<id>.auth.timeout_ms`，`parseTomlLite` 现支持带空白/连字符的 bare dotted assignments，并在当前 table 内相对赋值；inline table 同用一套路径赋值。为避免配置输入触发对象原型修改，`__proto__` / `prototype` / `constructor` 任一路径段均拒绝，已有标量与待建 table 冲突时也不覆写。新增 3 条测试验证 provider table/dotted patch 等价、table-relative auth 路径、空白/连字符与 pollution 拒绝；脱敏 fixture 加入 `auth.timeout_ms = 7000`。config-importer **24 passed / 0 failed**，重建 7.7 kB ESM bundle 后 `dotted-key-bundle-smoke: OK`。全仓 10 包再跑 **378 passed / 0 failed / 0 skipped**（24 / 14 / 3 / 162 / 6 / 4 / 34 / 34 / 21 / 76）；policy typecheck 0 错误，schema 用仓内 TypeScript 5.9.3 交叉 typecheck 0 错误（schema 自身未声明 TypeScript，故其 `pnpm run typecheck` 单独调用会报 `tsc` 不存在，此既有依赖欠账未伪报为通过）。pack preflight 7 modules OK，dry-run **23 files / 17.9 kB packed / 54.0 kB unpacked**，台账 150/150 一致。仍不支持 quoted dotted keys，且不宣称完整 TOML 1.0。
+
+- **上游 12 提交已增量审阅并继续执行（2026-09-08 01:4x +08:00）**：`f3f53ee..adee0b0` 的逐提交裁决见 `dsh-codex-pack/docs/UPSTREAM-12-COMMIT-REVIEW.md`。daemon updater/release pins、Rust recursion limit、Unix zombie PID backend 排除；selected-history internal fork、archive scan、Guardian retained authorization 等因本地缺真实 runtime/consumer 保持阻断。选择有真实持久图 seam 的 `d665e3bbc` 落地：`AgentNode` 可持久 full `agentPath`，`formatEnvironmentContextSubagents()` 在重开 JSONL 图后同时列出 loaded/unloaded 直接 children，loaded 优先、组内按 full path 确定排序，并按 parent path 前缀严格拒绝缺 parent path、跨 parent path 与直接链接的 grandchild；重复 edge 去重，且按上游 envelope 限制 **8 agents / 1,024 bytes**。只读代码复核发现并推动补齐上述 direct-child path invariant；另新增转义扩张 + UTF-8 多字节的 **1,024/1,025 精确边界**测试，证明 wrapper/indent/newline 与 XML escaping 均计入字节预算。公开 package runtime export 并重建 **9.8 kB** ESM bundle，smoke `v2-roster-bundle-smoke: OK`。session-kit **38/38**，定向 strict TypeScript **0 错误**。pack preflight **7 sibling modules OK**，最终 dry-run **24 files / 20.2 kB packed / 58.4 kB unpacked**，台账 YAML/JSON **150/150 语义一致**，`git diff --check` 通过（仅 CRLF 转换 warning）。这是 host 可调用的纯 roster 算法，尚未接入 DSH world-state/prompt，不能宣称 multi-agent runtime 已完整移植。
+
+- **exec-server 环境 metadata wire 小缺口已继续执行（2026-09-08 02:0x +08:00）**：对照上游 `dbe2f6d52` 的真实 `EnvironmentInfo` serde shape，在既有 `codex-schema/src/handwritten/exec-server-protocol` seam 增加 `executorVersion` 与可选 opaque `providerId?: string`，并新增 runtime validator：历史 payload 不含 `providerId` 仍兼容，字符串接受，非字符串拒绝，shell/executorVersion 必需字段缺失拒绝。schema 定向 12/12、全包 **35/35**、仓内 TypeScript 5.9.3 交叉 typecheck **0 错误**。随后重新逐包实跑 10 包共 **383 passed / 0 failed / 0 skipped**（24 / 14 / 3 / 162 / 6 / 4 / 35 / 38 / 21 / 76）。这里只蒸馏兼容 wire contract；没有移植 SHA-256 build-id producer、启动缓存、Cargo/Bazel stamp，也不把 `providerId` 当 artifact checksum/security attestation，更不宣称 DSH exec-server runtime 已存在。
+
+## 八、2026-09-08 本轮续作：事务边界、运行时证据与 Claude 会话对账
+
+- **apply-patch 协议边界已补齐并验证**：`codex-edit-fusion` 现在严格拒绝未知指令、缺失 `*** End Patch`、空路径、未加 `+` 的 add body、无 hunk 的 update；解析并传递 `*** End of File` 标志。应用层保留原文件 CRLF，多个 hunk 消费前一 hunk 的结果；任何 hunk、文件或 move 冲突使整个 staged map 回滚，物理 write/remove 失败也按初始快照恢复，返回 `applied: []`。新增 EOF/CRLF/malformed/multi-file rollback 用例；定向测试 **18/18**，bundle 已重建。
+- **pack profile writer 已从计划升级为安全双文件事务**：dry-run 完全无写入；默认拒绝覆盖已有且不同的非空 `cordis.patch.yml`，显式 `overwritePatch: true` 才可覆盖；package 与 patch 均使用同目录临时文件，apply 前分别备份并在第二次替换失败时回滚；备份不被幂等重跑覆盖，第二次 apply 返回 `changed: false`。新增冲突、双备份、幂等和注入故障回滚测试；`dsh-codex-pack` **78/78**。
+- **DSH runtime capability audit 已落档**：`dsh-codex-pack/docs/DSH-RUNTIME-CAPABILITY-AUDIT.md` 记录 MCP client 当前为 tools-only（`capabilities: {}`），只有一次性 open-turn approval 和通用 userQuestions，没有 MCP elicitation/user-verification/auth-change epoch/proof seam；Codex subagent 对 elicitation request 当前明确 decline。因此不伪造这些能力，也不把 approval observer 宣称为 approval feedback。
+- **Claude Code 最新会话对账**：最新可定位会话是 `cached-swimming-lovelace`，分支 `claude/modest-panini-0fb73e`，最后停在未提交工作树并随后因 403 额度/认证失败中止；另一个 `objective-mccarthy-aaeff0` 主要留下 CI/lockfile 批量变更。`main` 与 `origin/main` 的已提交基线仍为 `7ce2d733d61d5aac0406fd4186ba34f5c6f390d5`，但续作工作树未提交，故“提交点同步”不等于“当前功能已同步”。本轮只吸收可验证的源码/测试变更，没有搬运未完成依赖噪声。
+
+### 下一步执行顺序（更新）
+
+1. 逐包串行回归并检查生成 bundle、preflight、dry pack 与台账镜像；修复发现的真实失败。
+2. 把 Claude worktree 中尚未进入主工作树、且有源码/测试证据的增量逐项比对后再选择性吸收；不合并未完成的 lockfile/CI 批量噪声。
+3. 继续检查上游 `adee0b0` 之后的新提交；只有存在 DSH 真实消费 seam 和可验证行为时才迁移。
+4. 最终重新核对本地 committed HEAD、`origin/main`、未提交工作区与 GitHub Actions；未经提交/推送不得称云端功能同步。
