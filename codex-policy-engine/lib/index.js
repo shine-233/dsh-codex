@@ -1,4 +1,4 @@
-// codex-policy-engine/src/decision.ts
+// active/dsh-codex-monorepo/codex-policy-engine/src/decision.ts
 var RANK = { Allow: 0, Prompt: 1, Forbidden: 2 };
 function maxDecision(a, b) {
   return RANK[a] >= RANK[b] ? a : b;
@@ -8,7 +8,7 @@ function aggregate(decisions) {
   return decisions.reduce(maxDecision);
 }
 
-// codex-policy-engine/src/rule.ts
+// active/dsh-codex-monorepo/codex-policy-engine/src/rule.ts
 function singleToken(value) {
   return { kind: "Single", value };
 }
@@ -35,7 +35,7 @@ function ruleMatches(rule, cmd) {
   return true;
 }
 
-// codex-policy-engine/src/policy.ts
+// active/dsh-codex-monorepo/codex-policy-engine/src/policy.ts
 var Policy = class _Policy {
   rulesByProgram = /* @__PURE__ */ new Map();
   networkAllowed = /* @__PURE__ */ new Set();
@@ -83,7 +83,7 @@ var Policy = class _Policy {
   }
 };
 
-// codex-policy-engine/src/starlarkLite.ts
+// active/dsh-codex-monorepo/codex-policy-engine/src/starlarkLite.ts
 var isDecision = (s) => s === "ALLOW" || s === "FORBIDDEN" || s === "PROMPT";
 var normDecision = (s) => s === "ALLOW" ? "Allow" : s === "FORBIDDEN" ? "Forbidden" : "Prompt";
 function tokenize(src) {
@@ -239,14 +239,16 @@ function parsePolicyFile(src) {
   return out;
 }
 
-// codex-policy-engine/src/shellParser.ts
+// active/dsh-codex-monorepo/codex-policy-engine/src/shellParser.ts
 function parseShellLine(line) {
   const result = { invocations: [], heredocs: [], substitutions: [], comments: [] };
   if (!line.trim()) return result;
   const argv = [];
   const redirects = [];
   const pushInvocation = () => {
-    if (argv.length || redirects.length) result.invocations.push({ argv: [...argv], redirects: [...redirects] });
+    if (argv.length || redirects.length) {
+      result.invocations.push({ argv: [...argv], redirects: [...redirects], substitutions: [] });
+    }
     argv.length = 0;
     redirects.length = 0;
   };
@@ -352,7 +354,6 @@ function parseShellLine(line) {
           const consumed = nl + 1 + bodyLines.join("\n").length + (bodyLines.length ? bodyLines.length : 0);
           i = line.length;
           flushOp();
-          void consumed;
           continue;
         }
       }
@@ -406,7 +407,7 @@ function shellSubCommands(line) {
   return cmds.filter((c) => c.trim() !== "");
 }
 
-// codex-policy-engine/src/parseCommand/shlex.ts
+// active/dsh-codex-monorepo/codex-policy-engine/src/parseCommand/shlex.ts
 var NUL = 0;
 function isShlexWhitespace(c) {
   return c === " " || c === "	" || c === "\n";
@@ -501,8 +502,84 @@ function shlexSplit(inStr) {
   }
   return hadError ? null : out;
 }
+function unquotedOk(c) {
+  if (c.charCodeAt(0) >= 128) return false;
+  return /^[+\-./:@\]_0-9A-Za-z]$/.test(c);
+}
+function singleQuotedOk(c) {
+  return c !== "'" && c !== "^" && c !== "\\";
+}
+function doubleQuotedOk(c) {
+  return c !== "$" && c !== "`" && c !== "!" && c !== "^";
+}
+var UNQUOTED = 1;
+var SINGLE = 2;
+var DOUBLE = 4;
+function quotingStrategy(bytes) {
+  const prevAll = UNQUOTED | SINGLE | DOUBLE;
+  let prevOk = prevAll;
+  let i = 0;
+  if (bytes[0] === "^") {
+    prevOk = SINGLE;
+    i = 1;
+  }
+  while (i < bytes.length) {
+    const c = bytes[i];
+    let curOk = prevOk;
+    if (c.charCodeAt(0) >= 128) {
+      curOk &= ~UNQUOTED;
+    } else {
+      if (!unquotedOk(c)) curOk &= ~UNQUOTED;
+      if (!singleQuotedOk(c)) curOk &= ~SINGLE;
+      if (!doubleQuotedOk(c)) curOk &= ~DOUBLE;
+    }
+    if (curOk === 0) break;
+    prevOk = curOk;
+    i += 1;
+  }
+  const strategy = prevOk & UNQUOTED ? UNQUOTED : prevOk & SINGLE ? SINGLE : DOUBLE;
+  return { len: Math.max(i, 1), strategy };
+}
+function appendQuotedChunk(out, chunk, strategy) {
+  if (strategy === UNQUOTED) return out + chunk.join("");
+  if (strategy === SINGLE) return out + "'" + chunk.join("") + "'";
+  let s = out + '"';
+  for (const c of chunk) {
+    if (c === "$" || c === "`" || c === '"' || c === "\\") s += "\\";
+    s += c;
+  }
+  return s + '"';
+}
+function shlexQuote(inStr) {
+  if (inStr === "") return "''";
+  if (inStr.includes(String.fromCharCode(NUL))) {
+    throw new Error("cannot shell-quote string containing nul byte");
+  }
+  const bytes = [...inStr];
+  let out = "";
+  let rest = bytes;
+  while (rest.length > 0) {
+    const { len, strategy } = quotingStrategy(rest);
+    const chunk = rest.slice(0, len);
+    if (len === rest.length && strategy === UNQUOTED && out === "") {
+      return inStr;
+    }
+    out = appendQuotedChunk(out, chunk, strategy);
+    rest = rest.slice(len);
+  }
+  return out;
+}
+function shlexTryJoin(tokens) {
+  for (const t of tokens) {
+    if (t.includes(String.fromCharCode(NUL))) return null;
+  }
+  return tokens.map(shlexQuote).join(" ");
+}
+function shlexJoin(tokens) {
+  return shlexTryJoin(tokens) ?? "<command included NUL byte>";
+}
 
-// codex-policy-engine/src/commandSafety.ts
+// active/dsh-codex-monorepo/codex-policy-engine/src/commandSafety.ts
 var MAX_WRAPPER_DEPTH = 8;
 var WINDOWS_EXEC_SUFFIXES = [".exe", ".cmd", ".bat", ".com"];
 var DELETE_CMDLETS = ["remove-item", "ri", "rm", "del", "erase", "rd", "rmdir"];
@@ -601,6 +678,10 @@ function rmArgsIncludeForceOption(args) {
 }
 function shLiteralCommands(script) {
   return splitInvocationSegments(script);
+}
+function dangerousCommandMatch(command, options = {}) {
+  const platform = options.platform ?? (process.platform === "win32" ? "windows" : "posix");
+  return matchWithDepth(command, options.wrapperDepth ?? 0, platform);
 }
 function dangerousCommandMatchLine(line, options = {}) {
   const platform = options.platform ?? (process.platform === "win32" ? "windows" : "posix");
@@ -842,7 +923,1231 @@ function hasQuietFlagCmd(args) {
   return args.some((a) => a.toLowerCase() === "/q");
 }
 
-// codex-policy-engine/src/canonicalization.ts
+// active/dsh-codex-monorepo/codex-policy-engine/src/outputTruncation.ts
+var APPROX_BYTES_PER_TOKEN = 4;
+function approxTokenCount(text) {
+  const len = Buffer.byteLength(text, "utf8");
+  return Math.floor((len + APPROX_BYTES_PER_TOKEN - 1) / APPROX_BYTES_PER_TOKEN);
+}
+function approxBytesForTokens(tokens) {
+  return tokens * APPROX_BYTES_PER_TOKEN;
+}
+function approxTokensFromByteCount(bytes) {
+  if (bytes <= 0) return 0;
+  return Math.floor((bytes + APPROX_BYTES_PER_TOKEN - 1) / APPROX_BYTES_PER_TOKEN);
+}
+function truncateMiddleChars(s, maxBytes) {
+  return truncateWithByteEstimate(s, maxBytes, false);
+}
+function truncateMiddleWithTokenBudget(s, maxTokens) {
+  if (!s) return ["", null];
+  if (maxTokens > 0 && Buffer.byteLength(s, "utf8") <= approxBytesForTokens(maxTokens)) return [s, null];
+  const truncated = truncateWithByteEstimate(s, approxBytesForTokens(maxTokens), true);
+  const totalTokens = approxTokenCount(s);
+  return truncated === s ? [truncated, null] : [truncated, totalTokens];
+}
+function truncateWithByteEstimate(s, maxBytes, useTokens) {
+  if (!s) return "";
+  if (maxBytes === 0) return formatMarker(useTokens, removedUnits(useTokens, Buffer.byteLength(s, "utf8"), [...s].length));
+  const totalBytes = Buffer.byteLength(s, "utf8");
+  if (totalBytes <= maxBytes) return s;
+  const leftBudget = Math.floor(maxBytes / 2);
+  const rightBudget = maxBytes - leftBudget;
+  const chars = [...s];
+  const removedCharsSet = /* @__PURE__ */ new Set();
+  let byteCursor = 0;
+  let prefixEndIdx = 0;
+  let suffixStartIdx = 0;
+  const charStarts = [];
+  for (let i = 0; i < chars.length; i++) {
+    charStarts.push(byteCursor);
+    byteCursor += Buffer.byteLength(chars[i], "utf8");
+  }
+  const totalEnd = byteCursor;
+  const tailStartTarget = Math.max(0, totalBytes - rightBudget);
+  for (let i = 0; i < chars.length; i++) {
+    const charEnd = charStarts[i] + Buffer.byteLength(chars[i], "utf8");
+    if (charEnd <= leftBudget) {
+      prefixEndIdx = i + 1;
+      continue;
+    }
+    if (charStarts[i] >= tailStartTarget) {
+      suffixStartIdx = i;
+      break;
+    }
+    removedCharsSet.add(i);
+  }
+  if (suffixStartIdx < prefixEndIdx) suffixStartIdx = prefixEndIdx;
+  const removedChars = removedCharsSet.size;
+  const removedBytes = Math.max(0, totalEnd - maxBytes);
+  const marker = formatMarker(useTokens, removedUnits(useTokens, removedBytes, removedChars));
+  return chars.slice(0, prefixEndIdx).join("") + marker + chars.slice(suffixStartIdx).join("");
+}
+function formatMarker(useTokens, removedCount) {
+  return useTokens ? `\u2026${removedCount} tokens truncated\u2026` : `\u2026${removedCount} chars truncated\u2026`;
+}
+function removedUnits(useTokens, removedBytes, removedChars) {
+  return useTokens ? approxTokensFromByteCount(removedBytes) : removedChars;
+}
+function formattedTruncateText(content, policy) {
+  const budgetBytes = policy.kind === "bytes" ? policy.budget : approxBytesForTokens(policy.budget);
+  if (Buffer.byteLength(content, "utf8") <= budgetBytes) return content;
+  const originalTokenCount = approxTokenCount(content);
+  const totalLines = content.split("\n").length;
+  const result = truncateText(content, policy);
+  return `Warning: truncated output (original token count: ${originalTokenCount})
+Total output lines: ${totalLines}
+
+${result}`;
+}
+function truncateText(content, policy) {
+  return policy.kind === "bytes" ? truncateMiddleChars(content, policy.budget) : truncateMiddleWithTokenBudget(content, policy.budget)[0];
+}
+function truncateFunctionOutputItems(items, policy, estimateAudioTokenCount = () => 0) {
+  const out = [];
+  let remainingBudget = policy.budget;
+  let omittedTextItems = 0;
+  let omittedAudioItems = 0;
+  for (const item of items) {
+    if (item.type === "input_text") {
+      if (item.text === "") continue;
+      if (remainingBudget === 0) {
+        omittedTextItems++;
+        continue;
+      }
+      const cost = policy.kind === "bytes" ? Buffer.byteLength(item.text, "utf8") : approxTokenCount(item.text);
+      if (cost <= remainingBudget) {
+        out.push(item);
+        remainingBudget -= cost;
+      } else {
+        const snippet = truncateText(item.text, { kind: policy.kind, budget: remainingBudget });
+        if (snippet === "") omittedTextItems++;
+        else out.push({ type: "input_text", text: snippet });
+        remainingBudget = 0;
+      }
+      continue;
+    }
+    if (item.type === "input_image") {
+      out.push(item);
+      continue;
+    }
+    if (item.type === "input_audio") {
+      const tokenCost = estimateAudioTokenCount(item.audioUrl);
+      const cost = policy.kind === "bytes" ? approxBytesForTokens(tokenCost) : tokenCost;
+      if (cost <= remainingBudget) {
+        out.push(item);
+        remainingBudget -= cost;
+      } else omittedAudioItems++;
+      continue;
+    }
+    out.push(item);
+  }
+  if (omittedTextItems > 0) out.push({ type: "input_text", text: `[omitted ${omittedTextItems} text items ...]` });
+  if (omittedAudioItems > 0) out.push({ type: "input_text", text: `[omitted ${omittedAudioItems} audio items ...]` });
+  return out;
+}
+
+// active/dsh-codex-monorepo/codex-policy-engine/src/parseCommand/bashWordSeq.ts
+var WORD_REJECT_CHARS = /* @__PURE__ */ new Set([
+  "{",
+  "}",
+  "*",
+  "?",
+  "[",
+  "]",
+  "\\",
+  "~",
+  "^",
+  "#",
+  "$",
+  "`"
+]);
+function isWhitespace(c) {
+  return c === " " || c === "	" || c === "\n" || c === "\r" || c === "\f" || c === "\v";
+}
+function isWordChar(c) {
+  if (isWhitespace(c)) return false;
+  return !"&|;()<>$`{}`\\#\"'".includes(c);
+}
+function isPieceLiteralStart(p) {
+  return !(p.kind === "word" && p.text.startsWith("="));
+}
+function pieceHasRejectChar(p) {
+  if (p.kind !== "word" && p.kind !== "number") return false;
+  for (const c of p.text) {
+    if (WORD_REJECT_CHARS.has(c)) return true;
+  }
+  return false;
+}
+function parseShellScriptIntoCommands(script) {
+  const commands = [];
+  let pieces = [];
+  let args = [];
+  let sawAnyCommand = false;
+  let atCommandStart = true;
+  let argStartedQuoted = false;
+  let awaitingCommand = true;
+  let awaitingSeqOp = false;
+  const flushArg = () => {
+    if (pieces.length === 0) return true;
+    if (args.length === 0 && argStartedQuoted) return false;
+    for (const p of pieces) {
+      if (pieceHasRejectChar(p)) return false;
+      if (!isPieceLiteralStart(p)) return false;
+    }
+    if (atCommandStart && args.length === 0 && pieces[0].kind === "word" && /^[A-Za-z_][A-Za-z0-9_]*=/.test(pieces[0].text)) {
+      return false;
+    }
+    const wasFirst = args.length === 0;
+    args.push(pieces.map((p) => p.text).join(""));
+    pieces = [];
+    argStartedQuoted = false;
+    atCommandStart = false;
+    if (wasFirst) {
+      awaitingCommand = false;
+      sawAnyCommand = true;
+    }
+    return true;
+  };
+  const flushCommand = () => {
+    if (!flushArg()) return false;
+    if (args.length > 0) {
+      commands.push(args);
+      args = [];
+    }
+    atCommandStart = true;
+    return true;
+  };
+  const onSeqOp = () => {
+    if (awaitingCommand || !sawAnyCommand) return false;
+    if (!flushCommand()) return false;
+    awaitingCommand = true;
+    awaitingSeqOp = true;
+    return true;
+  };
+  const iLen = script.length;
+  let i = 0;
+  while (i < iLen) {
+    const c = script[i];
+    if (isWhitespace(c)) {
+      if (!flushArg()) return null;
+      if (c === "\n") {
+        if (!flushCommand()) return null;
+        awaitingCommand = true;
+      }
+      i++;
+      continue;
+    }
+    if (c === "&" && script[i + 1] === "&") {
+      if (!onSeqOp()) return null;
+      i += 2;
+      continue;
+    }
+    if (c === "|" && script[i + 1] === "|") {
+      if (!onSeqOp()) return null;
+      i += 2;
+      continue;
+    }
+    if (c === "|") {
+      if (!onSeqOp()) return null;
+      i++;
+      continue;
+    }
+    if (c === ";") {
+      if (script[i + 1] === ";") return null;
+      if (!flushCommand()) return null;
+      awaitingCommand = true;
+      i++;
+      continue;
+    }
+    if (c === "(" || c === ")" || c === "<" || c === ">" || c === "$" || c === "`" || c === "#" || c === "\\" || c === "{" || c === "}" || c === "&") {
+      return null;
+    }
+    if (c === '"' || c === "'") {
+      const quote = c;
+      const startKind = quote === '"' ? "string" : "raw";
+      if (pieces.length === 0) argStartedQuoted = args.length === 0;
+      i++;
+      let content = "";
+      let closed = false;
+      while (i < iLen) {
+        const q = script[i];
+        if (q === quote) {
+          closed = true;
+          i++;
+          break;
+        }
+        if (quote === '"') {
+          if (q === "\\") {
+            const nxt = script[i + 1];
+            if (nxt === "$" || nxt === "`" || nxt === '"' || nxt === "\\" || nxt === "\n" || nxt === void 0) {
+              return null;
+            }
+            content += q + nxt;
+            i += 2;
+            continue;
+          }
+          if (q === "$" || q === "`") return null;
+        }
+        content += q;
+        i++;
+      }
+      if (!closed) return null;
+      pieces.push({ kind: startKind, text: content });
+      continue;
+    }
+    let text = "";
+    while (i < iLen) {
+      const w = script[i];
+      if (!isWordChar(w) || w === '"' || w === "'") break;
+      if (WORD_REJECT_CHARS.has(w)) return null;
+      if (w === "=" && text === "" && pieces.length === 0) return null;
+      text += w;
+      i++;
+    }
+    if (text === "") return null;
+    pieces.push({ kind: "word", text });
+  }
+  if (!flushCommand()) return null;
+  if (awaitingCommand && awaitingSeqOp) return null;
+  if (!sawAnyCommand) {
+    return commands;
+  }
+  return commands;
+}
+
+// active/dsh-codex-monorepo/codex-policy-engine/src/parseCommand/shellDetect.ts
+function fileStem(path) {
+  const base = path.split(/[\\/]/).pop() ?? "";
+  if (base === "") return null;
+  const dot = base.lastIndexOf(".");
+  if (dot > 0) return base.slice(0, dot);
+  return base;
+}
+function detectShellType(shellPath) {
+  if (shellPath === "zsh") return "zsh";
+  if (shellPath === "sh") return "sh";
+  if (shellPath === "cmd") return "cmd";
+  if (shellPath === "bash") return "bash";
+  if (shellPath === "pwsh") return "powershell";
+  if (shellPath === "powershell") return "powershell";
+  const stem = fileStem(shellPath);
+  if (stem !== null && stem !== shellPath) return detectShellType(stem);
+  return null;
+}
+function classifyShell(shellPath) {
+  const t = detectShellType(shellPath);
+  return t === null || t === "cmd" ? null : t;
+}
+
+// active/dsh-codex-monorepo/codex-policy-engine/src/parseCommand/powershellExtract.ts
+var POWERSHELL_FLAGS = ["-nologo", "-noprofile", "-command", "-c"];
+function extractPowershellCommand(command) {
+  if (command.length < 3) return null;
+  const shell = command[0];
+  if (detectShellType(shell) !== "powershell") return null;
+  let i = 1;
+  while (i + 1 < command.length) {
+    const flag = command[i];
+    if (!POWERSHELL_FLAGS.includes(flag.toLowerCase())) return null;
+    if (flag.toLowerCase() === "-command" || flag.toLowerCase() === "-c") {
+      const script = command[i + 1];
+      return [shell, script];
+    }
+    i += 1;
+  }
+  return null;
+}
+
+// active/dsh-codex-monorepo/codex-policy-engine/src/parseCommand/parseCommand.ts
+function parsedEq(a, b) {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+function shlexSplitSafe(s) {
+  return shlexSplit(s) ?? s.split(/[ \t\n]+/).filter((t) => t !== "");
+}
+function tokenizePowershellCommand(command) {
+  const normalized = command.replace(/\\/g, "/");
+  const tokens = shlexSplit(normalized) ?? normalized.split(/[ \t\n]+/).filter((t) => t !== "");
+  const first = tokens[0];
+  if (first !== void 0 && ["get-content", "gc", "type"].includes(first.toLowerCase())) {
+    tokens[0] = "Get-Content";
+    if (tokens.slice(1).some((argument) => !normalized.includes(argument))) {
+      return [];
+    }
+  }
+  return tokens;
+}
+function extractShellCommand(command) {
+  return extractBashCommand(command) ?? extractPowershellCommand(command);
+}
+function extractBashCommand(command) {
+  if (command.length !== 3) return null;
+  const [shell, flag, script] = command;
+  if (flag !== "-lc" && flag !== "-c") return null;
+  const kind = classifyShell(shell);
+  if (kind !== "zsh" && kind !== "bash" && kind !== "sh") return null;
+  return [shell, script];
+}
+function parseShellLcPlainCommands(command) {
+  const extracted = extractBashCommand(command);
+  if (extracted === null) return null;
+  return parseShellScriptIntoCommands(extracted[1]);
+}
+function parseCommand(command) {
+  const parsed = parseCommandImpl(command);
+  const deduped = [];
+  for (const cmd of parsed) {
+    const prev = deduped[deduped.length - 1];
+    if (prev !== void 0 && parsedEq(prev, cmd)) continue;
+    deduped.push(cmd);
+  }
+  if (deduped.some((cmd) => cmd.type === "unknown")) {
+    return [singleUnknownForCommand(command)];
+  }
+  return deduped;
+}
+function singleUnknownForCommand(command) {
+  const extracted = extractShellCommand(command);
+  if (extracted !== null) {
+    return { type: "unknown", cmd: extracted[1] };
+  }
+  return { type: "unknown", cmd: shlexJoin(command) };
+}
+function simplifyOnce(commands) {
+  if (commands.length <= 1) return null;
+  if (commands[0].type === "unknown") {
+    const t = shlexSplit(commands[0].cmd);
+    if (t !== null && t[0] === "echo") return commands.slice(1);
+  }
+  const cdIdx = commands.findIndex((pc) => {
+    if (pc.type !== "unknown") return false;
+    const t = shlexSplit(pc.cmd);
+    return t !== null && t[0] === "cd";
+  });
+  if (cdIdx !== -1 && commands.length > cdIdx + 1) {
+    return [...commands.slice(0, cdIdx), ...commands.slice(cdIdx + 1)];
+  }
+  const trueIdx = commands.findIndex(
+    (pc) => pc.type === "unknown" && pc.cmd === "true"
+  );
+  if (trueIdx !== -1) {
+    return [...commands.slice(0, trueIdx), ...commands.slice(trueIdx + 1)];
+  }
+  const nlIdx = commands.findIndex((pc) => {
+    if (pc.type !== "unknown") return false;
+    const t = shlexSplit(pc.cmd);
+    return t !== null && t[0] === "nl" && t.slice(1).every((x) => x.startsWith("-"));
+  });
+  if (nlIdx !== -1) {
+    return [...commands.slice(0, nlIdx), ...commands.slice(nlIdx + 1)];
+  }
+  return null;
+}
+function isValidSedNArg(arg) {
+  if (arg === null) return false;
+  if (!arg.endsWith("p")) return false;
+  const core = arg.slice(0, -1);
+  const parts = core.split(",");
+  if (parts.length === 1) {
+    const num = parts[0];
+    return num !== "" && /^[0-9]+$/.test(num);
+  }
+  if (parts.length === 2) {
+    const [a, b] = parts;
+    return a !== "" && b !== "" && /^[0-9]+$/.test(a) && /^[0-9]+$/.test(b);
+  }
+  return false;
+}
+function sedHasInPlaceFlag(tokens) {
+  for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i];
+    if (token === "--") break;
+    if (token === "-e" || token === "-f" || token === "--expression" || token === "--file") {
+      i++;
+      continue;
+    }
+    if (token === "--in-place") return true;
+    if (token.startsWith("--in-place=")) return true;
+    if (token.startsWith("--")) continue;
+    if (token.startsWith("-")) {
+      const shortOptions = token.slice(1);
+      for (let index = 0; index < shortOptions.length; index++) {
+        const option = shortOptions[index];
+        if (option === "i") return true;
+        if (option === "e" || option === "f") {
+          if (index + option.length === shortOptions.length) i++;
+          break;
+        }
+      }
+    }
+  }
+  return false;
+}
+function sedReadPath(args) {
+  const argsNoConnector = trimAtConnector(args);
+  if (sedHasInPlaceFlag(argsNoConnector) || !argsNoConnector.some((arg) => arg === "-n")) {
+    return null;
+  }
+  let hasRangeScript = false;
+  let i = 0;
+  while (i < argsNoConnector.length) {
+    const arg = argsNoConnector[i];
+    if (arg === "-e" || arg === "--expression") {
+      if (isValidSedNArg(argsNoConnector[i + 1] ?? null)) hasRangeScript = true;
+      i += 2;
+      continue;
+    }
+    if (arg === "-f" || arg === "--file") {
+      i += 2;
+      continue;
+    }
+    i += 1;
+  }
+  if (!hasRangeScript) {
+    hasRangeScript = argsNoConnector.some(
+      (arg) => !arg.startsWith("-") && isValidSedNArg(arg)
+    );
+  }
+  if (!hasRangeScript) return null;
+  const candidates = skipFlagValues(argsNoConnector, [
+    "-e",
+    "-f",
+    "--expression",
+    "--file"
+  ]);
+  const nonFlags = candidates.filter((arg) => !arg.startsWith("-"));
+  if (nonFlags.length === 0) return null;
+  const [first, ...rest] = nonFlags;
+  if (isValidSedNArg(first)) return rest[0] ?? null;
+  return first;
+}
+function normalizeTokens(cmd) {
+  if (cmd.length >= 3 && (cmd[0] === "yes" || cmd[0] === "y") && cmd[1] === "|") {
+    return cmd.slice(2);
+  }
+  if (cmd.length >= 3 && (cmd[0] === "no" || cmd[0] === "n") && cmd[1] === "|") {
+    return cmd.slice(2);
+  }
+  if (cmd.length === 3 && (cmd[0] === "bash" || cmd[0] === "zsh") && (cmd[1] === "-c" || cmd[1] === "-lc")) {
+    return shlexSplit(cmd[2]) ?? [cmd[0], cmd[1], cmd[2]];
+  }
+  return [...cmd];
+}
+function containsConnectors(tokens) {
+  return tokens.some((t) => t === "&&" || t === "||" || t === "|" || t === ";");
+}
+function splitOnConnectors(tokens) {
+  const out = [];
+  let cur = [];
+  for (const t of tokens) {
+    if (t === "&&" || t === "||" || t === "|" || t === ";") {
+      if (cur.length > 0) {
+        out.push(cur);
+        cur = [];
+      }
+    } else {
+      cur.push(t);
+    }
+  }
+  if (cur.length > 0) out.push(cur);
+  return out;
+}
+function trimAtConnector(tokens) {
+  const idx = tokens.findIndex((t) => t === "|" || t === "&&" || t === "||" || t === ";");
+  return idx === -1 ? tokens.slice() : tokens.slice(0, idx);
+}
+function shortDisplayPath(path) {
+  const normalized = path.replace(/\\/g, "/");
+  const trimmed = normalized.replace(/\/+$/, "");
+  const parts = trimmed.split("/").reverse().filter((p) => {
+    return p !== "" && p !== "build" && p !== "dist" && p !== "node_modules" && p !== "src";
+  });
+  return parts[0] ?? trimmed;
+}
+function skipFlagValues(args, flagsWithVals) {
+  const out = [];
+  let skipNext = false;
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    if (skipNext) {
+      skipNext = false;
+      continue;
+    }
+    if (a === "--") {
+      for (const rest of args.slice(i + 1)) out.push(rest);
+      break;
+    }
+    if (a.startsWith("--") && a.includes("=")) continue;
+    if (flagsWithVals.includes(a)) {
+      if (i + 1 < args.length) skipNext = true;
+      continue;
+    }
+    out.push(a);
+  }
+  return out;
+}
+function firstNonFlagOperand(args, flagsWithVals) {
+  return positionalOperands(args, flagsWithVals)[0] ?? null;
+}
+function singleNonFlagOperand(args, flagsWithVals) {
+  const operands = positionalOperands(args, flagsWithVals);
+  if (operands.length !== 1) return null;
+  return operands[0];
+}
+function positionalOperands(args, flagsWithVals) {
+  const out = [];
+  let afterDoubleDash = false;
+  let skipNext = false;
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (skipNext) {
+      skipNext = false;
+      continue;
+    }
+    if (afterDoubleDash) {
+      out.push(arg);
+      continue;
+    }
+    if (arg === "--") {
+      afterDoubleDash = true;
+      continue;
+    }
+    if (arg.startsWith("--") && arg.includes("=")) continue;
+    if (flagsWithVals.includes(arg)) {
+      if (i + 1 < args.length) skipNext = true;
+      continue;
+    }
+    if (arg.startsWith("-")) continue;
+    out.push(arg);
+  }
+  return out;
+}
+function parseGrepLike(mainCmd, args) {
+  const argsNoConnector = trimAtConnector(args);
+  const operands = [];
+  let pattern = null;
+  let afterDoubleDash = false;
+  const valueFlags = /* @__PURE__ */ new Set([
+    "-e",
+    "--regexp",
+    "-f",
+    "--file",
+    "-m",
+    "--max-count",
+    "-C",
+    "--context",
+    "-A",
+    "--after-context",
+    "-B",
+    "--before-context"
+  ]);
+  for (let i = 0; i < argsNoConnector.length; i++) {
+    const arg = argsNoConnector[i];
+    if (afterDoubleDash) {
+      operands.push(arg);
+      continue;
+    }
+    if (arg === "--") {
+      afterDoubleDash = true;
+      continue;
+    }
+    if (arg === "-e" || arg === "--regexp" || arg === "-f" || arg === "--file") {
+      const next = argsNoConnector[i + 1];
+      if (next !== void 0 && pattern === null) pattern = next;
+      if (valueFlags.has(arg)) i++;
+      continue;
+    }
+    if (valueFlags.has(arg)) {
+      i++;
+      continue;
+    }
+    if (arg.startsWith("-")) continue;
+    operands.push(arg);
+  }
+  const hasPattern = pattern !== null;
+  const query = pattern ?? operands[0] ?? null;
+  const pathIndex = hasPattern ? 0 : 1;
+  const path = operands[pathIndex] !== void 0 ? shortDisplayPath(operands[pathIndex]) : null;
+  return { type: "search", cmd: shlexJoin(mainCmd), query, path };
+}
+function awkDataFileOperand(args) {
+  if (args.length === 0) return null;
+  const argsNoConnector = trimAtConnector(args);
+  const hasScriptFile = argsNoConnector.some((arg) => arg === "-f" || arg === "--file");
+  const candidates = skipFlagValues(argsNoConnector, [
+    "-F",
+    "-v",
+    "-f",
+    "--field-separator",
+    "--assign",
+    "--file"
+  ]);
+  const nonFlags = candidates.filter((arg) => !arg.startsWith("-"));
+  if (hasScriptFile) return nonFlags[0] ?? null;
+  if (nonFlags.length >= 2) return nonFlags[1];
+  return null;
+}
+function pythonWalksFiles(args) {
+  const argsNoConnector = trimAtConnector(args);
+  for (let i = 0; i < argsNoConnector.length; i++) {
+    if (argsNoConnector[i] === "-c") {
+      const script = argsNoConnector[i + 1];
+      if (script === void 0) return false;
+      return script.includes("os.walk") || script.includes("os.listdir") || script.includes("os.scandir") || script.includes("glob.glob") || script.includes("glob.iglob") || script.includes("pathlib.Path") || script.includes(".rglob(");
+    }
+  }
+  return false;
+}
+function isPythonCommand(cmd) {
+  return cmd === "python" || cmd === "python2" || cmd === "python3" || cmd.startsWith("python2.") || cmd.startsWith("python3.");
+}
+function cdTarget(args) {
+  if (args.length === 0) return null;
+  let target = null;
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg === "--") return args[i + 1] ?? null;
+    if (arg === "-L" || arg === "-P") continue;
+    if (arg.startsWith("-")) continue;
+    target = arg;
+  }
+  return target;
+}
+function isPathish(s) {
+  return s === "." || s === ".." || s.startsWith("./") || s.startsWith("../") || s.includes("/") || s.includes("\\");
+}
+function parseFdQueryAndPath(tail) {
+  const argsNoConnector = trimAtConnector(tail);
+  const candidates = skipFlagValues(argsNoConnector, [
+    "-t",
+    "--type",
+    "-e",
+    "--extension",
+    "-E",
+    "--exclude",
+    "--search-path"
+  ]);
+  const nonFlags = candidates.filter((p) => !p.startsWith("-"));
+  if (nonFlags.length === 1) {
+    const one = nonFlags[0];
+    if (isPathish(one)) return [null, shortDisplayPath(one)];
+    return [one, null];
+  }
+  if (nonFlags.length >= 2) return [nonFlags[0], shortDisplayPath(nonFlags[1])];
+  return [null, null];
+}
+function parseFindQueryAndPath(tail) {
+  const argsNoConnector = trimAtConnector(tail);
+  let path = null;
+  for (const a of argsNoConnector) {
+    if (!a.startsWith("-") && a !== "!" && a !== "(" && a !== ")") {
+      path = shortDisplayPath(a);
+      break;
+    }
+  }
+  let query = null;
+  for (let i = 0; i < argsNoConnector.length; i++) {
+    const a = argsNoConnector[i];
+    if (a === "-name" || a === "-iname" || a === "-path" || a === "-regex") {
+      if (i + 1 < argsNoConnector.length) query = argsNoConnector[i + 1];
+      break;
+    }
+  }
+  return [query, path];
+}
+function parseShellLcCommands(original) {
+  const extracted = extractBashCommand(original);
+  if (extracted === null) return null;
+  return parseShellScript(extracted[1]);
+}
+function parseShellScript(script) {
+  const allCommands = parseShellScriptIntoCommands(script);
+  if (allCommands !== null && allCommands.length > 0) {
+    const scriptTokens = shlexSplit(script) ?? [script];
+    const hadMultipleCommands = allCommands.length > 1;
+    const filteredCommands = dropSmallFormattingCommands(allCommands);
+    if (filteredCommands.length === 0) {
+      return [{ type: "unknown", cmd: script }];
+    }
+    const commands = [];
+    let cwd = null;
+    for (const tokens of filteredCommands) {
+      if (tokens[0] === "cd") {
+        const dir = cdTarget(tokens.slice(1));
+        if (dir !== null) {
+          cwd = cwd === null ? dir : joinPaths(cwd, dir);
+        }
+        continue;
+      }
+      const parsed = summarizeMainTokens(tokens);
+      if (parsed.type === "read" && cwd !== null) {
+        commands.push({
+          ...parsed,
+          path: joinPaths(cwd, parsed.path)
+        });
+      } else {
+        commands.push(parsed);
+      }
+    }
+    if (commands.length > 1) {
+      const kept = commands.filter(
+        (pc) => !(pc.type === "unknown" && pc.cmd === "true")
+      );
+      commands.length = 0;
+      commands.push(...kept);
+      for (; ; ) {
+        const next = simplifyOnce(commands);
+        if (next === null) break;
+        commands.length = 0;
+        commands.push(...next);
+      }
+    }
+    if (commands.length === 1) {
+      const hadConnectors = hadMultipleCommands || scriptTokens.some((t) => t === "|" || t === "&&" || t === "||" || t === ";");
+      const pc = commands[0];
+      if (pc.type === "read") {
+        if (hadConnectors) {
+          const hasPipe = scriptTokens.some((t) => t === "|");
+          const hasSedN = scriptTokens.some(
+            (t, i) => t === "sed" && scriptTokens[i + 1] === "-n"
+          );
+          if (hasPipe && hasSedN) {
+            commands[0] = { ...pc, cmd: script };
+          }
+        } else {
+          commands[0] = { ...pc, cmd: shlexJoin(scriptTokens) };
+        }
+      } else if (pc.type === "list_files") {
+        if (!hadConnectors) {
+          commands[0] = { ...pc, cmd: shlexJoin(scriptTokens) };
+        }
+      } else if (pc.type === "search") {
+        if (!hadConnectors) {
+          commands[0] = { ...pc, cmd: shlexJoin(scriptTokens) };
+        }
+      }
+    }
+    return commands;
+  }
+  return [{ type: "unknown", cmd: script }];
+}
+function isSmallFormattingCommand(tokens) {
+  if (tokens.length === 0) return false;
+  const cmd = tokens[0];
+  switch (cmd) {
+    case "wc":
+    case "tr":
+    case "cut":
+    case "sort":
+    case "uniq":
+    case "tee":
+    case "column":
+    case "yes":
+    case "printf":
+      return true;
+    case "xargs":
+      return !isMutatingXargsCommand(tokens);
+    case "awk":
+      return awkDataFileOperand(tokens.slice(1)) === null;
+    case "head": {
+      if (tokens.length === 1) return true;
+      if (tokens.length === 2) return tokens[1].startsWith("-");
+      if (tokens.length === 3) {
+        const [flag, count] = [tokens[1], tokens[2]];
+        if ((flag === "-n" || flag === "-c") && /^[0-9]+$/.test(count)) return true;
+      }
+      return false;
+    }
+    case "tail": {
+      if (tokens.length === 1) return true;
+      if (tokens.length === 2) return tokens[1].startsWith("-");
+      if (tokens.length === 3) {
+        const [flag, count] = [tokens[1], tokens[2]];
+        if (flag === "-n" || flag === "-c") {
+          const digits = count.startsWith("+") ? count.slice(1) : count;
+          if (/^[0-9]+$/.test(digits)) return true;
+        }
+      }
+      return false;
+    }
+    case "sed": {
+      const args = tokens.slice(1);
+      return !sedHasInPlaceFlag(args) && sedReadPath(args) === null;
+    }
+    default:
+      return false;
+  }
+}
+function isMutatingXargsCommand(tokens) {
+  const sub = xargsSubcommand(tokens);
+  return sub !== null && xargsIsMutatingSubcommand(sub);
+}
+function xargsSubcommand(tokens) {
+  if (tokens[0] !== "xargs") return null;
+  let i = 1;
+  while (i < tokens.length) {
+    const token = tokens[i];
+    if (token === "--") {
+      const rest = tokens.slice(i + 1);
+      return rest.length > 0 ? rest : null;
+    }
+    if (!token.startsWith("-")) {
+      const rest = tokens.slice(i);
+      return rest.length > 0 ? rest : null;
+    }
+    const takesValue = ["-E", "-e", "-I", "-L", "-n", "-P", "-s"].includes(token);
+    if (takesValue && token.length === 2) {
+      i += 2;
+    } else {
+      i += 1;
+    }
+  }
+  return null;
+}
+function xargsIsMutatingSubcommand(tokens) {
+  if (tokens.length === 0) return false;
+  const [head, ...tail] = tokens;
+  switch (head) {
+    case "perl":
+    case "ruby":
+      return hasInPlaceFlag(tail);
+    case "sed":
+      return sedHasInPlaceFlag(tail);
+    case "rg":
+      return tail.some((token) => token === "--replace");
+    default:
+      return false;
+  }
+}
+function hasInPlaceFlag(tokens) {
+  return tokens.some(
+    (token) => token === "-i" || token.startsWith("-i") || token === "-pi" || token.startsWith("-pi") || token === "--in-place" || token.startsWith("--in-place=")
+  );
+}
+function dropSmallFormattingCommands(commands) {
+  return commands.filter((tokens) => !isSmallFormattingCommand(tokens));
+}
+function summarizeMainTokens(mainCmd) {
+  const head = mainCmd[0];
+  const tail = mainCmd.slice(1);
+  const join = () => shlexJoin(mainCmd);
+  if (head === void 0) return { type: "unknown", cmd: join() };
+  if (head === "ls" || head === "eza" || head === "exa") {
+    const flagsWithVals = head === "ls" ? ["-I", "-w", "--block-size", "--format", "--time-style", "--color", "--quoting-style"] : ["-I", "--ignore-glob", "--color", "--sort", "--time-style", "--time"];
+    const p = firstNonFlagOperand(tail, flagsWithVals);
+    return { type: "list_files", cmd: join(), path: p !== null ? shortDisplayPath(p) : null };
+  }
+  if (head === "tree") {
+    const p = firstNonFlagOperand(tail, ["-L", "-P", "-I", "--charset", "--filelimit", "--sort"]);
+    return { type: "list_files", cmd: join(), path: p !== null ? shortDisplayPath(p) : null };
+  }
+  if (head === "du") {
+    const p = firstNonFlagOperand(tail, [
+      "-d",
+      "--max-depth",
+      "-B",
+      "--block-size",
+      "--exclude",
+      "--time-style"
+    ]);
+    return { type: "list_files", cmd: join(), path: p !== null ? shortDisplayPath(p) : null };
+  }
+  if (head === "rg" || head === "rga" || head === "ripgrep-all") {
+    const argsNoConnector = trimAtConnector(tail);
+    const hasFilesFlag = argsNoConnector.some((a) => a === "--files");
+    const candidates = skipFlagValues(argsNoConnector, [
+      "-g",
+      "--glob",
+      "--iglob",
+      "-t",
+      "--type",
+      "--type-add",
+      "--type-not",
+      "-m",
+      "--max-count",
+      "-A",
+      "-B",
+      "-C",
+      "--context",
+      "--max-depth"
+    ]);
+    const nonFlags = candidates.filter((p2) => !p2.startsWith("-"));
+    if (hasFilesFlag) {
+      const p2 = nonFlags[0];
+      return { type: "list_files", cmd: join(), path: p2 !== void 0 ? shortDisplayPath(p2) : null };
+    }
+    const query = nonFlags[0] ?? null;
+    const p = nonFlags[1];
+    return { type: "search", cmd: join(), query, path: p !== void 0 ? shortDisplayPath(p) : null };
+  }
+  if (head === "git") {
+    const subcmd = tail[0];
+    const subTail = tail.slice(1);
+    if (subcmd === "grep") return parseGrepLike(mainCmd, subTail);
+    if (subcmd === "ls-files") {
+      const p = firstNonFlagOperand(subTail, [
+        "--exclude",
+        "--exclude-from",
+        "--pathspec-from-file"
+      ]);
+      return { type: "list_files", cmd: join(), path: p !== null ? shortDisplayPath(p) : null };
+    }
+    return { type: "unknown", cmd: join() };
+  }
+  if (head === "fd") {
+    const [query, path] = parseFdQueryAndPath(tail);
+    if (query !== null) return { type: "search", cmd: join(), query, path };
+    return { type: "list_files", cmd: join(), path };
+  }
+  if (head === "find") {
+    const [query, path] = parseFindQueryAndPath(tail);
+    if (query !== null) return { type: "search", cmd: join(), query, path };
+    return { type: "list_files", cmd: join(), path };
+  }
+  if (head === "grep" || head === "egrep" || head === "fgrep") {
+    return parseGrepLike(mainCmd, tail);
+  }
+  if (head === "ag" || head === "ack" || head === "pt") {
+    const argsNoConnector = trimAtConnector(tail);
+    const candidates = skipFlagValues(argsNoConnector, [
+      "-G",
+      "-g",
+      "--file-search-regex",
+      "--ignore-dir",
+      "--ignore-file",
+      "--path-to-ignore"
+    ]);
+    const nonFlags = candidates.filter((p2) => !p2.startsWith("-"));
+    const query = nonFlags[0] ?? null;
+    const p = nonFlags[1];
+    return { type: "search", cmd: join(), query, path: p !== void 0 ? shortDisplayPath(p) : null };
+  }
+  if (head === "cat" || head.toLowerCase() === "get-content") {
+    let path;
+    if (head === "cat") {
+      path = singleNonFlagOperand(tail, []);
+    } else {
+      const allowedFlags = ["-raw", "-path", "-literalpath"];
+      const simple = tail.every(
+        (argument) => !argument.startsWith("-") || allowedFlags.includes(argument.toLowerCase())
+      ) ? singleNonFlagOperand(tail, []) : null;
+      path = simple !== null && simple !== "" && !simple.startsWith("-") && [...simple].every(
+        (character) => /[\p{L}\p{N}]/u.test(character) || " /\\.-_:".includes(character)
+      ) ? simple : null;
+    }
+    if (path !== null) {
+      return { type: "read", cmd: join(), name: shortDisplayPath(path), path };
+    }
+    return { type: "unknown", cmd: join() };
+  }
+  if (head === "bat" || head === "batcat") {
+    const p = singleNonFlagOperand(tail, [
+      "--theme",
+      "--language",
+      "--style",
+      "--terminal-width",
+      "--tabs",
+      "--line-range",
+      "--map-syntax"
+    ]);
+    if (p !== null) return { type: "read", cmd: join(), name: shortDisplayPath(p), path: p };
+    return { type: "unknown", cmd: join() };
+  }
+  if (head === "less") {
+    const p = singleNonFlagOperand(tail, [
+      "-p",
+      "-P",
+      "-x",
+      "-y",
+      "-z",
+      "-j",
+      "--pattern",
+      "--prompt",
+      "--tabs",
+      "--shift",
+      "--jump-target"
+    ]);
+    if (p !== null) return { type: "read", cmd: join(), name: shortDisplayPath(p), path: p };
+    return { type: "unknown", cmd: join() };
+  }
+  if (head === "more") {
+    const p = singleNonFlagOperand(tail, []);
+    if (p !== null) return { type: "read", cmd: join(), name: shortDisplayPath(p), path: p };
+    return { type: "unknown", cmd: join() };
+  }
+  if (head === "head") {
+    let hasValidN = false;
+    if (tail[0] === "-n") {
+      hasValidN = tail[1] !== void 0 && /^[0-9]+$/.test(tail[1]);
+    } else if (tail[0]?.startsWith("-n")) {
+      hasValidN = /^[0-9]+$/.test(tail[0].slice(2));
+    }
+    if (hasValidN) {
+      const candidates = [];
+      let i = 0;
+      while (i < tail.length) {
+        if (i === 0 && tail[i] === "-n" && i + 1 < tail.length) {
+          const n = tail[i + 1];
+          if (/^[0-9]+$/.test(n)) {
+            i += 2;
+            continue;
+          }
+        }
+        candidates.push(tail[i]);
+        i += 1;
+      }
+      const p = candidates.find((p2) => !p2.startsWith("-"));
+      if (p !== void 0) {
+        return { type: "read", cmd: join(), name: shortDisplayPath(p), path: p };
+      }
+    }
+    if (tail.length === 1 && !tail[0].startsWith("-")) {
+      return { type: "read", cmd: join(), name: shortDisplayPath(tail[0]), path: tail[0] };
+    }
+    return { type: "unknown", cmd: join() };
+  }
+  if (head === "tail") {
+    const validCount = (s) => {
+      const digits = s.startsWith("+") ? s.slice(1) : s;
+      return digits !== "" && /^[0-9]+$/.test(digits);
+    };
+    let hasValidN = false;
+    if (tail[0] === "-n") {
+      hasValidN = tail[1] !== void 0 && validCount(tail[1]);
+    } else if (tail[0]?.startsWith("-n")) {
+      hasValidN = validCount(tail[0].slice(2));
+    }
+    if (hasValidN) {
+      const candidates = [];
+      let i = 0;
+      while (i < tail.length) {
+        if (i === 0 && tail[i] === "-n" && i + 1 < tail.length) {
+          const n = tail[i + 1];
+          if (validCount(n)) {
+            i += 2;
+            continue;
+          }
+        }
+        candidates.push(tail[i]);
+        i += 1;
+      }
+      const p = candidates.find((p2) => !p2.startsWith("-"));
+      if (p !== void 0) {
+        return { type: "read", cmd: join(), name: shortDisplayPath(p), path: p };
+      }
+    }
+    if (tail.length === 1 && !tail[0].startsWith("-")) {
+      return { type: "read", cmd: join(), name: shortDisplayPath(tail[0]), path: tail[0] };
+    }
+    return { type: "unknown", cmd: join() };
+  }
+  if (head === "awk") {
+    const p = awkDataFileOperand(tail);
+    if (p !== null) return { type: "read", cmd: join(), name: shortDisplayPath(p), path: p };
+    return { type: "unknown", cmd: join() };
+  }
+  if (head === "nl") {
+    const candidates = skipFlagValues(tail, ["-s", "-w", "-v", "-i", "-b"]);
+    const p = candidates.find((p2) => !p2.startsWith("-"));
+    if (p !== void 0) {
+      return { type: "read", cmd: join(), name: shortDisplayPath(p), path: p };
+    }
+    return { type: "unknown", cmd: join() };
+  }
+  if (head === "sed") {
+    const p = sedReadPath(tail);
+    if (p !== null) return { type: "read", cmd: join(), name: shortDisplayPath(p), path: p };
+    return { type: "unknown", cmd: join() };
+  }
+  if (isPythonCommand(head)) {
+    if (pythonWalksFiles(tail)) {
+      return { type: "list_files", cmd: join(), path: null };
+    }
+    return { type: "unknown", cmd: join() };
+  }
+  return { type: "unknown", cmd: join() };
+}
+function isAbsLike(path) {
+  if (path.startsWith("/")) return true;
+  if (/^[A-Za-z]:\\/.test(path)) return true;
+  if (path.startsWith("\\\\")) return true;
+  return false;
+}
+function joinPaths(base, rel) {
+  if (isAbsLike(rel)) return rel;
+  if (base === "") return rel;
+  return base.endsWith("/") ? base + rel : base + "/" + rel;
+}
+function parseCommandImpl(command) {
+  const shellLc = parseShellLcCommands(command);
+  if (shellLc !== null) return shellLc;
+  const head = command[0];
+  const powershellCommand = head !== void 0 && head.includes("\\") ? command.map((t, i) => i === 0 ? head.split(/[\\/]/).pop() ?? head : t) : null;
+  const ps = extractPowershellCommand(powershellCommand ?? command);
+  if (ps !== null) {
+    const [, script] = ps;
+    const tokens = tokenizePowershellCommand(script);
+    const innerParsed = parseCommandImpl(tokens);
+    if (tokens[0] === "Get-Content" && innerParsed.length === 1 && innerParsed[0].type === "read") {
+      const inner = innerParsed[0];
+      return [{ type: "read", cmd: script, name: inner.name, path: inner.path }];
+    }
+    return [{ type: "unknown", cmd: script }];
+  }
+  const normalized = normalizeTokens(command);
+  const parts = containsConnectors(normalized) ? splitOnConnectors(normalized) : [normalized];
+  const commands = [];
+  let cwd = null;
+  for (const tokens of parts) {
+    if (tokens[0] === "cd") {
+      const dir = cdTarget(tokens.slice(1));
+      if (dir !== null) {
+        cwd = cwd === null ? dir : joinPaths(cwd, dir);
+      }
+      continue;
+    }
+    const parsed = summarizeMainTokens(tokens);
+    if (parsed.type === "read" && cwd !== null) {
+      commands.push({ ...parsed, path: joinPaths(cwd, parsed.path) });
+    } else {
+      commands.push(parsed);
+    }
+  }
+  for (; ; ) {
+    const next = simplifyOnce(commands);
+    if (next === null) break;
+    commands.length = 0;
+    commands.push(...next);
+  }
+  return commands;
+}
+
+// active/dsh-codex-monorepo/codex-policy-engine/src/approvalEvidence.ts
+function issueApprovalEvidence(input) {
+  if (!Number.isFinite(input.issuedAt) || !Number.isFinite(input.ttlMs) || input.ttlMs <= 0) {
+    throw new RangeError("issuedAt and ttlMs must be finite, with ttlMs > 0");
+  }
+  if (!input.resourceFingerprint) throw new TypeError("resourceFingerprint is required");
+  return {
+    resourceFingerprint: input.resourceFingerprint,
+    decision: input.decision,
+    issuedAt: input.issuedAt,
+    expiresAt: input.issuedAt + input.ttlMs
+  };
+}
+function validateApprovalEvidence(evidence, request) {
+  if (!Number.isFinite(evidence.issuedAt) || !Number.isFinite(evidence.expiresAt) || evidence.expiresAt <= evidence.issuedAt) return { ok: false, reason: "invalid-window" };
+  if (evidence.revokedAt !== void 0 && (!Number.isFinite(evidence.revokedAt) || evidence.revokedAt < evidence.issuedAt)) return { ok: false, reason: "invalid-window" };
+  if (evidence.revokedAt !== void 0 && request.now >= evidence.revokedAt) return { ok: false, reason: "revoked" };
+  if (request.now < evidence.issuedAt) return { ok: false, reason: "not-yet-valid" };
+  if (evidence.resourceFingerprint !== request.resourceFingerprint) return { ok: false, reason: "resource-mismatch" };
+  if (evidence.decision !== request.decision) return { ok: false, reason: "decision-mismatch" };
+  if (request.now >= evidence.expiresAt) return { ok: false, reason: "expired" };
+  return { ok: true };
+}
+
+// active/dsh-codex-monorepo/codex-policy-engine/src/canonicalization.ts
 var SH_SCRIPT_PREFIX = "__codex_shell_script__";
 var PS_SCRIPT_PREFIX = "__codex_powershell_script__";
 var SHELL_BASENAMES = /* @__PURE__ */ new Set(["sh", "bash", "zsh"]);
@@ -850,14 +2155,14 @@ function basename(raw) {
   const name2 = raw.split(/[\\/]/).pop() ?? "";
   return name2.replace(/\.(exe|cmd|bat|com)$/i, "").toLowerCase();
 }
-function extractBashCommand(argv) {
+function extractBashCommand2(argv) {
   if (argv.length !== 3) return null;
   const [shell, flag, script] = argv;
   if (flag !== "-lc" && flag !== "-c") return null;
   if (!SHELL_BASENAMES.has(basename(shell))) return null;
   return { shellMode: flag, script };
 }
-function extractPowershellCommand(argv) {
+function extractPowershellCommand2(argv) {
   if (argv.length !== 3) return null;
   const [shell, flag, script] = argv;
   const base = basename(shell);
@@ -879,23 +2184,55 @@ function parsePlainCommandScript(script) {
   return commands;
 }
 function canonicalizeCommandForApproval(argv) {
-  if (extractBashCommand(argv)) {
+  if (extractBashCommand2(argv)) {
     const script = argv[2];
     const commands = parsePlainCommandScript(script);
     if (commands && commands.length === 1) return commands[0];
     return [SH_SCRIPT_PREFIX, argv[1], script];
   }
-  if (extractPowershellCommand(argv)) {
+  if (extractPowershellCommand2(argv)) {
     return [PS_SCRIPT_PREFIX, argv[2]];
   }
   return argv;
 }
 
-// codex-policy-engine/src/dsh-plugin.ts
+// active/dsh-codex-monorepo/codex-policy-engine/src/dsh-plugin.ts
 var name = "codex-policy-engine";
 var inject = ["tools"];
 function asRecord(v) {
   return v && typeof v === "object" && !Array.isArray(v) ? v : {};
+}
+function isDecision2(value) {
+  return value === "Allow" || value === "Forbidden" || value === "Prompt";
+}
+function isAbortSignal(value) {
+  return value instanceof AbortSignal;
+}
+function isDecisionAdapter(value) {
+  return Boolean(value && typeof value === "object" && typeof value.decide === "function");
+}
+function isRuntimeObserver(value) {
+  return Boolean(value && typeof value === "object" && typeof value.observe === "function");
+}
+function decisionInput(exec) {
+  if (typeof exec.callId !== "string" || typeof exec.rootCallId !== "string" || typeof exec.name !== "string" || !isAbortSignal(exec.signal)) return null;
+  return {
+    callId: exec.callId,
+    rootCallId: exec.rootCallId,
+    toolName: exec.name,
+    arguments: exec.arguments,
+    signal: exec.signal
+  };
+}
+function mapExtensionDecision(decision, next) {
+  switch (decision.kind) {
+    case "delegate":
+      return next();
+    case "deny":
+      return { kind: "deny", reason: decision.reason };
+    case "ask":
+      return decision.reason === void 0 ? { kind: "ask" } : { kind: "ask", reason: decision.reason };
+  }
 }
 function tokenizeCommand(line) {
   if (typeof line !== "string") return [];
@@ -930,12 +2267,18 @@ function policyFromConfig(config = {}) {
   const normToken = (t) => {
     if (typeof t === "string") return singleToken(t);
     if (Array.isArray(t)) return altsToken(t.map(String));
-    if (t && typeof t === "object" && (t.kind === "Single" || t.kind === "Alts")) return t;
+    if (t && typeof t === "object") {
+      const token = t;
+      if (token.kind === "Single" && typeof token.value === "string") return token;
+      if (token.kind === "Alts" && Array.isArray(token.values)) {
+        return altsToken(token.values.map(String));
+      }
+    }
     return null;
   };
-  for (const r of Array.isArray(cfg.rules) ? cfg.rules : []) {
-    const rule = asRecord(r);
-    if (!rule.first || typeof rule.decision !== "string") continue;
+  for (const rawRule of Array.isArray(cfg.rules) ? cfg.rules : []) {
+    const rule = asRecord(rawRule);
+    if (!rule.first || !isDecision2(rule.decision)) continue;
     const rest = [];
     for (const raw of Array.isArray(rule.rest) ? rule.rest : []) {
       const t = normToken(raw);
@@ -965,18 +2308,20 @@ function apply(ctx, config = {}) {
     return new RegExp(`^${esc}$`, "i").test(String(value ?? ""));
   };
   const isCommandTool = (toolName) => patterns.some((p) => wildcard(p, toolName));
-  let policy = policyFromConfig(cfg);
+  const decisionAdapter = isDecisionAdapter(cfg.decisionAdapter) ? cfg.decisionAdapter : void 0;
+  const runtimeObserver = isRuntimeObserver(cfg.runtimeObserver) ? cfg.runtimeObserver : void 0;
+  const policy = policyFromConfig(cfg);
   const approvalCache = /* @__PURE__ */ new Map();
   try {
     if (ctx?.tools?.register) {
-      const defineTool = (d) => d;
+      const defineTool = (definition) => definition;
       ctx.tools.register(defineTool({
         name: "codex_policy_check",
         description: "Evaluate a command line against the codex-policy-engine approval rules. Read-only.",
         parameters: {
           command: { type: "string", required: true, description: "raw command line to evaluate" }
         },
-        output: { schema: { type: "string" }, render: (_a, v) => [{ type: "text", text: v }] },
+        output: { schema: { type: "string" }, render: (_args, value) => [{ type: "text", text: value }] },
         async execute(args) {
           const ev = evaluate(policy, String(args?.command ?? ""));
           return JSON.stringify({ command: args?.command, decision: ev.decision, matchedPrograms: ev.matchedPrograms });
@@ -990,10 +2335,10 @@ function apply(ctx, config = {}) {
         parameters: {
           command: { type: "string", required: true, description: "raw command line to classify" }
         },
-        output: { schema: { type: "string" }, render: (_a, v) => [{ type: "text", text: v }] },
+        output: { schema: { type: "string" }, render: (_args, value) => [{ type: "text", text: value }] },
         async execute(args) {
-          const argv = tokenizeCommand(String(args?.command ?? ""));
-          const match = dangerousCommandMatch(argv, { platform: safetyPlatformDefault });
+          const command = String(args?.command ?? "");
+          const match = dangerousCommandMatchLine(command, { platform: safetyPlatformDefault });
           return JSON.stringify({ command: args?.command, platform: safetyPlatformDefault, match: match ?? null });
         },
         timeoutMs: 3e3
@@ -1001,10 +2346,34 @@ function apply(ctx, config = {}) {
     }
   } catch {
   }
-  if (mode === "off" || typeof ctx?.on !== "function") return;
+  if (typeof ctx?.on !== "function") return;
+  if (runtimeObserver) {
+    ctx.on("tools/result", (exec, result) => {
+      if (typeof exec.callId !== "string" || typeof exec.rootCallId !== "string" || typeof exec.name !== "string") return;
+      void Promise.resolve(runtimeObserver.observe({
+        callId: exec.callId,
+        rootCallId: exec.rootCallId,
+        toolName: exec.name,
+        result
+      })).catch(() => void 0);
+    });
+  }
+  if (mode === "off" && !decisionAdapter) return;
   ctx.on("tools/pre-execute", (exec, next) => {
+    if (decisionAdapter) {
+      const input = decisionInput(exec);
+      if (!input) {
+        return { kind: "deny", reason: "[codex-policy-engine] extension decision requires callId, rootCallId, toolName, and AbortSignal" };
+      }
+      if (input.signal.aborted) {
+        return { kind: "deny", reason: "[codex-policy-engine] extension decision cancelled before evaluation" };
+      }
+      return Promise.resolve().then(() => decisionAdapter.decide(input)).then((decision) => mapExtensionDecision(decision, next)).catch((error) => ({
+        kind: "deny",
+        reason: `[codex-policy-engine] extension decision failed closed: ${error instanceof Error ? error.message : String(error)}`
+      }));
+    }
     if (!isCommandTool(exec?.name)) return next();
-    const argv0 = String(exec?.name ?? "");
     const line = String(asRecord(exec?.arguments).command ?? "");
     if (!line.trim()) return next();
     const safetyMode = cfg.commandSafety === "audit" || cfg.commandSafety === "enforce" ? cfg.commandSafety : "off";
@@ -1018,7 +2387,7 @@ function apply(ctx, config = {}) {
         return { kind: "ask", reason: `[codex-policy-engine] command matches dangerous-command heuristics \`${line}\`` };
       }
     }
-    const ev = evaluateCached(policy, line);
+    const ev = evaluateCached(policy, line, approvalCache);
     if (ev.decision === "Allow") return next();
     if (ev.decision === "Forbidden") {
       return { kind: "deny", reason: `[codex-policy-engine] forbidden by rule (matched: ${ev.matchedPrograms.join(", ") || "none"})` };
@@ -1031,12 +2400,41 @@ export {
   Policy,
   altsToken,
   apply,
+  approxBytesForTokens,
+  approxTokenCount,
+  approxTokensFromByteCount,
+  dangerousCommandMatch,
   evaluate,
   evaluateCached,
+  executableBasename,
+  executableNameLookupKey,
+  extractBashCommand,
+  formattedTruncateText,
   inject,
+  isDangerousCommandWindows,
+  isDangerousPowershellWords,
+  isPathish,
+  isSmallFormattingCommand,
+  issueApprovalEvidence,
+  maxDecision,
   name,
+  parseCommand,
+  parseCommandImpl,
   parsePolicyFile,
+  parseShellLcPlainCommands,
+  parseShellScript,
+  parseShellScriptIntoCommands,
   policyFromConfig,
   prefixRule,
-  tokenizeCommand
+  shlexJoin,
+  shlexSplit,
+  shlexSplitSafe,
+  singleToken,
+  splitInvocationSegments,
+  tokenizeCommand,
+  truncateFunctionOutputItems,
+  truncateMiddleChars,
+  truncateMiddleWithTokenBudget,
+  truncateText,
+  validateApprovalEvidence
 };

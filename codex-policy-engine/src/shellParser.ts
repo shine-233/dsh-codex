@@ -28,7 +28,9 @@ export function parseShellLine(line: string): ParsedShellLine {
   const argv: string[] = []
   const redirects: string[] = []
   const pushInvocation = () => {
-    if (argv.length || redirects.length) result.invocations.push({ argv: [...argv], redirects: [...redirects] })
+    if (argv.length || redirects.length) {
+      result.invocations.push({ argv: [...argv], redirects: [...redirects], substitutions: [] })
+    }
     argv.length = 0
     redirects.length = 0
   }

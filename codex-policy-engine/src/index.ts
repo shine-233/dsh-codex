@@ -19,3 +19,22 @@ export {
 } from './parseCommand/parseCommand.js';
 export { parseShellScriptIntoCommands, type WordSeq } from './parseCommand/bashWordSeq.js';
 export { shlexJoin } from './parseCommand/shlex.js';
+export {
+  issueApprovalEvidence, validateApprovalEvidence,
+  type ApprovalEvidence, type ApprovalEvidenceInput,
+  type ApprovalEvidenceInvalidReason, type ApprovalEvidenceValidation,
+} from './approvalEvidence.js';
+export {
+  name,
+  inject,
+  apply,
+  evaluate,
+  evaluateCached,
+  policyFromConfig,
+  tokenizeCommand,
+  type ExtensionDecisionInput,
+  type ExtensionDecision,
+  type ExtensionDecisionAdapter,
+  type ExtensionRuntimeFeedback,
+  type ExtensionRuntimeObserver,
+} from './dsh-plugin.js';
