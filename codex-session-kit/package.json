@@ -14,7 +14,8 @@
   },
   "devDependencies": {
     "vitest": "^2.1.9",
-    "@types/node": "^22"
+    "@types/node": "22.20.1",
+    "typescript": "5.9.3"
   },
   "main": "lib/index.js",
   "dsh": {

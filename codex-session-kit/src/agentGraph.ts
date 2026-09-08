@@ -9,11 +9,16 @@ export type ThreadSpawnEdgeStatus = 'running' | 'completed' | 'failed'
 export interface AgentNode { agentId: string; label: string; createdAt: number }
 export interface SpawnEdge { parentId: string; childId: string; status: ThreadSpawnEdgeStatus }
 
+type AgentGraphOperation =
+  | ({ op: 'node' } & AgentNode)
+  | ({ op: 'edge' } & SpawnEdge)
+  | { op: 'edge-status'; childId: string; status: ThreadSpawnEdgeStatus }
+
 /** In-memory graph + JSONL event log (ops: spawn-node / spawn-edge / set-status). */
 export class AgentGraphStore {
   private nodes = new Map<string, AgentNode>()
   private edges: SpawnEdge[] = []
-  private log: { op: string; [k: string]: unknown }[] = []
+  private log: AgentGraphOperation[] = []
 
   constructor(private filePath?: string) {
     if (filePath && existsSync(filePath)) {
@@ -23,21 +28,21 @@ export class AgentGraphStore {
     }
   }
 
-  private replay(op: { op: string }): void {
+  private replay(op: AgentGraphOperation): void {
     this.log.push(op)
-    if (op.op === 'node') this.nodes.set(op.agentId as string, op as unknown as AgentNode)
-    if (op.op === 'edge') this.edges.push(op as unknown as SpawnEdge)
+    if (op.op === 'node') this.nodes.set(op.agentId, op)
+    if (op.op === 'edge') this.edges.push(op)
     if (op.op === 'edge-status') {
       for (let i = this.edges.length - 1; i >= 0; i--) {
         if (this.edges[i].childId === op.childId && this.edges[i].status === 'running') {
-          this.edges[i].status = op.status as ThreadSpawnEdgeStatus
+          this.edges[i].status = op.status
           break
         }
       }
     }
   }
 
-  private persist(op: { op: string }): void {
+  private persist(op: AgentGraphOperation): void {
     if (!this.filePath) return
     if (!existsSync(this.filePath)) mkdirSync(dirname(this.filePath), { recursive: true })
     writeFileSync(this.filePath, JSON.stringify(op) + '\n', { flag: 'a' })

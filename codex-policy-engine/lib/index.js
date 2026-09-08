@@ -245,10 +245,14 @@ function parseShellLine(line) {
   if (!line.trim()) return result;
   const argv = [];
   const redirects = [];
+  const substitutions = [];
   const pushInvocation = () => {
-    if (argv.length || redirects.length) result.invocations.push({ argv: [...argv], redirects: [...redirects] });
+    if (argv.length || redirects.length || substitutions.length) {
+      result.invocations.push({ argv: [...argv], redirects: [...redirects], substitutions: [...substitutions] });
+    }
     argv.length = 0;
     redirects.length = 0;
+    substitutions.length = 0;
   };
   let i = 0;
   let cur = "";
@@ -305,6 +309,7 @@ function parseShellLine(line) {
         j++;
       }
       result.substitutions.push(inner);
+      substitutions.push(inner);
       argv.push(cur + `$(${inner})`);
       cur = "";
       i = j + 1;
@@ -319,6 +324,7 @@ function parseShellLine(line) {
       }
       const inner = line.slice(i + 1, end);
       result.substitutions.push(inner);
+      substitutions.push(inner);
       argv.push(cur + `\`${inner}\``);
       cur = "";
       i = end + 1;
@@ -352,7 +358,6 @@ function parseShellLine(line) {
           const consumed = nl + 1 + bodyLines.join("\n").length + (bodyLines.length ? bodyLines.length : 0);
           i = line.length;
           flushOp();
-          void consumed;
           continue;
         }
       }
@@ -601,6 +606,10 @@ function rmArgsIncludeForceOption(args) {
 }
 function shLiteralCommands(script) {
   return splitInvocationSegments(script);
+}
+function dangerousCommandMatch(command, options = {}) {
+  const platform = options.platform ?? (process.platform === "win32" ? "windows" : "posix");
+  return matchWithDepth(command, options.wrapperDepth ?? 0, platform);
 }
 function dangerousCommandMatchLine(line, options = {}) {
   const platform = options.platform ?? (process.platform === "win32" ? "windows" : "posix");
@@ -897,6 +906,9 @@ var inject = ["tools"];
 function asRecord(v) {
   return v && typeof v === "object" && !Array.isArray(v) ? v : {};
 }
+function hasToolHost(v) {
+  return typeof v.tools?.register === "function";
+}
 function tokenizeCommand(line) {
   if (typeof line !== "string") return [];
   const out = [];
@@ -930,7 +942,8 @@ function policyFromConfig(config = {}) {
   const normToken = (t) => {
     if (typeof t === "string") return singleToken(t);
     if (Array.isArray(t)) return altsToken(t.map(String));
-    if (t && typeof t === "object" && (t.kind === "Single" || t.kind === "Alts")) return t;
+    const token = asRecord(t);
+    if (token.kind === "Single" || token.kind === "Alts") return token;
     return null;
   };
   for (const r of Array.isArray(cfg.rules) ? cfg.rules : []) {
@@ -951,7 +964,8 @@ function evaluate(policy, line) {
 function evaluateCached(policy, line, cache) {
   const argv = tokenizeCommand(line);
   const key = canonicalizeCommandForApproval(argv).join("\0");
-  if (cache?.has(key)) return cache.get(key);
+  const cached = cache.get(key);
+  if (cached !== void 0) return cached;
   const ev = policy.check(argv);
   cache?.set(key, ev);
   return ev;
@@ -965,10 +979,10 @@ function apply(ctx, config = {}) {
     return new RegExp(`^${esc}$`, "i").test(String(value ?? ""));
   };
   const isCommandTool = (toolName) => patterns.some((p) => wildcard(p, toolName));
-  let policy = policyFromConfig(cfg);
+  const policy = policyFromConfig(cfg);
   const approvalCache = /* @__PURE__ */ new Map();
   try {
-    if (ctx?.tools?.register) {
+    if (hasToolHost(ctx)) {
       const defineTool = (d) => d;
       ctx.tools.register(defineTool({
         name: "codex_policy_check",
@@ -976,10 +990,11 @@ function apply(ctx, config = {}) {
         parameters: {
           command: { type: "string", required: true, description: "raw command line to evaluate" }
         },
-        output: { schema: { type: "string" }, render: (_a, v) => [{ type: "text", text: v }] },
+        output: { schema: { type: "string" }, render: (_a, v) => [{ type: "text", text: String(v) }] },
         async execute(args) {
-          const ev = evaluate(policy, String(args?.command ?? ""));
-          return JSON.stringify({ command: args?.command, decision: ev.decision, matchedPrograms: ev.matchedPrograms });
+          const input = asRecord(args);
+          const ev = evaluate(policy, input.command);
+          return JSON.stringify({ command: input.command, decision: ev.decision, matchedPrograms: ev.matchedPrograms });
         },
         timeoutMs: 3e3
       }));
@@ -990,21 +1005,21 @@ function apply(ctx, config = {}) {
         parameters: {
           command: { type: "string", required: true, description: "raw command line to classify" }
         },
-        output: { schema: { type: "string" }, render: (_a, v) => [{ type: "text", text: v }] },
+        output: { schema: { type: "string" }, render: (_a, v) => [{ type: "text", text: String(v) }] },
         async execute(args) {
-          const argv = tokenizeCommand(String(args?.command ?? ""));
+          const input = asRecord(args);
+          const argv = tokenizeCommand(input.command);
           const match = dangerousCommandMatch(argv, { platform: safetyPlatformDefault });
-          return JSON.stringify({ command: args?.command, platform: safetyPlatformDefault, match: match ?? null });
+          return JSON.stringify({ command: input.command, platform: safetyPlatformDefault, match: match ?? null });
         },
         timeoutMs: 3e3
       }));
     }
   } catch {
   }
-  if (mode === "off" || typeof ctx?.on !== "function") return;
+  if (mode === "off" || typeof ctx.on !== "function") return;
   ctx.on("tools/pre-execute", (exec, next) => {
     if (!isCommandTool(exec?.name)) return next();
-    const argv0 = String(exec?.name ?? "");
     const line = String(asRecord(exec?.arguments).command ?? "");
     if (!line.trim()) return next();
     const safetyMode = cfg.commandSafety === "audit" || cfg.commandSafety === "enforce" ? cfg.commandSafety : "off";
@@ -1018,7 +1033,7 @@ function apply(ctx, config = {}) {
         return { kind: "ask", reason: `[codex-policy-engine] command matches dangerous-command heuristics \`${line}\`` };
       }
     }
-    const ev = evaluateCached(policy, line);
+    const ev = evaluateCached(policy, line, approvalCache);
     if (ev.decision === "Allow") return next();
     if (ev.decision === "Forbidden") {
       return { kind: "deny", reason: `[codex-policy-engine] forbidden by rule (matched: ${ev.matchedPrograms.join(", ") || "none"})` };

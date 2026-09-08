@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sandboxSummary, incrementCounter, diagnosticsSnapshot } from '../src/sandboxSummary';
+import { sandboxSummary, incrementCounter, diagnosticsSnapshot } from '../src/sandboxSummary.js';
 
 describe('sandboxSummary + diagnostics (distilled from utils/sandbox-summary + diagnostics)', () => {
   it('summarizes the vendored binaries for this platform', () => {

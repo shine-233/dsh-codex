@@ -1,8 +1,8 @@
-// dsh-codex/codex-edit-fusion/src/dsh-plugin.ts
+// src/dsh-plugin.ts
 import { readFile, writeFile } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
 
-// dsh-codex/codex-edit-fusion/src/v4aParser.ts
+// src/v4aParser.ts
 function parsePatch(text) {
   const lines = text.split(/\r?\n/);
   let i = 0;
@@ -139,7 +139,7 @@ function applyPatch(patch, files, locate) {
   return { files: out, results, errors };
 }
 
-// dsh-codex/codex-edit-fusion/src/seekSequence.ts
+// src/seekSequence.ts
 var DASHES = ["\u2010", "\u2011", "\u2012", "\u2013", "\u2014", "\u2015", "\u2212"];
 var SINGLE_QUOTES = ["\u2018", "\u2019", "\u201A", "\u201B"];
 var DOUBLE_QUOTES = ["\u201C", "\u201D", "\u201E", "\u201F"];
@@ -186,9 +186,12 @@ function seekSequence(lines, pattern, start, eof, updateFileMode) {
   return null;
 }
 
-// dsh-codex/codex-edit-fusion/src/dsh-plugin.ts
+// src/dsh-plugin.ts
 var name = "codex-edit-fusion";
 var inject = ["tools"];
+function asRecord(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
 function touchedPaths(patch) {
   const paths = /* @__PURE__ */ new Set();
   for (const u of patch.updateFiles) {
@@ -199,21 +202,23 @@ function touchedPaths(patch) {
   for (const d of patch.deleteFiles) paths.add(d);
   return [...paths];
 }
-function apply(ctx, config = {}) {
-  if (!ctx?.tools?.register) return;
-  const defineTool = (d) => d;
-  const root = typeof config.root === "string" && config.root ? config.root : void 0;
-  ctx.tools.register(defineTool({
+function apply(ctx, _config = {}) {
+  const tools = ctx?.tools;
+  if (!tools?.register) return;
+  const defineTool = (definition) => definition;
+  tools.register(defineTool({
     name: "codex_apply_patch",
     description: "Apply an openai/codex V4A patch (*** Begin Patch ... Update/Add/Delete File ...) to files under the working directory. Fuzzy context matching with atomic per-file writes.",
     parameters: {
       patch: { type: "string", required: true, description: "full V4A patch text beginning with *** Begin Patch" },
       cwd: { type: "string", description: "base directory for relative paths; defaults to process.cwd()" }
     },
-    output: { schema: { type: "string" }, render: (_a, v) => [{ type: "text", text: v }] },
-    async execute(args) {
-      const base = resolve(isAbsolute(String(args?.cwd ?? "")) ? String(args.cwd) : join(process.cwd(), String(args?.cwd ?? ".")));
-      const patch = parsePatch(String(args?.patch ?? ""));
+    output: { schema: { type: "string" }, render: (_args, value) => [{ type: "text", text: String(value) }] },
+    async execute(rawArgs) {
+      const args = asRecord(rawArgs);
+      const cwd = typeof args.cwd === "string" ? args.cwd : "";
+      const base = resolve(isAbsolute(cwd) ? cwd : join(process.cwd(), cwd || "."));
+      const patch = parsePatch(String(args.patch ?? ""));
       const files = /* @__PURE__ */ new Map();
       for (const p of touchedPaths(patch)) {
         try {
@@ -221,7 +226,11 @@ function apply(ctx, config = {}) {
         } catch {
         }
       }
-      const res = applyPatch(patch, files, (lines, pattern, start) => seekSequence(lines, pattern, start));
+      const res = applyPatch(
+        patch,
+        files,
+        (lines, pattern, start, eof) => seekSequence(lines, pattern, start, eof, "NormalizeToLf")
+      );
       for (const [p, content] of res.files) {
         if (content === files.get(p)) continue;
         await writeFile(join(base, p), content, "utf8");
