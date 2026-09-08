@@ -25,6 +25,12 @@
 - **一键装进 dsh** → `dsh-codex-pack/`
 - **校验移植覆盖** → `python dsh-codex-ledger/scripts/verify_coverage.py`
 
+## 测试工具链
+
+10 个含测试的模块分别维护自己的 `package.json` 与锁文件；当前统一精确固定为 Vitest 4.1.11 和 Vite 6.4.3。声明 `typecheck` 脚本的模块还精确固定 TypeScript 5.9.3，避免依赖全局或传递安装的 `tsc`。CI 使用 Node.js 22/24，并通过 `npm ci` 或 `pnpm install --frozen-lockfile` 校验锁文件后运行各模块的 `test` 脚本。更新依赖时须在每个模块内同时重建已有的 `package-lock.json` 与 `pnpm-lock.yaml`，不得只改其中一种。
+
+本次从 Vitest 2.1.9 升级是为修复 GHSA-5xrq-8626-4rwp 及相关 Vite/esbuild 公告。现有测试仅使用 `describe`、`it`、`expect`、生命周期钩子和 `it.each`，升级后语义不变；仓库也未启用受 Vitest 4 破坏性变更影响的 mock、snapshot、coverage、browser mode、自定义 worker pool/reporter 或全局 API。工具链最低要求变为 Node.js 20、Vite 6；Vitest 4 还收窄了默认测试排除规则，并重做了 worker pool 与部分高级 API。暂不采用刚发布且要求 Node.js 22.12+ 的 Vitest 5，以降低纯安全升级的迁移风险。
+
 ## 历史
 
 各目录由 `git subtree add` 合入，提交历史完整保留。查询单模块历史：

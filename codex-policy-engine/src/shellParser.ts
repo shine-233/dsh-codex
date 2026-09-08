@@ -27,10 +27,18 @@ export function parseShellLine(line: string): ParsedShellLine {
 
   const argv: string[] = []
   const redirects: string[] = []
+  const invocationSubstitutions: string[] = []
   const pushInvocation = () => {
-    if (argv.length || redirects.length) result.invocations.push({ argv: [...argv], redirects: [...redirects] })
+    if (argv.length || redirects.length) {
+      result.invocations.push({
+        argv: [...argv],
+        redirects: [...redirects],
+        substitutions: [...invocationSubstitutions],
+      })
+    }
     argv.length = 0
     redirects.length = 0
+    invocationSubstitutions.length = 0
   }
 
   let i = 0
@@ -70,6 +78,7 @@ export function parseShellLine(line: string): ParsedShellLine {
         j++
       }
       result.substitutions.push(inner)
+      invocationSubstitutions.push(inner)
       argv.push(cur + `$(${inner})`)
       cur = ''
       i = j + 1
@@ -81,6 +90,7 @@ export function parseShellLine(line: string): ParsedShellLine {
       if (end === -1) { cur += ch; i++; continue }
       const inner = line.slice(i + 1, end)
       result.substitutions.push(inner)
+      invocationSubstitutions.push(inner)
       argv.push(cur + `\`${inner}\``)
       cur = ''
       i = end + 1

@@ -23,10 +23,12 @@ const commandSafety = readVectorJson('commandSafety.json');
 const truncation = readVectorJson('outputTruncation.json');
 
 describe('differential: shell-command dangerous-command classifier', () => {
-  const posix = commandSafety.posix.filter((v: any) => !v.dynamic);
-  it.each(posix.map((v: any) => [v.fn, v.call, v.argv, v.expected]))(
+  const posix: [string, string, string[], string | null][] = commandSafety.posix
+    .filter((v: any) => !v.dynamic)
+    .map((v: any) => [v.fn, v.call, v.argv, v.expected]);
+  it.each(posix)(
     'posix %s (%s): %j',
-    (fn: string, call: string, argv: string[], expected: string | null) => {
+    (fn, call, argv, expected) => {
       if (call === 'dangerous_powershell_words_match') {
         // upstream asserts the powershell word-scan directly on Windows semantics
         expect(isDangerousPowershellWords(argv) ? 'Other' : null).toBe(expected);
@@ -36,25 +38,30 @@ describe('differential: shell-command dangerous-command classifier', () => {
     },
   );
 
-  const windows = commandSafety.windows;
-  it.each(windows.map((v: any) => [v.fn, v.argv, v.expected]))(
+  const windows: [string, string[], boolean][] = commandSafety.windows
+    .map((v: any) => [v.fn, v.argv, v.expected]);
+  it.each(windows)(
     'windows %s: %j',
-    (fn: string, argv: string[], expected: boolean) => {
+    (_fn, argv, expected) => {
       expect(isDangerousCommandWindows(argv)).toBe(expected);
     },
   );
 });
 
 describe('differential: output-truncation', () => {
-  it.each(truncation.formattedTruncateText.map((v: any) => [v.fn, v.content, v.policy, v.expected]))(
+  const formatted: [string, string, any, string][] = truncation.formattedTruncateText
+    .map((v: any) => [v.fn, v.content, v.policy, v.expected]);
+  it.each(formatted)(
     'formattedTruncateText %s',
-    (fn: string, content: string, policy: any, expected: string) => {
+    (_fn, content, policy, expected) => {
       expect(formattedTruncateText(content, policy)).toBe(expected);
     },
   );
-  it.each(truncation.truncateText.map((v: any) => [v.fn, v.content, v.policy, v.expected]))(
+  const plain: [string, string, any, string][] = truncation.truncateText
+    .map((v: any) => [v.fn, v.content, v.policy, v.expected]);
+  it.each(plain)(
     'truncateText %s',
-    (fn: string, content: string, policy: any, expected: string) => {
+    (_fn, content, policy, expected) => {
       expect(truncateText(content, policy)).toBe(expected);
     },
   );
