@@ -1,4 +1,4 @@
-// active/dsh-codex-monorepo/codex-policy-engine/src/decision.ts
+// src/decision.ts
 var RANK = { Allow: 0, Prompt: 1, Forbidden: 2 };
 function maxDecision(a, b) {
   return RANK[a] >= RANK[b] ? a : b;
@@ -8,7 +8,7 @@ function aggregate(decisions) {
   return decisions.reduce(maxDecision);
 }
 
-// active/dsh-codex-monorepo/codex-policy-engine/src/rule.ts
+// src/rule.ts
 function singleToken(value) {
   return { kind: "Single", value };
 }
@@ -35,7 +35,7 @@ function ruleMatches(rule, cmd) {
   return true;
 }
 
-// active/dsh-codex-monorepo/codex-policy-engine/src/policy.ts
+// src/policy.ts
 var Policy = class _Policy {
   rulesByProgram = /* @__PURE__ */ new Map();
   networkAllowed = /* @__PURE__ */ new Set();
@@ -83,7 +83,7 @@ var Policy = class _Policy {
   }
 };
 
-// active/dsh-codex-monorepo/codex-policy-engine/src/starlarkLite.ts
+// src/starlarkLite.ts
 var isDecision = (s) => s === "ALLOW" || s === "FORBIDDEN" || s === "PROMPT";
 var normDecision = (s) => s === "ALLOW" ? "Allow" : s === "FORBIDDEN" ? "Forbidden" : "Prompt";
 function tokenize(src) {
@@ -239,18 +239,24 @@ function parsePolicyFile(src) {
   return out;
 }
 
-// active/dsh-codex-monorepo/codex-policy-engine/src/shellParser.ts
+// src/shellParser.ts
 function parseShellLine(line) {
   const result = { invocations: [], heredocs: [], substitutions: [], comments: [] };
   if (!line.trim()) return result;
   const argv = [];
   const redirects = [];
+  const invocationSubstitutions = [];
   const pushInvocation = () => {
     if (argv.length || redirects.length) {
-      result.invocations.push({ argv: [...argv], redirects: [...redirects], substitutions: [] });
+      result.invocations.push({
+        argv: [...argv],
+        redirects: [...redirects],
+        substitutions: [...invocationSubstitutions]
+      });
     }
     argv.length = 0;
     redirects.length = 0;
+    invocationSubstitutions.length = 0;
   };
   let i = 0;
   let cur = "";
@@ -307,6 +313,7 @@ function parseShellLine(line) {
         j++;
       }
       result.substitutions.push(inner);
+      invocationSubstitutions.push(inner);
       argv.push(cur + `$(${inner})`);
       cur = "";
       i = j + 1;
@@ -321,6 +328,7 @@ function parseShellLine(line) {
       }
       const inner = line.slice(i + 1, end);
       result.substitutions.push(inner);
+      invocationSubstitutions.push(inner);
       argv.push(cur + `\`${inner}\``);
       cur = "";
       i = end + 1;
@@ -354,6 +362,7 @@ function parseShellLine(line) {
           const consumed = nl + 1 + bodyLines.join("\n").length + (bodyLines.length ? bodyLines.length : 0);
           i = line.length;
           flushOp();
+          void consumed;
           continue;
         }
       }
@@ -407,7 +416,7 @@ function shellSubCommands(line) {
   return cmds.filter((c) => c.trim() !== "");
 }
 
-// active/dsh-codex-monorepo/codex-policy-engine/src/parseCommand/shlex.ts
+// src/parseCommand/shlex.ts
 var NUL = 0;
 function isShlexWhitespace(c) {
   return c === " " || c === "	" || c === "\n";
@@ -579,7 +588,7 @@ function shlexJoin(tokens) {
   return shlexTryJoin(tokens) ?? "<command included NUL byte>";
 }
 
-// active/dsh-codex-monorepo/codex-policy-engine/src/commandSafety.ts
+// src/commandSafety.ts
 var MAX_WRAPPER_DEPTH = 8;
 var WINDOWS_EXEC_SUFFIXES = [".exe", ".cmd", ".bat", ".com"];
 var DELETE_CMDLETS = ["remove-item", "ri", "rm", "del", "erase", "rd", "rmdir"];
@@ -923,7 +932,7 @@ function hasQuietFlagCmd(args) {
   return args.some((a) => a.toLowerCase() === "/q");
 }
 
-// active/dsh-codex-monorepo/codex-policy-engine/src/outputTruncation.ts
+// src/outputTruncation.ts
 var APPROX_BYTES_PER_TOKEN = 4;
 function approxTokenCount(text) {
   const len = Buffer.byteLength(text, "utf8");
@@ -1047,7 +1056,7 @@ function truncateFunctionOutputItems(items, policy, estimateAudioTokenCount = ()
   return out;
 }
 
-// active/dsh-codex-monorepo/codex-policy-engine/src/parseCommand/bashWordSeq.ts
+// src/parseCommand/bashWordSeq.ts
 var WORD_REJECT_CHARS = /* @__PURE__ */ new Set([
   "{",
   "}",
@@ -1216,7 +1225,7 @@ function parseShellScriptIntoCommands(script) {
   return commands;
 }
 
-// active/dsh-codex-monorepo/codex-policy-engine/src/parseCommand/shellDetect.ts
+// src/parseCommand/shellDetect.ts
 function fileStem(path) {
   const base = path.split(/[\\/]/).pop() ?? "";
   if (base === "") return null;
@@ -1240,7 +1249,7 @@ function classifyShell(shellPath) {
   return t === null || t === "cmd" ? null : t;
 }
 
-// active/dsh-codex-monorepo/codex-policy-engine/src/parseCommand/powershellExtract.ts
+// src/parseCommand/powershellExtract.ts
 var POWERSHELL_FLAGS = ["-nologo", "-noprofile", "-command", "-c"];
 function extractPowershellCommand(command) {
   if (command.length < 3) return null;
@@ -1259,7 +1268,7 @@ function extractPowershellCommand(command) {
   return null;
 }
 
-// active/dsh-codex-monorepo/codex-policy-engine/src/parseCommand/parseCommand.ts
+// src/parseCommand/parseCommand.ts
 function parsedEq(a, b) {
   return JSON.stringify(a) === JSON.stringify(b);
 }
@@ -1736,6 +1745,8 @@ function isSmallFormattingCommand(tokens) {
   if (tokens.length === 0) return false;
   const cmd = tokens[0];
   switch (cmd) {
+    // Always formatting; typically used in pipes.
+    // `nl` is special-cased to allow `nl <file>` to be treated as a read command.
     case "wc":
     case "tr":
     case "cut":
@@ -2123,7 +2134,7 @@ function parseCommandImpl(command) {
   return commands;
 }
 
-// active/dsh-codex-monorepo/codex-policy-engine/src/approvalEvidence.ts
+// src/approvalEvidence.ts
 function issueApprovalEvidence(input) {
   if (!Number.isFinite(input.issuedAt) || !Number.isFinite(input.ttlMs) || input.ttlMs <= 0) {
     throw new RangeError("issuedAt and ttlMs must be finite, with ttlMs > 0");
@@ -2147,7 +2158,7 @@ function validateApprovalEvidence(evidence, request) {
   return { ok: true };
 }
 
-// active/dsh-codex-monorepo/codex-policy-engine/src/canonicalization.ts
+// src/canonicalization.ts
 var SH_SCRIPT_PREFIX = "__codex_shell_script__";
 var PS_SCRIPT_PREFIX = "__codex_powershell_script__";
 var SHELL_BASENAMES = /* @__PURE__ */ new Set(["sh", "bash", "zsh"]);
@@ -2196,7 +2207,7 @@ function canonicalizeCommandForApproval(argv) {
   return argv;
 }
 
-// active/dsh-codex-monorepo/codex-policy-engine/src/dsh-plugin.ts
+// src/dsh-plugin.ts
 var name = "codex-policy-engine";
 var inject = ["tools"];
 function asRecord(v) {

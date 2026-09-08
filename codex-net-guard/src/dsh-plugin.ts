@@ -4,22 +4,29 @@ import { createWhitelistProxy } from './index.js';
 export const name = 'codex-net-guard'
 export const inject = ['tools']
 
-function asRecord(v) { return v && typeof v === 'object' && !Array.isArray(v) ? v : {} }
+function asRecord(value: unknown): Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {}
+}
 
-let active = null // { proxy, startedAt, domains }
+type Proxy = ReturnType<typeof createWhitelistProxy>
+type Active = { proxy: Proxy; startedAt: string; domains: string[] }
 
-async function listenReady(proxy) {
-  await new Promise((resolveP, rejectP) => {
+let active: Active | null = null
+
+async function listenReady(proxy: Proxy): Promise<void> {
+  await new Promise<void>((resolveP, rejectP) => {
     if (proxy.port() > 0) return resolveP()
     proxy.server.once('listening', resolveP)
     proxy.server.once('error', rejectP)
   })
 }
 
-export async function apply(ctx, config = {}) {
+export async function apply(ctx: unknown, config: unknown = {}): Promise<void> {
   const cfg = asRecord(config)
   const defaultDomains = Array.isArray(cfg.allowedDomains) ? cfg.allowedDomains.map(String) : []
-  const defineTool = (d) => d
+  const defineTool = (definition: unknown): unknown => definition
 
   if (cfg.autostart === true && !active && defaultDomains.length) {
     try {
@@ -30,8 +37,9 @@ export async function apply(ctx, config = {}) {
   }
 
   try {
-    if (ctx?.tools?.register) {
-      ctx.tools.register(defineTool({
+    const tools = (ctx as { tools?: { register?: (definition: unknown) => void } } | null)?.tools
+    if (tools?.register) {
+      tools.register(defineTool({
         name: 'codex_net_guard',
         description: 'Control a local HTTP/CONNECT whitelist proxy: only allowed domains pass, everything else gets 403. Actions: start/stop/status.',
         parameters: {
@@ -39,9 +47,10 @@ export async function apply(ctx, config = {}) {
           domains: { type: 'array', description: 'suffix-matched allow list, e.g. ["api.deepseek.com","github.com"]' },
           port: { type: 'number', description: 'listen port; 0 = pick a free port (default)' },
         },
-        output: { schema: { type: 'string' }, render: (_a, v) => [{ type: 'text', text: v }] },
-        async execute(args) {
-          const action = String(args?.action ?? 'status')
+        output: { schema: { type: 'string' }, render: (_args: unknown, value: unknown) => [{ type: 'text', text: String(value) }] },
+        async execute(rawArgs: unknown): Promise<string> {
+          const args = asRecord(rawArgs)
+          const action = String(args.action ?? 'status')
           if (action === 'status') {
             return JSON.stringify({ running: !!active, url: active?.proxy.url() ?? null, domains: active?.domains ?? defaultDomains, startedAt: active?.startedAt ?? null })
           }

@@ -12,6 +12,15 @@ describe('shellParser (semantic line parsing, distilled from parse_command.rs)',
     expect(p.substitutions).toEqual(['rm -rf /', 'cat /etc/passwd']);
     expect(shellSubCommands('echo $(rm -rf /)')).toContain('rm -rf /');
   });
+  it('tracks substitutions per invocation and resets them at control boundaries', () => {
+    const p = parseShellLine('echo $(first) && printf ok | cat `second`')
+    expect(p.substitutions).toEqual(['first', 'second'])
+    expect(p.invocations.map((invocation) => invocation.substitutions)).toEqual([
+      ['first'],
+      [],
+      ['second'],
+    ])
+  });
   it('captures heredoc bodies', () => {
     const p = parseShellLine('cat << EOF\nrm -rf /\nEOF');
     expect(p.heredocs).toHaveLength(1);

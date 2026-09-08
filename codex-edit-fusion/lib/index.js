@@ -220,6 +220,9 @@ function seekSequence(lines, pattern, start, eof = false, updateFileMode = "Pres
 // src/dsh-plugin.ts
 var name = "codex-edit-fusion";
 var inject = ["tools"];
+function asRecord(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
 function touchedPaths(patch) {
   const paths = /* @__PURE__ */ new Set();
   for (const u of patch.updateFiles) {
@@ -231,21 +234,25 @@ function touchedPaths(patch) {
   return [...paths];
 }
 function apply(ctx, config = {}) {
-  if (!ctx?.tools?.register) return;
-  const defineTool = (d) => d;
-  const root = typeof config.root === "string" && config.root ? config.root : void 0;
-  ctx.tools.register(defineTool({
+  const tools = ctx?.tools;
+  if (!tools?.register) return;
+  const defineTool = (definition) => definition;
+  const cfg = asRecord(config);
+  const root = typeof cfg.root === "string" && cfg.root ? cfg.root : void 0;
+  tools.register(defineTool({
     name: "codex_apply_patch",
     description: "Apply an openai/codex V4A patch (*** Begin Patch ... Update/Add/Delete File ...) to files under the working directory. Fuzzy context matching with atomic per-file writes.",
     parameters: {
       patch: { type: "string", required: true, description: "full V4A patch text beginning with *** Begin Patch" },
       cwd: { type: "string", description: "base directory for relative paths; defaults to process.cwd()" }
     },
-    output: { schema: { type: "string" }, render: (_a, v) => [{ type: "text", text: v }] },
-    async execute(args) {
+    output: { schema: { type: "string" }, render: (_args, value) => [{ type: "text", text: String(value) }] },
+    async execute(rawArgs) {
+      const args = asRecord(rawArgs);
       const configuredRoot = root ?? process.cwd();
-      const base = resolve(isAbsolute(String(args?.cwd ?? "")) ? String(args.cwd) : join(configuredRoot, String(args?.cwd ?? ".")));
-      const patch = parsePatch(String(args?.patch ?? ""));
+      const cwd = typeof args.cwd === "string" ? args.cwd : "";
+      const base = resolve(isAbsolute(cwd) ? cwd : join(configuredRoot, cwd || "."));
+      const patch = parsePatch(String(args.patch ?? ""));
       const files = /* @__PURE__ */ new Map();
       for (const p of touchedPaths(patch)) {
         try {
@@ -253,7 +260,11 @@ function apply(ctx, config = {}) {
         } catch {
         }
       }
-      const res = applyPatch(patch, files, (lines, pattern, start) => seekSequence(lines, pattern, start));
+      const res = applyPatch(
+        patch,
+        files,
+        (lines, pattern, start, eof) => seekSequence(lines, pattern, start, eof, "NormalizeToLf")
+      );
       if (res.errors.length > 0) return JSON.stringify({ applied: [], errors: res.errors }, null, 2);
       const touched = touchedPaths(patch);
       try {
