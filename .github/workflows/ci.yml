@@ -32,7 +32,7 @@ jobs:
           node-version: 24
       - name: Install dependencies
         working-directory: ${{ matrix.package }}
-        run: pnpm install --no-frozen-lockfile --prefer-offline
+        run: pnpm install --frozen-lockfile --prefer-offline
       - name: Test
         working-directory: ${{ matrix.package }}
-        run: pnpm exec vitest run
+        run: pnpm test
