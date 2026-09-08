@@ -33,10 +33,19 @@ describe('approval cache during interception', () => {
   })
 
   it('shares cached evaluations across equivalent shell wrappers', () => {
-    const policy = policyFromConfig({ rules: [{ first: 'echo', decision: 'Allow' }] })
-    const cached: Evaluation = { decision: 'Forbidden', matchedPrograms: ['cached'] }
-    const cache = new Map<string, Evaluation>([['echo hi', cached]])
+    const policy = policyFromConfig({ rules: [{ first: 'echo', decision: 'Prompt' }] })
+    const check = vi.spyOn(Policy.prototype, 'check')
+    try {
+      const cache = new Map<string, Evaluation>()
+      const first = evaluateCached(policy, '/bin/bash -lc "echo hi"', cache)
+      const second = evaluateCached(policy, 'bash -lc "echo hi"', cache)
 
-    expect(evaluateCached(policy, '/bin/bash -lc "echo hi"', cache)).toBe(cached)
+      // Same canonical command => one policy evaluation, identical result object.
+      expect(second).toBe(first)
+      expect(check).toHaveBeenCalledTimes(1)
+      expect(cache.size).toBe(1)
+    } finally {
+      check.mockRestore()
+    }
   })
 })
