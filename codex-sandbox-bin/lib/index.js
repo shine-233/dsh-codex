@@ -1,4 +1,4 @@
-// ../codex-sandbox-bin/src/dsh-plugin.ts
+// src/dsh-plugin.ts
 import { existsSync, statSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -25,7 +25,7 @@ function readdirSafe(d) {
     return [];
   }
 }
-function apply(ctx, config = {}) {
+function apply(ctx, _config = {}) {
   if (!ctx?.tools?.register) return;
   const defineTool = (d) => d;
   ctx.tools.register(defineTool({

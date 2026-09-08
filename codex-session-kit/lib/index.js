@@ -50,7 +50,6 @@ var MemoryStore = class {
     this.filePath = filePath;
     this.rebuild();
   }
-  filePath;
   state = /* @__PURE__ */ new Map();
   rebuild() {
     this.state.clear();
@@ -109,7 +108,6 @@ var AgentGraphStore = class {
       }
     }
   }
-  filePath;
   nodes = /* @__PURE__ */ new Map();
   edges = [];
   log = [];
@@ -207,8 +205,12 @@ var inject = ["tools"];
 function asRecord(v) {
   return v && typeof v === "object" && !Array.isArray(v) ? v : {};
 }
+function isToolHost(v) {
+  const tools = asRecord(asRecord(v).tools);
+  return typeof tools.register === "function";
+}
 function apply(ctx, config = {}) {
-  if (!ctx?.tools?.register) return;
+  if (!isToolHost(ctx)) return;
   const cfg = asRecord(config);
   const memoryPath = typeof cfg.memoryPath === "string" && cfg.memoryPath ? cfg.memoryPath : join2(homedir(), ".dsh", "codex-memory.jsonl");
   let memory;
@@ -228,18 +230,19 @@ function apply(ctx, config = {}) {
     },
     output: { schema: { type: "string" }, render: (_a, v) => [{ type: "text", text: v }] },
     async execute(args) {
-      const maxItems = Number(args?.maxItems ?? 50);
-      if (typeof args?.path === "string" && args.path) {
-        const parsed = parseRolloutFile(String(args.path));
+      const input = asRecord(args);
+      const maxItems = Number(input.maxItems ?? 50);
+      if (typeof input.path === "string" && input.path) {
+        const parsed = parseRolloutFile(input.path);
         return JSON.stringify({
-          file: args.path,
+          file: input.path,
           header: parsed.header,
           itemCount: parsed.items.length,
           badLines: parsed.badLines,
           events: toDshEvents(parsed.items).slice(0, maxItems)
         }, null, 2);
       }
-      const dir = String(args?.dir ?? join2(homedir(), ".codex", "sessions"));
+      const dir = String(input.dir ?? join2(homedir(), ".codex", "sessions"));
       return JSON.stringify({ dir, sessions: listSessions(dir).slice(0, maxItems) }, null, 2);
     },
     timeoutMs: 1e4
@@ -254,13 +257,14 @@ function apply(ctx, config = {}) {
     },
     output: { schema: { type: "string" }, render: (_a, v) => [{ type: "text", text: v }] },
     async execute(args) {
+      const input = asRecord(args);
       if (!memory) return JSON.stringify({ error: "memory store unavailable at " + memoryPath });
-      const action = String(args?.action ?? "list");
+      const action = String(input.action ?? "list");
       if (action === "list") return JSON.stringify({ path: memoryPath, keys: memory.keys() }, null, 2);
-      const key = String(args?.key ?? "");
+      const key = String(input.key ?? "");
       if (!key) return JSON.stringify({ error: "key required for " + action });
       if (action === "set") {
-        memory.set(key, args?.value ?? null);
+        memory.set(key, input.value ?? null);
         return JSON.stringify({ ok: true, key });
       }
       if (action === "get") return JSON.stringify({ key, value: memory.get(key), exists: memory.has(key) });
