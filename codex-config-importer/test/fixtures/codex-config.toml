@@ -1,0 +1,27 @@
+# Representative ~/.codex/config.toml fixture (redacted, stable for tests).
+model = "gpt-5.6-codex"
+model_provider = "openrouter"
+approval_policy = "on-request"
+history_max_bytes = 1048576
+enabled_features = ["shell", "mcp", "web_search"]
+release_date = 2026-09-07
+instructions = """
+Use the repository instructions.
+Keep # markers inside multiline text.
+Keep changes focused and explain verification.
+"""
+
+[model_providers.openrouter]
+name = "OpenRouter"
+base_url = "https://openrouter.ai/api/v1"
+env_key = "OPENROUTER_API_KEY"
+auth.timeout_ms = 7000
+
+[[mcp_servers]]
+name = "local-tools"
+command = "node"
+args = ["server.js", "--stdio"]
+
+[[mcp_servers]]
+name = "remote-tools"
+url = "https://example.invalid/mcp"

@@ -1,30 +1,180 @@
-// dsh-codex/codex-config-importer/src/dsh-plugin.ts
+// src/dsh-plugin.ts
 import { join } from "node:path";
 import { homedir } from "node:os";
 
-// dsh-codex/codex-config-importer/src/tomlImporter.ts
+// src/tomlImporter.ts
 import { existsSync, readFileSync } from "node:fs";
 function parseTomlLite(src) {
   const out = {};
   let section = out;
+  const blockedKeys = /* @__PURE__ */ new Set(["__proto__", "prototype", "constructor"]);
+  const parseBarePath = (raw) => {
+    const parts = raw.split(".").map((part) => part.trim());
+    return parts.length > 0 && parts.every((part) => /^[A-Za-z0-9_-]+$/.test(part) && !blockedKeys.has(part)) ? parts : null;
+  };
+  const assignPath = (target, parts, value) => {
+    let parent = target;
+    for (const part of parts.slice(0, -1)) {
+      if (!Object.prototype.hasOwnProperty.call(parent, part)) parent[part] = {};
+      const child = parent[part];
+      if (typeof child !== "object" || child === null || Array.isArray(child)) return false;
+      parent = child;
+    }
+    parent[parts[parts.length - 1]] = value;
+    return true;
+  };
+  const resolveTable = (parts) => {
+    let table = out;
+    for (const part of parts) {
+      if (!Object.prototype.hasOwnProperty.call(table, part)) table[part] = {};
+      const child = table[part];
+      if (typeof child !== "object" || child === null || Array.isArray(child)) return null;
+      table = child;
+    }
+    return table;
+  };
+  const stripComment = (line) => {
+    let quote = null;
+    let escaped = false;
+    let out2 = "";
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (quote === '"' && escaped) {
+        escaped = false;
+        out2 += c;
+        continue;
+      }
+      if (quote === '"' && c === "\\") {
+        escaped = true;
+        out2 += c;
+        continue;
+      }
+      if ((c === '"' || c === "'") && quote === null) {
+        quote = c;
+        out2 += c;
+        continue;
+      }
+      if (c === quote) {
+        quote = null;
+        out2 += c;
+        continue;
+      }
+      if (c === "#" && quote === null) {
+        const newline = line.indexOf("\n", i);
+        if (newline < 0) break;
+        out2 += "\n";
+        i = newline;
+        continue;
+      }
+      out2 += c;
+    }
+    return out2;
+  };
+  const splitTopLevel = (value, separator = ",") => {
+    const parts = [];
+    let start = 0;
+    let depth = 0;
+    let quote = null;
+    let escaped = false;
+    for (let i = 0; i < value.length; i++) {
+      const c = value[i];
+      if (quote === '"' && escaped) {
+        escaped = false;
+        continue;
+      }
+      if (quote === '"' && c === "\\") {
+        escaped = true;
+        continue;
+      }
+      if ((c === '"' || c === "'") && quote === null) {
+        quote = c;
+        continue;
+      }
+      if (c === quote) {
+        quote = null;
+        continue;
+      }
+      if (quote === null && (c === "[" || c === "{")) depth++;
+      else if (quote === null && (c === "]" || c === "}")) depth--;
+      else if (quote === null && c === separator && depth === 0) {
+        parts.push(value.slice(start, i).trim());
+        start = i + 1;
+      }
+    }
+    parts.push(value.slice(start).trim());
+    return parts.filter(Boolean);
+  };
+  const parseValue = (rawValue) => {
+    const value = rawValue.trim();
+    if (value.startsWith('"""') && value.endsWith('"""')) {
+      const body = value.slice(3, -3);
+      return body.replace(/\\([\\"nrt])/g, (_, c) => ({ n: "\n", r: "\r", t: "	", "\\": "\\", '"': '"' })[c] ?? c);
+    }
+    if (value.startsWith('"') && value.endsWith('"') || value.startsWith("'") && value.endsWith("'")) {
+      const body = value.slice(1, -1);
+      return value[0] === '"' ? body.replace(/\\([\\"nrt])/g, (_, c) => ({ n: "\n", r: "\r", t: "	", "\\": "\\", '"': '"' })[c] ?? c) : body;
+    }
+    if (value === "true" || value === "false") return value === "true";
+    if (/^-?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i.test(value)) return Number(value);
+    if (value.startsWith("[") && value.endsWith("]")) return splitTopLevel(value.slice(1, -1)).map(parseValue);
+    if (value.startsWith("{") && value.endsWith("}")) {
+      const table = {};
+      for (const pair of splitTopLevel(value.slice(1, -1))) {
+        const eq = pair.indexOf("=");
+        if (eq < 0) continue;
+        const parts = parseBarePath(pair.slice(0, eq));
+        if (parts) assignPath(table, parts, parseValue(pair.slice(eq + 1)));
+      }
+      return table;
+    }
+    return value;
+  };
+  const logicalLines = [];
+  let pending = "";
   for (const raw of src.split(/\r?\n/)) {
-    const line = raw.trim();
+    pending = pending ? `${pending}
+${raw}` : raw;
+    const tripleCount = (pending.match(/(?<!\\)"""/g) ?? []).length;
+    if (tripleCount % 2 === 0) {
+      logicalLines.push(pending);
+      pending = "";
+    }
+  }
+  if (pending) logicalLines.push(pending);
+  for (const raw of logicalLines) {
+    const line = stripComment(raw).trim();
     if (!line || line.startsWith("#")) continue;
-    const sec = line.match(/^\[(.+)\]$/);
-    if (sec) {
-      section = out;
-      for (const part of sec[1].split(".")) section = section[part] ||= {};
+    const arraySec = line.match(/^\[\[(.+)\]\]$/);
+    if (arraySec) {
+      const parts2 = parseBarePath(arraySec[1]);
+      if (!parts2) continue;
+      let parent = out;
+      for (const part of parts2.slice(0, -1)) {
+        if (!Object.prototype.hasOwnProperty.call(parent, part)) parent[part] = {};
+        const child = parent[part];
+        if (typeof child !== "object" || child === null || Array.isArray(child)) {
+          parent = {};
+          break;
+        }
+        parent = child;
+      }
+      const key = parts2[parts2.length - 1];
+      const arr = Array.isArray(parent[key]) ? parent[key] : parent[key] = [];
+      section = {};
+      arr.push(section);
       continue;
     }
-    const kv = line.match(/^([A-Za-z0-9_-]+)\s*=\s*(.+)$/);
+    const sec = line.match(/^\[(.+)\]$/);
+    if (sec) {
+      const parts2 = parseBarePath(sec[1]);
+      const table = parts2 && resolveTable(parts2);
+      if (table) section = table;
+      continue;
+    }
+    const kv = line.match(/^([A-Za-z0-9_-]+(?:\s*\.\s*[A-Za-z0-9_-]+)*)\s*=\s*([\s\S]+)$/);
     if (!kv) continue;
-    let v = kv[2].trim();
-    if (v.startsWith('"')) v = v.slice(1, -1);
-    else if (v === "true") v = true;
-    else if (v === "false") v = false;
-    else if (/^-?\d+(\.\d+)?$/.test(v)) v = Number(v);
-    else if (v.startsWith("[")) v = v.slice(1, -1).split(",").map((s) => s.trim().replace(/^"|"$/g, "")).filter(Boolean);
-    section[kv[1]] = v;
+    const parts = parseBarePath(kv[1]);
+    if (parts) assignPath(section, parts, parseValue(kv[2]));
   }
   return out;
 }
@@ -51,7 +201,7 @@ function tomlToCordisPatch(cfgPath) {
   return lines.length ? lines.join("\n") + "\n" : "# codex config had no mappable keys\n";
 }
 
-// dsh-codex/codex-config-importer/src/dsh-plugin.ts
+// src/dsh-plugin.ts
 var name = "codex-config-importer";
 var inject = ["tools"];
 function apply(ctx, config = {}) {
@@ -78,5 +228,6 @@ export {
   apply,
   inject,
   name,
+  parseTomlLite,
   tomlToCordisPatch
 };

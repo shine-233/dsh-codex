@@ -23,7 +23,9 @@ model_provider = "deepseek"
         providerHint: "deepseek"
 ```
 
-内置一个够用的 TOML 子集解析器（顶层键、`[section]` 表、标量/数组），零依赖，2/2 单测。
+内置一个受控的 TOML 子集解析器（顶层键、bare dotted keys、`[section]` 表、`[[array-of-tables]]`、标量/数组、inline table、多行基本字符串），零依赖。
+
+兼容性边界：日期/时间值会按原始字符串保留，避免无时区日期被 JavaScript `Date` 隐式转换；尚未实现 TOML 数组表之外的全部 1.0 语法（如多行字面字符串、quoted dotted keys 和复杂日期类型）。bare dotted keys 支持空白与连字符，并拒绝 `__proto__` / `prototype` / `constructor` 路径段，避免原型污染。`test/fixtures/codex-config.toml` 是一份脱敏的真实形状 fixture，用于防止配置导入回归。
 
 ## 为什么
 

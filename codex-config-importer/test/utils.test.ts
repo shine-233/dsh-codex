@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { join, resolve } from 'node:path';
 import { formatElapsedMillis } from '../src/utils/elapsed';
 import { RedactedString } from '../src/utils/redactedString';
 import { findCodexHome } from '../src/utils/homeDir';
@@ -55,10 +56,12 @@ describe('config-importer utils (distilled from upstream utils/* crates)', () =>
     expect(() => renderTemplate('{{ missing }}', {})).toThrow(/missing variable/);
   });
   it('absolute path: resolves relative against base', () => {
-    expect(AbsolutePathBuf.resolvePathAgainstBase('x.txt', 'C:/tmp').toString()).toMatch(/C:.tmp.x.txt/);
+    const base = resolve('tmp');
+    expect(AbsolutePathBuf.resolvePathAgainstBase('x.txt', base).toString()).toBe(join(base, 'x.txt'));
   });
-  it('path utils: case/separator-insensitive comparison on win32', () => {
-    expect(pathsMatchAfterNormalization('C:\\A\\B', 'c:/a/b')).toBe(true);
+  it('path utils: follows host case and separator semantics', () => {
+    const samePathWithCaseChange = pathsMatchAfterNormalization('C:\\A\\B', 'c:/a/b');
+    expect(samePathWithCaseChange).toBe(process.platform === 'win32');
     expect(pathsMatchAfterNormalization('C:\\A\\B', 'C:\\A\\C')).toBe(false);
   });
   it('json→toml: null becomes empty string', () => {
@@ -100,7 +103,7 @@ import { findGitRoot } from '../src/utils/gitDiscovery';
 describe('gitDiscovery (distilled from utils/git-discovery)', () => {
   it('finds the nearest git root walking up, shares probe cache', () => {
     const root = findGitRoot(import.meta.dirname!);
-    expect(root!.endsWith('dsh-codex-monorepo')).toBe(true);
+    expect(root && pathsMatchAfterNormalization(root, resolve(import.meta.dirname!, '..', '..'))).toBe(true);
     expect(findGitRoot(import.meta.dirname!)).toBe(root);
   });
   it('returns null outside a repo', () => {
@@ -113,7 +116,8 @@ describe('pathUri (distilled from utils/path-uri)', () => {
   it('round-trips windows and posix paths through file:// URIs', () => {
     const winPath = ['C:', 'work', 'a b.txt'].join(String.fromCharCode(92));
     expect(pathToUri(winPath)).toBe('file:///C:/work/a%20b.txt');
-    expect(uriToPath('file:///C:/work/a%20b.txt').toLowerCase()).toBe(winPath.toLowerCase());
+    const expectedWinPath = process.platform === 'win32' ? winPath : 'C:/work/a b.txt';
+    expect(uriToPath('file:///C:/work/a%20b.txt').toLowerCase()).toBe(expectedWinPath.toLowerCase());
     expect(uriToPath(pathToUri('/home/u/x.txt'))).toBe('/home/u/x.txt');
     expect(() => uriToPath('http://not-a-file')).toThrow(/not a file URI/);
   });

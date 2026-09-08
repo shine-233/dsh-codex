@@ -1,7 +1,7 @@
 // dsh plugin entry for codex-config-importer (codex config.toml -> cordis.patch.yml)
 import { join } from 'node:path';
 import { homedir } from 'node:os';
-import { tomlToCordisPatch } from './tomlImporter.js';
+import { parseTomlLite, tomlToCordisPatch } from './tomlImporter.js';
 
 export const name = 'codex-config-importer'
 export const inject = ['tools']
@@ -27,4 +27,4 @@ export function apply(ctx, config = {}) {
   }))
 }
 
-export { tomlToCordisPatch }
+export { parseTomlLite, tomlToCordisPatch }
