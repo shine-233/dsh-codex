@@ -15,7 +15,9 @@
   },
   "scripts": {
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check:pack": "node scripts/check-pack.mjs",
+    "pack:dry": "npm pack --dry-run --ignore-scripts"
   },
   "main": "lib/index.js",
   "dsh": {

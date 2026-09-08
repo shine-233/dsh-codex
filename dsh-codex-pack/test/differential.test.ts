@@ -26,7 +26,8 @@ describe('differential: shell-command dangerous-command classifier', () => {
   const posix = commandSafety.posix.filter((v: any) => !v.dynamic);
   it.each(posix.map((v: any) => [v.fn, v.call, v.argv, v.expected]))(
     'posix %s (%s): %j',
-    (fn: string, call: string, argv: string[], expected: string | null) => {
+    (...args: any[]) => {
+      const [fn, call, argv, expected] = args as [string, string, string[], string | null]
       if (call === 'dangerous_powershell_words_match') {
         // upstream asserts the powershell word-scan directly on Windows semantics
         expect(isDangerousPowershellWords(argv) ? 'Other' : null).toBe(expected);
@@ -39,7 +40,8 @@ describe('differential: shell-command dangerous-command classifier', () => {
   const windows = commandSafety.windows;
   it.each(windows.map((v: any) => [v.fn, v.argv, v.expected]))(
     'windows %s: %j',
-    (fn: string, argv: string[], expected: boolean) => {
+    (...args: any[]) => {
+      const [fn, argv, expected] = args as [string, string[], boolean]
       expect(isDangerousCommandWindows(argv)).toBe(expected);
     },
   );
@@ -48,13 +50,15 @@ describe('differential: shell-command dangerous-command classifier', () => {
 describe('differential: output-truncation', () => {
   it.each(truncation.formattedTruncateText.map((v: any) => [v.fn, v.content, v.policy, v.expected]))(
     'formattedTruncateText %s',
-    (fn: string, content: string, policy: any, expected: string) => {
+    (...args: any[]) => {
+      const [_fn, content, policy, expected] = args as [string, string, any, string]
       expect(formattedTruncateText(content, policy)).toBe(expected);
     },
   );
   it.each(truncation.truncateText.map((v: any) => [v.fn, v.content, v.policy, v.expected]))(
     'truncateText %s',
-    (fn: string, content: string, policy: any, expected: string) => {
+    (...args: any[]) => {
+      const [_fn, content, policy, expected] = args as [string, string, any, string]
       expect(truncateText(content, policy)).toBe(expected);
     },
   );

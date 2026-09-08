@@ -3,6 +3,8 @@
 // port status (implemented / distilled / design-only) per dest module, plus
 // any pending-admission (E0) upstream units. Replaces the v0 install stub.
 import { readFileSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { validatePackLayout } from './preflight.js';
 
 export interface LedgerEntry {
   path: string
@@ -51,6 +53,8 @@ export function pendingAdmissions(ledger: Ledger): LedgerEntry[] {
   return ledger.entries.filter((e) => e.code === 'E0-pending-admission')
 }
 
+export { validatePackLayout } from './preflight.js'
+
 /** Human-readable status report; also emitted by the codex_pack_status tool. */
 export function statusReport(ledger: Ledger): string {
   const lines: string[] = []
@@ -69,8 +73,29 @@ export function statusReport(ledger: Ledger): string {
   return lines.join('\n')
 }
 
-/** Kept for backward compatibility with the v0 scaffold. */
-export function install(ctx?: unknown): void {
-  void ctx
-  console.log('[dsh-codex-pack] integration manifest module — see statusReport() and MOUNT_POINTS.md')
+export interface InstallationPlan {
+  root: string
+  dependencies: Record<string, string>
+  bundles: string[]
+  patchPath: string
 }
+
+/** Build a deterministic, side-effect-free install plan after layout validation. */
+export function buildInstallPlan(root: string): InstallationPlan {
+  const preflight = validatePackLayout(root)
+  if (!preflight.ok) throw new Error(`pack preflight failed: ${preflight.errors.join('; ')}`)
+  const manifest = JSON.parse(readFileSync(join(root, 'manifest.json'), 'utf8')) as { modules: Record<string, string> }
+  return {
+    root,
+    dependencies: { ...manifest.modules },
+    bundles: Object.values(manifest.modules),
+    patchPath: join(root, 'cordis.patch.yml'),
+  }
+}
+
+/** Backward-compatible entrypoint: returns a plan and never mutates a profile. */
+export function install(root = process.cwd()): InstallationPlan {
+  return buildInstallPlan(root)
+}
+
+export { writeProfile, type ProfileFileOps, type ProfileWriteOptions, type ProfileWriteResult } from './profileWriter.js'
