@@ -36,3 +36,18 @@ jobs:
       - name: Test
         working-directory: ${{ matrix.package }}
         run: pnpm test
+
+  bundles:
+    # Guards the committed single-file bundles: every package ships lib/index.js
+    # built from src, and it silently drifts whenever src changes without a
+    # rebuild. esbuild is installed globally so no package has to declare it.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install esbuild
+        run: npm install -g esbuild@0.25.12
+      - name: Verify committed bundles match src
+        run: node scripts/rebuild-bundles.mjs --check
