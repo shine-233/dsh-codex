@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { buildSyncReviewPrompt, buildAsyncScoringPrompt, sharedContextSection } from '../src/guardian';
+import type { GuardianTranscriptEntry } from '../src/guardian';
 
 describe('guardian-v2 prompts (distilled from ext/guardian-v2 + guardian-context)', () => {
-  const transcript = [
+  const transcript: GuardianTranscriptEntry[] = [
     { role: 'user', text: 'deploy to prod' },
     { role: 'tool', text: 'build ok' },
     { role: 'assistant', text: 'deploying now' },

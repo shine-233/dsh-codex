@@ -204,9 +204,16 @@ function tomlToCordisPatch(cfgPath) {
 // src/dsh-plugin.ts
 var name = "codex-config-importer";
 var inject = ["tools"];
+function asRecord(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+function isToolHost(value) {
+  const tools = asRecord(asRecord(value).tools);
+  return typeof tools.register === "function";
+}
 function apply(ctx, config = {}) {
-  if (!ctx?.tools?.register) return;
-  const cfg = config && typeof config === "object" ? config : {};
+  if (!isToolHost(ctx)) return;
+  const cfg = asRecord(config);
   const defineTool = (d) => d;
   ctx.tools.register(defineTool({
     name: "codex_config_import",
@@ -214,9 +221,11 @@ function apply(ctx, config = {}) {
     parameters: {
       configPath: { type: "string", description: "path to codex config.toml; defaults to ~/.codex/config.toml" }
     },
-    output: { schema: { type: "string" }, render: (_a, v) => [{ type: "text", text: v }] },
-    async execute(args) {
-      const p = String(args?.configPath ?? join(homedir(), ".codex", "config.toml"));
+    output: { schema: { type: "string" }, render: (_args, value) => [{ type: "text", text: value }] },
+    async execute(rawArgs) {
+      const args = asRecord(rawArgs);
+      const fallback = join(homedir(), ".codex", "config.toml");
+      const p = typeof args.configPath === "string" && args.configPath ? args.configPath : fallback;
       const yml = tomlToCordisPatch(p);
       if (!yml) return JSON.stringify({ error: `config not found or nothing to migrate: ${p}` });
       return yml;
