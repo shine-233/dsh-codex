@@ -35,11 +35,16 @@ function parseArgs(argv) {
   return args;
 }
 
+// Cover every package that ships a generated bundle, not just the ones with a
+// dsh-plugin entry: dsh-codex-pack bundles src/index.ts and its package main
+// went unverified until a real drift slipped through a rebuild commit.
+// dsh-codex-ledger / dsh-codex-ui are excluded on purpose — they have no src/
+// and their lib/index.js is hand-written JS, not an esbuild artifact.
 function packages() {
   return readdirSync(ROOT, { withFileTypes: true })
     .filter((e) => e.isDirectory())
     .map((e) => e.name)
-    .filter((name) => existsSync(join(ROOT, name, 'src', 'dsh-plugin.ts')))
+    .filter((name) => existsSync(join(ROOT, name, 'src')) && existsSync(join(ROOT, name, 'lib', 'index.js')))
     .sort();
 }
 
@@ -91,9 +96,11 @@ function build(esbuild, pkgDir, entry, out) {
 try {
   for (const pkg of pkgs) {
     const pkgDir = join(ROOT, pkg);
-    const entry = join(pkgDir, 'src', 'dsh-plugin.ts');
-    if (!existsSync(entry)) {
-      failures.push(`${pkg}: no src/dsh-plugin.ts`);
+    const pluginRel = join('src', 'dsh-plugin.ts');
+    const indexRel = join('src', 'index.ts');
+    const rels = [pluginRel, indexRel].filter((rel) => existsSync(join(pkgDir, rel)));
+    if (!rels.length) {
+      failures.push(`${pkg}: no src/dsh-plugin.ts or src/index.ts`);
       continue;
     }
     const target = join(pkgDir, 'lib', 'index.js');
@@ -102,19 +109,12 @@ try {
     // relative to the outfile, so a temp dir elsewhere would produce noise.
     const scratchRel = join('lib', '__bundle-check.js');
     const scratch = join(pkgDir, scratchRel);
-    const indexEntryRel = join('src', 'index.ts');
-    const indexEntry = join(pkgDir, 'src', 'index.ts');
     const committedText = existsSync(target) ? readFileSync(target, 'utf8') : null;
     const committedExports = committedText ? exportsOf(committedText) : [];
 
     let chosen;
     try {
-      const pluginEntryRel = join('src', 'dsh-plugin.ts');
-      const fromPlugin = build(esbuild, pkgDir, pluginEntryRel, scratchRel);
-      const candidates = [{ entry, js: fromPlugin }];
-      if (existsSync(indexEntry)) {
-        candidates.push({ entry: indexEntry, js: build(esbuild, pkgDir, indexEntryRel, scratchRel) });
-      }
+      const candidates = rels.map((rel) => ({ rel, js: build(esbuild, pkgDir, rel, scratchRel) }));
       // Prefer dsh-plugin.ts; only switch when index.ts strictly covers more of
       // the committed export surface.
       const coverage = (js) => committedExports.filter((n) => exportsOf(js).includes(n)).length;
@@ -130,12 +130,12 @@ try {
     }
 
     if (!args.check) {
-      build(esbuild, pkgDir, chosen.entry === entry ? join('src', 'dsh-plugin.ts') : join('src', 'index.ts'), join('lib', 'index.js'));
-      console.log(`  wrote  ${pkg}/lib/index.js (from src/${chosen.entry === entry ? 'dsh-plugin' : 'index'}.ts)`);
+      build(esbuild, pkgDir, chosen.rel, join('lib', 'index.js'));
+      console.log(`  wrote  ${pkg}/lib/index.js (from ${chosen.rel})`);
       continue;
     }
 
-    const fresh = build(esbuild, pkgDir, chosen.entry === entry ? join('src', 'dsh-plugin.ts') : join('src', 'index.ts'), scratchRel);
+    const fresh = build(esbuild, pkgDir, chosen.rel, scratchRel);
     if (existsSync(scratch)) rmSync(scratch, { force: true });
 
     if (committedText !== null && fresh.trim() !== committedText.trim()) {
