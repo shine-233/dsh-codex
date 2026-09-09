@@ -207,3 +207,11 @@
 2. 把 Claude worktree 中尚未进入主工作树、且有源码/测试证据的增量逐项比对后再选择性吸收；不合并未完成的 lockfile/CI 批量噪声。
 3. 继续检查上游 `adee0b0` 之后的新提交；只有存在 DSH 真实消费 seam 和可验证行为时才迁移。
 4. 最终重新核对本地 committed HEAD、`origin/main`、未提交工作区与 GitHub Actions；未经提交/推送不得称云端功能同步。
+
+## 九、2026-09-09 续作核验
+
+- 合并收口后的主分支为 `4496077`，工作树干净；相对 `origin/main` 为 **ahead 16 / behind 0**，因此本轮功能仍未进入 GitHub。
+- 重新使用当前依赖跑完 10 包测试，结果为 **392 passed / 0 failed / 0 skipped**：24 / 18 / 3 / 165 / 6 / 4 / 35 / 38 / 21 / 78。
+- `dsh-codex-pack` typecheck 继续为 **0 errors**，preflight 为 **7 sibling modules OK**，隔离 npm cache 下 dry-pack 为 **25 files**。
+- 对 `scripts/rebuild-bundles.mjs` 做了 Windows `.cmd/.ps1` shim 调用修复；当前环境的 esbuild 解析仍受受限 node_modules 路径阻断，Ubuntu CI 路径尚未受影响，不能把本地 `--check` 失败冒充源码漂移。
+- 上游 `openai/codex` checkout 仍为 `121f91f`，相对 remote `adee0b0` **behind 29**；新增提交尚未发现可在本轮直接迁移的 DSH 真实消费面，继续按证据审查。
