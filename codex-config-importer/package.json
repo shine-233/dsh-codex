@@ -11,9 +11,11 @@
   "devDependencies": {
     "vite": "6.4.3",
     "vitest": "4.1.11",
-    "@types/node": "^22"
+    "@types/node": "22.20.1",
+    "typescript": "5.9.3"
   },
   "scripts": {
+    "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
   "main": "lib/index.js",
