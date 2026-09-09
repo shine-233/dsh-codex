@@ -72,11 +72,19 @@ const failures = [];
 // comments relative to the cwd, so building from the repo root would prefix
 // every comment with the package name and report a false drift.
 function build(esbuild, pkgDir, entry, out) {
-  execFileSync(
-    esbuild,
-    [entry, '--bundle', '--format=esm', '--platform=node', '--packages=external', `--outfile=${out}`],
-    { cwd: pkgDir, stdio: 'pipe' },
-  );
+  const args = [entry, '--bundle', '--format=esm', '--platform=node', '--packages=external', `--outfile=${out}`];
+  // Windows package shims are .cmd files and cannot be launched directly by
+  // execFileSync without a shell. Keep the normal direct path for real
+  // binaries, including Linux CI, while making local Windows checks work.
+  if (process.platform === 'win32' && /\.(cmd|ps1)$/i.test(esbuild)) {
+    execFileSync(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', [esbuild, ...args].map((arg) => `"${arg}"`).join(' ')], {
+      cwd: pkgDir,
+      stdio: 'pipe',
+      windowsVerbatimArguments: true,
+    });
+  } else {
+    execFileSync(esbuild, args, { cwd: pkgDir, stdio: 'pipe' });
+  }
   return readFileSync(join(pkgDir, out), 'utf8');
 }
 
