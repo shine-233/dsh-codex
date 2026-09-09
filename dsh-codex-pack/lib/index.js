@@ -89,12 +89,12 @@ function writeProfile(plan, profileDir, mode = "dry-run", options = {}) {
       if (patchChanged && !ops.exists(patchBackup)) ops.copy(patchPath, patchBackup);
     }
     if (packageChanged) {
-      ops.rename(packageTemp, packageJsonPath);
       packageReplaced = true;
+      ops.rename(packageTemp, packageJsonPath);
     }
     if (patchChanged) {
-      ops.rename(patchTemp, patchPath);
       patchReplaced = true;
+      ops.rename(patchTemp, patchPath);
     }
   } catch (error) {
     try {
