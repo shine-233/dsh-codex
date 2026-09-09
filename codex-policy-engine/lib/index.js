@@ -709,7 +709,8 @@ function matchWithDepth(command, wrapperDepth, platform) {
   if (command.length >= 3 && executableNameLookupKey(command[0], "posix") && ["sh", "bash", "dash", "zsh", "ksh"].includes(executableNameLookupKey(command[0], "posix"))) {
     const flagIdx = command.findIndex((t, i) => i > 0 && (t === "-c" || t === "-lc" || t === "--command"));
     if (flagIdx > 0 && typeof command[flagIdx + 1] === "string") {
-      const nested = shLiteralCommands(command[flagIdx + 1]);
+      const script = command.slice(flagIdx + 1).join(" ");
+      const nested = shLiteralCommands(script);
       if (nested) {
         for (const invocation of nested) {
           const m = matchWithDepth(invocation, wrapperDepth + 1, platform);
@@ -794,9 +795,8 @@ function isPowershellInvocationArgs(args) {
     const arg = args[idx];
     const lower = arg.toLowerCase();
     if (lower === "-command" || lower === "/command" || lower === "-c") {
-      const script = args[idx + 1];
-      if (script === void 0) return null;
-      if (idx + 2 !== args.length) return null;
+      const script = args.slice(idx + 1).join(" ");
+      if (!script) return null;
       return shlexSplit(script);
     }
     if (lower.startsWith("-command:") || lower.startsWith("/command:")) {

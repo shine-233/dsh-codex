@@ -172,7 +172,13 @@ function matchWithDepth(
       ['sh', 'bash', 'dash', 'zsh', 'ksh'].includes(executableNameLookupKey(command[0], 'posix')!)) {
     const flagIdx = command.findIndex((t, i) => i > 0 && (t === '-c' || t === '-lc' || t === '--command'))
     if (flagIdx > 0 && typeof command[flagIdx + 1] === 'string') {
-      const nested = shLiteralCommands(command[flagIdx + 1])
+      // A caller can hand us the script body already split into several argv
+      // entries (`sh -c rm -rf /`) rather than as one `-c` argument (`sh -c
+      // "rm -rf /"`). Taking only command[flagIdx + 1] would then classify
+      // `rm` alone and miss the rest, so rejoin the tail: both forms must
+      // classify identically.
+      const script = command.slice(flagIdx + 1).join(' ')
+      const nested = shLiteralCommands(script)
       if (nested) {
         for (const invocation of nested) {
           const m = matchWithDepth(invocation, wrapperDepth + 1, platform)
@@ -289,9 +295,12 @@ function isPowershellInvocationArgs(args: string[]): string[] | null {
     const arg = args[idx]
     const lower = arg.toLowerCase()
     if (lower === '-command' || lower === '/command' || lower === '-c') {
-      const script = args[idx + 1]
-      if (script === undefined) return null
-      if (idx + 2 !== args.length) return null
+      // Same rejoining rule as the POSIX `-c` branch: once the command line has
+      // been tokenized, the script body arrives as several argv entries and the
+      // "-Command must be followed by exactly one argument" check would reject
+      // it, silently disabling every PowerShell danger pattern.
+      const script = args.slice(idx + 1).join(' ')
+      if (!script) return null
       return shlexSplit(script)
     }
     if (lower.startsWith('-command:') || lower.startsWith('/command:')) {
