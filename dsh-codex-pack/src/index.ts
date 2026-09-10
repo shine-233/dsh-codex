@@ -80,15 +80,24 @@ export interface InstallationPlan {
   patchPath: string
 }
 
+interface PackManifest {
+  name: string
+  modules: Record<string, string>
+}
+
 /** Build a deterministic, side-effect-free install plan after layout validation. */
 export function buildInstallPlan(root: string): InstallationPlan {
   const preflight = validatePackLayout(root)
   if (!preflight.ok) throw new Error(`pack preflight failed: ${preflight.errors.join('; ')}`)
-  const manifest = JSON.parse(readFileSync(join(root, 'manifest.json'), 'utf8')) as { modules: Record<string, string> }
+  const manifest = JSON.parse(readFileSync(join(root, 'manifest.json'), 'utf8')) as PackManifest
+  const dependencies = Object.fromEntries(
+    Object.values(manifest.modules).map((packageName) => [packageName, join(root, '..', packageName)]),
+  )
+  dependencies[manifest.name] = root
   return {
     root,
-    dependencies: { ...manifest.modules },
-    bundles: Object.values(manifest.modules),
+    dependencies,
+    bundles: [manifest.name],
     patchPath: join(root, 'cordis.patch.yml'),
   }
 }

@@ -1,4 +1,17 @@
 - insert:
-    - id: dsh-codex-pack
-      name: dsh-codex-pack
-
+    - id: codex-policy-engine
+      name: codex-policy-engine
+    - id: codex-edit-fusion
+      name: codex-edit-fusion
+    - id: codex-config-importer
+      name: codex-config-importer
+    - id: codex-prompts
+      name: codex-prompts
+    - id: codex-session-kit
+      name: codex-session-kit
+    - id: codex-net-guard
+      name: codex-net-guard
+    - id: codex-schema
+      name: codex-schema
+    - id: codex-skills-kit
+      name: codex-skills-kit

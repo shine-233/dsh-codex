@@ -5,24 +5,152 @@ import { join as join3 } from "node:path";
 // src/preflight.ts
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { load } from "js-yaml";
+function readJson(path, label, errors) {
+  try {
+    return JSON.parse(readFileSync(path, "utf8"));
+  } catch {
+    errors.push(`${label} is not valid JSON`);
+    return void 0;
+  }
+}
+function exportedEntry(pkg) {
+  const resolveTarget = (target) => {
+    if (typeof target === "string") return target;
+    if (!target || typeof target !== "object") return void 0;
+    const conditions = target;
+    return resolveTarget(conditions.import) ?? resolveTarget(conditions.node) ?? resolveTarget(conditions.default) ?? resolveTarget(conditions.require);
+  };
+  const root = pkg.exports && typeof pkg.exports === "object" ? pkg.exports["."] : pkg.exports;
+  return resolveTarget(root) ?? (typeof pkg.main === "string" ? pkg.main : void 0);
+}
+function parsePatchEntries(path, label, errors) {
+  if (!existsSync(path)) {
+    errors.push(`${label} missing (${path})`);
+    return void 0;
+  }
+  let parsed;
+  try {
+    parsed = load(readFileSync(path, "utf8"));
+  } catch (error) {
+    errors.push(`${label} is not valid YAML: ${error instanceof Error ? error.message : String(error)}`);
+    return void 0;
+  }
+  if (!Array.isArray(parsed)) {
+    errors.push(`${label} top level must be an array`);
+    return void 0;
+  }
+  const entries = [];
+  parsed.forEach((operation, operationIndex) => {
+    if (!operation || typeof operation !== "object" || Array.isArray(operation)) {
+      errors.push(`${label} operation ${operationIndex + 1} must be an object`);
+      return;
+    }
+    const keys = Object.keys(operation);
+    if (keys.length !== 1 || keys[0] !== "insert") {
+      errors.push(`${label} operation ${operationIndex + 1} must contain only insert`);
+      return;
+    }
+    const insert = operation.insert;
+    if (!Array.isArray(insert)) {
+      errors.push(`${label} operation ${operationIndex + 1} insert must be an array`);
+      return;
+    }
+    insert.forEach((entry, entryIndex) => {
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+        errors.push(`${label} insert ${entryIndex + 1} must be an object`);
+        return;
+      }
+      const record = entry;
+      if (typeof record.id !== "string" || typeof record.name !== "string") {
+        errors.push(`${label} insert ${entryIndex + 1} requires string id and name`);
+        return;
+      }
+      entries.push({ id: record.id, name: record.name });
+    });
+  });
+  return entries;
+}
 function validatePackLayout(root) {
   const errors = [];
   const modules = [];
   const manifestPath = join(root, "manifest.json");
   if (!existsSync(manifestPath)) return { ok: false, errors: ["manifest.json not found"], modules };
-  let manifest;
-  try {
-    manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-  } catch {
-    return { ok: false, errors: ["manifest.json is not valid JSON"], modules };
+  const manifest = readJson(manifestPath, "manifest.json", errors);
+  if (!manifest) return { ok: false, errors, modules };
+  if (typeof manifest.name !== "string" || manifest.name.length === 0) {
+    errors.push("manifest.json name must be a non-empty string");
   }
-  for (const [key, packageName] of Object.entries(manifest.modules ?? {})) {
-    const localDir = join(root, "..", packageName.split("/").pop().replace(/^@[^/]+\//, ""));
-    if (!existsSync(localDir)) errors.push(`${key}: sibling package missing (${localDir})`);
-    else modules.push(key);
+  if (!manifest.modules || typeof manifest.modules !== "object" || Array.isArray(manifest.modules)) {
+    errors.push("manifest.json modules must be an object");
+  } else if (Object.keys(manifest.modules).length === 0) {
+    errors.push("manifest.json modules must not be empty");
   }
-  if (!existsSync(join(root, "cordis.patch.yml"))) errors.push("cordis.patch.yml missing");
-  if (!existsSync(join(root, "docs", "MOUNT_POINTS.md"))) errors.push("docs/MOUNT_POINTS.md missing");
+  const packPackage = readJson(join(root, "package.json"), "pack package.json", errors);
+  if (packPackage && packPackage.name !== manifest.name) {
+    errors.push(`pack package name mismatch: manifest=${String(manifest.name)} package.json=${String(packPackage.name)}`);
+  }
+  if (packPackage) {
+    const packEntry = exportedEntry(packPackage);
+    if (!packEntry) errors.push("pack package has no runtime export or main entry");
+    else if (!existsSync(join(root, packEntry))) errors.push(`pack built entry missing (${join(root, packEntry)})`);
+  }
+  const packPatchDeclaration = packPackage?.dsh?.bundle?.patch;
+  if (typeof packPatchDeclaration !== "string") errors.push("pack package.json declares no dsh.bundle.patch");
+  const aggregatePath = typeof packPatchDeclaration === "string" ? join(root, packPatchDeclaration) : join(root, "cordis.patch.yml");
+  const aggregateEntries = parsePatchEntries(aggregatePath, "aggregate patch", errors);
+  const packageNames = [];
+  const seenPackageNames = /* @__PURE__ */ new Set();
+  for (const [key, value] of Object.entries(manifest.modules ?? {})) {
+    if (typeof value !== "string") {
+      errors.push(`${key}: package name must be a string`);
+      continue;
+    }
+    const packageName = value;
+    if (seenPackageNames.has(packageName)) {
+      errors.push(`${key}: duplicate package name ${packageName}`);
+      continue;
+    }
+    seenPackageNames.add(packageName);
+    const localDir = join(root, "..", packageName);
+    const packagePath = join(localDir, "package.json");
+    if (!existsSync(packagePath)) {
+      errors.push(`${key}: sibling package missing (${localDir})`);
+      continue;
+    }
+    const pkg = readJson(packagePath, `${key} package.json`, errors);
+    if (!pkg) continue;
+    if (pkg.name !== packageName) {
+      errors.push(`${key}: package name mismatch: manifest=${packageName} package.json=${String(pkg.name)}`);
+    }
+    const entry = exportedEntry(pkg);
+    if (!entry) errors.push(`${key}: package has no runtime export or main entry`);
+    else if (!existsSync(join(localDir, entry))) errors.push(`${key}: built entry missing (${join(localDir, entry)})`);
+    const patchDeclaration = pkg.dsh?.bundle?.patch;
+    if (typeof patchDeclaration !== "string") {
+      errors.push(`${key}: package declares no dsh.bundle.patch`);
+    } else {
+      const componentEntries = parsePatchEntries(
+        join(localDir, patchDeclaration),
+        `${key} bundle patch`,
+        errors
+      );
+      if (componentEntries && (componentEntries.length !== 1 || componentEntries[0].id !== packageName || componentEntries[0].name !== packageName)) {
+        errors.push(`${key}: bundle patch must insert exactly ${packageName} with matching id and name`);
+      }
+    }
+    packageNames.push(packageName);
+    modules.push(key);
+  }
+  if (aggregateEntries) {
+    const expectedEntries = packageNames.map((name) => ({ id: name, name }));
+    if (JSON.stringify(aggregateEntries) !== JSON.stringify(expectedEntries)) {
+      const found = aggregateEntries.map((entry) => `${entry.id}:${entry.name}`).join(", ");
+      errors.push(`aggregate patch modules differ: expected ${packageNames.join(", ")}; found ${found}`);
+    }
+  }
+  const mountPointsDoc = typeof manifest.mountPointsDoc === "string" ? manifest.mountPointsDoc : "docs/MOUNT_POINTS.md";
+  if (!existsSync(join(root, mountPointsDoc))) errors.push(`${mountPointsDoc} missing`);
   return { ok: errors.length === 0, errors, modules };
 }
 
@@ -45,76 +173,45 @@ function temporaryPath(path) {
 function writeProfile(plan, profileDir, mode = "dry-run", options = {}) {
   const ops = { ...defaultFileOps, ...options.fileOps ?? {} };
   const packageJsonPath = join2(profileDir, "package.json");
-  const patchPath = join2(profileDir, "cordis.patch.yml");
   if (!ops.exists(packageJsonPath)) throw new Error(`profile package.json not found: ${packageJsonPath}`);
   const packageText = ops.read(packageJsonPath);
   const pkg = JSON.parse(packageText);
   const dependencies = { ...pkg.dependencies ?? {} };
-  for (const packageName of plan.bundles) {
-    const sibling = join2(plan.root, "..", packageName.split("/").pop());
-    dependencies[packageName] = `link:${relative(profileDir, sibling).replace(/\\/g, "/")}`;
+  for (const [packageName, packageDir] of Object.entries(plan.dependencies)) {
+    dependencies[packageName] = `link:${relative(profileDir, packageDir).replace(/\\/g, "/")}`;
   }
   const bundles = Array.from(/* @__PURE__ */ new Set([...pkg.dsh?.profile?.bundles ?? [], ...plan.bundles]));
   const nextPkg = { ...pkg, dependencies, dsh: { ...pkg.dsh ?? {}, profile: { ...pkg.dsh?.profile ?? {}, bundles } } };
-  const patchText = ops.read(plan.patchPath);
   const nextJson = `${JSON.stringify(nextPkg, null, 2)}
 `;
-  const hasPatch = ops.exists(patchPath);
-  const currentPatch = hasPatch ? ops.read(patchPath) : void 0;
-  const packageChanged = nextJson !== packageText;
-  const patchChanged = currentPatch !== patchText;
-  if (hasPatch && currentPatch.trim().length > 0 && patchChanged && !options.overwritePatch) {
-    throw new Error(`existing cordis.patch.yml differs: ${patchPath}; pass overwritePatch: true to replace it`);
-  }
-  const changed = packageChanged || !hasPatch || patchChanged;
+  const changed = nextJson !== packageText;
   if (mode !== "apply" || !changed) {
-    return { mode, packageJsonPath, patchPath, dependencyCount: plan.bundles.length, bundles, changed };
+    return { mode, packageJsonPath, dependencyCount: Object.keys(plan.dependencies).length, bundles, changed };
   }
   ops.mkdir(profileDir);
   const packageTemp = temporaryPath(packageJsonPath);
-  const patchTemp = temporaryPath(patchPath);
   const packageRollback = temporaryPath(packageJsonPath);
-  const patchRollback = temporaryPath(patchPath);
   const packageBackup = `${packageJsonPath}.bak`;
-  const patchBackup = `${patchPath}.bak`;
   let packageReplaced = false;
-  let patchReplaced = false;
   try {
     ops.write(packageTemp, nextJson);
-    if (patchChanged) ops.write(patchTemp, patchText);
     ops.copy(packageJsonPath, packageRollback);
     if (!ops.exists(packageBackup)) ops.copy(packageJsonPath, packageBackup);
-    if (hasPatch) {
-      ops.copy(patchPath, patchRollback);
-      if (patchChanged && !ops.exists(patchBackup)) ops.copy(patchPath, patchBackup);
-    }
-    if (packageChanged) {
-      packageReplaced = true;
-      ops.rename(packageTemp, packageJsonPath);
-    }
-    if (patchChanged) {
-      patchReplaced = true;
-      ops.rename(patchTemp, patchPath);
-    }
+    packageReplaced = true;
+    ops.rename(packageTemp, packageJsonPath);
   } catch (error) {
     try {
       if (packageReplaced) ops.copy(packageRollback, packageJsonPath);
-      if (patchReplaced) {
-        if (hasPatch) ops.copy(patchRollback, patchPath);
-        else if (ops.exists(patchPath)) ops.unlink(patchPath);
-      } else if (!hasPatch && ops.exists(patchPath)) {
-        ops.unlink(patchPath);
-      }
     } catch (rollbackError) {
       throw new Error(`profile installation failed and rollback failed: ${String(rollbackError)}`, { cause: error });
     }
     throw error;
   } finally {
-    for (const path of [packageTemp, patchTemp, packageRollback, patchRollback]) {
+    for (const path of [packageTemp, packageRollback]) {
       if (ops.exists(path)) ops.unlink(path);
     }
   }
-  return { mode, packageJsonPath, patchPath, dependencyCount: plan.bundles.length, bundles, changed };
+  return { mode, packageJsonPath, dependencyCount: Object.keys(plan.dependencies).length, bundles, changed };
 }
 
 // src/index.ts
@@ -158,10 +255,14 @@ function buildInstallPlan(root) {
   const preflight = validatePackLayout(root);
   if (!preflight.ok) throw new Error(`pack preflight failed: ${preflight.errors.join("; ")}`);
   const manifest = JSON.parse(readFileSync3(join3(root, "manifest.json"), "utf8"));
+  const dependencies = Object.fromEntries(
+    Object.values(manifest.modules).map((packageName) => [packageName, join3(root, "..", packageName)])
+  );
+  dependencies[manifest.name] = root;
   return {
     root,
-    dependencies: { ...manifest.modules },
-    bundles: Object.values(manifest.modules),
+    dependencies,
+    bundles: [manifest.name],
     patchPath: join3(root, "cordis.patch.yml")
   };
 }

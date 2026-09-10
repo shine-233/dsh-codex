@@ -1,80 +1,66 @@
 # dsh-codex-pack
 
-> Integration index for the codex→dsh kit: 12 plugins that graft openai/codex battle-tested capabilities onto DeepSeek Harness.
-> codex→dsh 套件的**总入口**：把 openai/codex 里经过生产验证的能力，做成 12 个可独立安装的 dsh 插件。
+> 将 8 个 Codex→DSH 插件装配成一个 Cordis bundle layer；装配成功不等于运行时等效。
 
-[![ci](https://github.com/shine-233/dsh-codex-pack/actions/workflows/ci.yml/badge.svg)](../../actions)
-[![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](./LICENSE)
+本包锚定历史来源 `openai/codex@970b7f2ff4f6`，增量审计另行记录，不把审计终点伪装成新的全量来源锚点。逐条证据审查当前为 0 条 `runtime-equivalent`；详见 [`../dsh-codex-ledger/EVIDENCE_AUDIT_20260910.md`](../dsh-codex-ledger/EVIDENCE_AUDIT_20260910.md)。
 
-## 为什么存在
+## 默认聚合
 
-codex CLI 把几件事做到了极致：命令审批、模糊补丁编辑、会话格式、沙箱执行体、网络白名单、技能预算。这些能力不该被锁在一个产品里——本套件把它们逐个抽成小包，全部移植到 dsh 的插件体系（Cordis `name/inject/apply` 三件套）上，锚定上游 `openai/codex@970b7f2ff4f6`，季度 diff 跟进。
+| 插件 | DSH 工具/挂载面 |
+|---|---|
+| `codex-policy-engine` | `codex_policy_check`, `codex_command_safety_check`, `tools/pre-execute` |
+| `codex-edit-fusion` | `codex_apply_patch` |
+| `codex-config-importer` | `codex_config_import` |
+| `codex-prompts` | `codex_prompts` |
+| `codex-session-kit` | `codex_session_import`, `codex_memory` |
+| `codex-net-guard` | `codex_net_guard` |
+| `codex-schema` | `codex_schema_info` |
+| `codex-skills-kit` | `codex_skill_catalog`, `codex_skill_select` |
 
-## 套件全家福
+`codex-sandbox-bin` 是独立可选插件，不进入默认聚合：它的 status 工具可用，但原生资产重建链仍冻结。
 
-| 仓库 | 一句话 | 在 dsh 里的工具 |
-|---|---|---|
-| [codex-policy-engine](https://github.com/shine-233/codex-policy-engine) | 命令审批引擎（Allow/Prompt/Forbidden 规则树） | 接管 `tools/pre-execute` + `codex_policy_check` |
-| [codex-edit-fusion](https://github.com/shine-233/codex-edit-fusion) | V4A 模糊补丁 + 四级降级匹配 | `codex_apply_patch` |
-| [codex-session-kit](https://github.com/shine-233/codex-session-kit) | codex 会话导入/回放 + 持久记忆 | `codex_session_import`, `codex_memory` |
-| [codex-net-guard](https://github.com/shine-233/codex-net-guard) | 纯 JS 网络白名单代理 | `codex_net_guard` |
-| [codex-sandbox-bin](https://github.com/shine-233/codex-sandbox-bin) | 官方沙箱二进制 vendored 分发 | `codex_sandbox_status` |
-| [codex-skills-kit](https://github.com/shine-233/codex-skills-kit) | 技能目录上下文预算渲染 | `codex_skill_catalog` |
-| [codex-prompts](https://github.com/shine-233/codex-prompts) | 官方实战提示词资产 | `codex_prompts` |
-| [codex-config-importer](https://github.com/shine-233/codex-config-importer) | config.toml → cordis.patch.yml 迁移 | `codex_config_import` |
-| [codex-schema](https://github.com/shine-233/codex-schema) | 678 个线协议 TS 类型 | `codex_schema_info` |
-| [dsh-codex-ledger](https://github.com/shine-233/dsh-codex-ledger) | 移植总控台账（142 单元全覆盖） | `codex_ledger_status` |
-| [dsh-codex-ui](https://github.com/shine-233/dsh-codex-ui) | 吸收能力仪表盘 | `codex_ui_url` |
-| **dsh-codex-pack**（本仓库） | 套件索引与装配清单 | `codex_kit_status` |
+## Profile 安装语义
 
-## 快速开始（装一整套）
+`buildInstallPlan(root)` 先验证 manifest、实际包名、built export、各包 `dsh.bundle.patch` 和聚合 patch 的顺序一致性。`writeProfile()` 只做两件事：
 
-每个插件也可单独安装；全装的最短路径：
+1. 在 profile `dependencies` 中加入 `dsh-codex-pack` 和 8 个组件的本地 link；
+2. 在 `dsh.profile.bundles` 中只加入 `dsh-codex-pack`。
 
-1. Clone 本套件各仓库到同一父目录（如 `~/projects/dsh-codex/`）
-2. 在你的 dsh profile `package.json`：
+聚合 patch 来自本包的 `dsh.bundle.patch`。Profile 自己的 `cordis.patch.yml` 是后置用户层，安装器保持其逐字节不变。写入 `package.json` 使用同目录临时文件、稳定 `.bak` 备份与故障回滚；dry-run 无写入，重复 apply 幂等。
+
+示例 profile 结果：
 
 ```jsonc
 {
   "dependencies": {
-    "codex-policy-engine": "link:../dsh-codex/codex-policy-engine",
-    "codex-edit-fusion":   "link:../dsh-codex/codex-edit-fusion",
-    // …其余同理
+    "dsh-codex-pack": "link:../../dsh-codex-pack",
+    "codex-policy-engine": "link:../../codex-policy-engine"
+    // 其余 7 个组件同理
   },
-  "dsh": { "profile": { "bundles": [
-    "@deepseek-ai/dsh-base", "@deepseek-ai/dsh-web-app",
-    "codex-policy-engine", "codex-edit-fusion" /* … */
-  ] } }
+  "dsh": {
+    "profile": {
+      "bundles": ["@deepseek-ai/dsh-base", "dsh-codex-pack"]
+    }
+  }
 }
 ```
 
-3. `pnpm install && dsh --profile <name>` —— 完成。模型即刻多出上表全部工具。
+## 本地验证
 
-推荐先只启用 policy-engine（audit 模式）观察一天，再切 `enforce`。
-
-## 验证状态
-
-- 各模块单测全绿（合计 32+ 用例）
-- 已在官方 `@deepseek-ai/dsh@0.1.1-rc.2` 上完成：bundle 组合、真机启动、官方 Cordis 内核 + ToolRuntime 上逐工具实测
-- 审批拦截缝在 enforce 模式下验证：`rm -rf /` → deny，未匹配命令 → ask
-
-## 架构
-
+```bash
+pnpm install --frozen-lockfile
+pnpm test
+pnpm typecheck
+pnpm check:pack
+pnpm pack:dry
 ```
-openai/codex (Rust)                    dsh (Cordis 插件)
-─────────────────                      ─────────────────
-execpolicy        ──port──▶  codex-policy-engine ─▶ tools/pre-execute 缝
-apply-patch/V4A   ──port──▶  codex-edit-fusion   ─▶ 工具注册
-rollout 格式      ──port──▶  codex-session-kit   ─▶ 工具注册
-network policy    ──port──▶  codex-net-guard     ─▶ 工具注册
-sandbox bins      ──vendor─▶ codex-sandbox-bin   ─▶ 工具注册
-skills/render.rs  ──port──▶  codex-skills-kit    ─▶ 工具注册
-prompt assets     ──vendor─▶ codex-prompts       ─▶ 工具注册
-schema (678 类型) ──port──▶  codex-schema        ─▶ 编译期契约
-                            dsh-codex-ledger    ─▶ 总控台账（完整性不变量）
-                            dsh-codex-ui        ─▶ 仪表盘
-```
+
+集成测试使用真实 `@deepseek-ai/cordis@4.0.1` 与 `@deepseek-ai/cordis-plugin-loader@1.0.2`，通过测试注入的 sibling bundle importer 激活 8 个已提交 `lib/index.js`，断言 11 个工具注册并执行只读 `codex_policy_check`。这是 source-tree built-artifact/Cordis activation 证据；它绕过 bare-package resolution，不证明 clean registry install、offline multi-tarball 或 offline single-tarball dependency closure，也不是完整 DSH Profile Loader、ToolRuntime、Session、FS authority、prompt assembly、settings/provider、模型、网络或原生沙箱测试。
+
+## 能力边界
+
+本包不提供当前 DSH 尚无真实消费面的 MCP elicitation/user-verification proof、auth/account epoch、remembered approval、Guardian retained authorization/assessment、exec-server identity producer、Linux sandbox 重建或 daemon/PID/updater 架构。详见 [`docs/MOUNT_POINTS.md`](docs/MOUNT_POINTS.md) 与 [`docs/DSH-RUNTIME-CAPABILITY-AUDIT.md`](docs/DSH-RUNTIME-CAPABILITY-AUDIT.md)。
 
 ## 来源与许可
 
-上游 [openai/codex](https://github.com/openai/codex)@`970b7f2ff4f6`（Apache-2.0）。各模块许可见各自 NOTICE.md。本仓库 Apache-2.0。
+上游 [openai/codex](https://github.com/openai/codex)（Apache-2.0）。各模块许可与 provenance 见各自 `NOTICE.md`；本包为 Apache-2.0。
