@@ -4,8 +4,14 @@
   "license": "Apache-2.0",
   "type": "module",
   "description": "Integration pack wiring absorbed codex modules into dsh",
+  "dependencies": {
+    "js-yaml": "4.3.2"
+  },
   "devDependencies": {
-    "@types/node": "^26.4.0",
+    "@deepseek-ai/cordis": "4.0.1",
+    "@deepseek-ai/cordis-plugin-loader": "1.0.2",
+    "@types/js-yaml": "4.0.9",
+    "@types/node": "26.4.1",
     "typescript": "5.9.3",
     "vite": "6.4.3",
     "vitest": "4.1.11"
