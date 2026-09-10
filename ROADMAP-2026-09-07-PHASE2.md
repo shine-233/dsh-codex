@@ -307,3 +307,50 @@
 ### 仍存疑、需补证据的一条
 
 `codex-skills-kit/src/selector.ts`：路线图称移植自 `ext/skills` 的 `dynamic_skill_selector`，并给出具体打分规则（名/别名命中 +3、名内词 +2、描述词 +1、前缀重叠 +1）。实测本地上游快照 `find -iname "*skill*"` **返回空**，该声称目前**无任何可溯源证据**。这是唯一一条给出具体算法却无法溯源的移植件，需在补齐上游快照后优先复核。
+
+
+## 十一、2026-09-10 下午：完整源码重新对照（含对上一节的修正）
+
+### 修正：第十节"其余 8 个包无法验证"是错的
+
+`research/upstream/codex` 设了 `core.sparseCheckout=true`，工作树只放行 `codex-rs/protocol/` 与 `codex-rs/shell-command/`。**但 `.git` 对象库有 112,149 个对象，`git ls-tree HEAD codex-rs/` 列出 124 个条目——完整源码一直在本机**。用 `git show HEAD:<path>` 可直接读取，无需检出、不占磁盘。
+
+结论：第十节"只有 policy-engine 能真正对照"**被工作树表象误导**，本节的对照覆盖全部包。审计时不要只看工作树。
+
+### 规模实测（上游取 crate src 的 .rs，排除 tests；移植取 src 的 .ts，排除 .test.ts）
+
+| 移植包 | 对应上游 crate | 上游行 | 移植行 | 占比 |
+|---|---|---|---|---|
+| codex-policy-engine | shell-command + execpolicy | 8,265 | 3,285 | 39.7% |
+| codex-prompts | prompts + collaboration-mode-templates | 655 | 151 | 23.1% |
+| codex-edit-fusion | apply-patch | 4,828 | 341 | 7.1% |
+| codex-config-importer | config | 20,583 | 834 | 4.1% |
+| codex-session-kit | rollout + thread-store + file-search + message-history + agent-graph-store + memories | 38,950 | 1,315 | 3.4% |
+| codex-skills-kit | ext/skills | 11,704 | 318 | 2.7% |
+| codex-sandbox-bin | linux-sandbox + bwrap + process-hardening + shell-escalation | 9,226 | 90 | 1.0% |
+| codex-net-guard | network-proxy | 16,885 | 138 | 0.8% |
+| codex-schema | protocol + history + code-mode-protocol + exec-server-protocol | 33,280 | 9,145 | 27.5%（注） |
+
+注：schema 的 9,145 行分布在 719 个文件，是生成的 TS 类型而非手写移植，不应按 27.5% 理解成覆盖四分之一。
+
+### 三项具体偏差（实证）
+
+1. **skills selector**：`dynamic_skill_selector` 模块真实存在（fielded_bm25 / character_ngram / rrf_lexical_char / weighted_lexical / lru_plus_character_routing，2,000+ 行）。上游是 **BM25 + 字符 n-gram + RRF 融合 + LRU 缓存**的检索系统，权重为 `saturating_add(256/128/64/24)` 且 `short_description` 与 `description` 分开计分；移植 `selector.ts` 仅 94 行，取 weighted_lexical 一路的近似，权重自定为 **+3/+2/+1/+1**。移植文件头自称 distillation，措辞诚实；**路线图正文把 +3/+2/+1 当作既有算法陈述，是描述精度问题，不是伪造**。
+2. **edit-fusion**：上游 apply-patch 约 4,828 行（lib 1,444 / invocation 1,036 / streaming_parser 924 / parser 682 / file_update 335），移植 341 行，**无流式解析、无 invocation 层、无独立 file_update**。且上游 `rollback`/`atomic`/`transaction`/`revert`/`restore` **命中 0 处** → 路线图所称"patch 级事务边界、任一冲突回滚整个 patch"是**移植侧自行设计的增强**，不是移植自上游。增强合理，但应改标为"移植侧增强"。
+3. **policy-engine**：58% 函数面，16 个缺口已裁决（E5 排除 12 / 已替代 2 / 已补齐 2），结论不变。
+
+### 语义澄清（重要）
+
+**没有发现伪造**：抽查到的每条声称都能在上游找到对应物。但"完成度"的口径是**"有可运行的蒸馏件"**，不是"与上游等价"：
+
+| 路线图用词 | 实际含义 |
+|---|---|
+| `distilled` | 保留契约的简化实现，非能力等价 |
+| 「已准入能力 100% 有实现」 | 每条都有可运行蒸馏件；按代码量覆盖 0.8%–40% |
+| parseCommand「1:1 对齐」 | 仅在 shell-command crate 的 106 个测试维度成立 |
+
+### 插件还要不要改
+
+取决于目标：DSH 侧可用（当前仅注册 2 个工具）→ 现状够用；要声称与上游等价 → 差距大（edit-fusion 缺流式解析、skills 检索差一个量级、net-guard 0.8%、sandbox-bin 1.0%）；要接 exec 消费面 → 需 policy-engine 那 12 个被排除的函数。
+
+详见 `UPSTREAM-PARITY-20260910.md`。
