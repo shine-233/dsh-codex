@@ -1,8 +1,29 @@
 import { readFileSync, readdirSync, statSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { sanitizeOptionalGitRemoteUrl } from './sanitizedGitUrl.js';
 
 export interface SessionFileMeta { file: string; id?: string; sizeBytes: number }
 export interface RolloutParse { header: any | null; items: any[]; badLines: number }
+
+function sanitizeRolloutHeader(value: unknown): unknown {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+  const header = value as Record<string, any>;
+  const payload = header.payload;
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return value;
+  const gitKey = payload.git && typeof payload.git === 'object' && !Array.isArray(payload.git)
+    ? 'git'
+    : payload.git_info && typeof payload.git_info === 'object' && !Array.isArray(payload.git_info)
+      ? 'git_info'
+      : undefined;
+  if (!gitKey) return value;
+  const git = payload[gitKey] as Record<string, unknown>;
+  if (!Object.prototype.hasOwnProperty.call(git, 'repository_url')) return value;
+  const repositoryUrl = sanitizeOptionalGitRemoteUrl(git.repository_url);
+  const sanitizedGit = { ...git };
+  if (repositoryUrl === undefined) delete sanitizedGit.repository_url;
+  else sanitizedGit.repository_url = repositoryUrl;
+  return { ...header, payload: { ...payload, [gitKey]: sanitizedGit } };
+}
 
 /** List *.jsonl session files under a codex sessions dir (tolerant of junk files). */
 export function listSessions(dir: string): SessionFileMeta[] {
@@ -34,7 +55,9 @@ export function parseRolloutText(text: string): RolloutParse {
     if (!line.trim()) continue;
     try {
       const j = JSON.parse(line);
-      if (!header && (j?.type === 'session_header' || j?.type === 'session_meta')) header = j;
+      if (!header && (j?.type === 'session_header' || j?.type === 'session_meta')) {
+        header = sanitizeRolloutHeader(j);
+      }
       else items.push(j);
     } catch { badLines++; }
   }
@@ -73,3 +96,4 @@ export class MemoryStore {
 }
 export { SessionIndex, type IndexedSession } from './sessionIndex.js';
 export * from './claudeCode.js';
+export * from './sanitizedGitUrl.js';

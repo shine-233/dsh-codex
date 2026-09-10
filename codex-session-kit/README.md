@@ -10,11 +10,11 @@
 
 三件事，一个包：
 
-1. **会话导入**：扫描 `~/.codex/sessions/*.jsonl`，逐行容错解析（坏行计数而不崩溃），归一化成 dsh 事件形状
+1. **会话导入**：扫描 `~/.codex/sessions/*.jsonl`，逐行容错解析（坏行计数而不崩溃），在返回 header 前清除 Git remote authority 中的用户名/密码/token，并归一化成 dsh 事件形状
 2. **回放就绪**：`header + items + badLines` 三段结构，可直接驱动轨迹回放或统计
 3. **记忆存储**：`MemoryStore` 追加式 JSONL 日志 + 启动重建，进程重启记忆不丢
 
-CI 4/4 绿；零运行时依赖。
+本地验证使用 Vitest 4.1.11；不把 Git URL 脱敏宣称为网络或文件系统安全边界。
 
 ## 为什么
 
@@ -60,7 +60,9 @@ mem.set('route', 'codex-port')             // 重启后自动重建状态
 | 导出 | 说明 |
 |---|---|
 | `listSessions(dir)` | 容错列出 rollout 文件（按大小排序） |
-| `parseRolloutFile / parseRolloutText` | 逐行容错解析 |
+| `parseRolloutFile / parseRolloutText` | 逐行容错解析；暴露 header 前脱敏 `payload.git(.git_info).repository_url` |
+| `sanitizeGitRemoteUrl(value)` | 清除 URL/SCP/helper remote 的 authority 凭据，保留路径编码；非法输入 fail closed |
+| `sanitizeOptionalGitRemoteUrl(value)` | 读取历史持久 metadata 时的容错版本；非法 remote 返回 absent |
 | `toDshEvents(items)` | 归一化为 `{type, payload}` 事件流 |
 | `MemoryStore` | 追加式 JSONL 记忆库（set/get/delete/keys） |
 | `SessionIndex` | node:sqlite 可用时的镜像索引 |
@@ -68,7 +70,7 @@ mem.set('route', 'codex-port')             // 重启后自动重建状态
 
 ## 来源与许可
 
-移植自 [openai/codex](https://github.com/openai/codex)@`970b7f2ff4f6` 会话格式，上游 Apache-2.0。详见 [NOTICE.md](./NOTICE.md)。
+移植自 [openai/codex](https://github.com/openai/codex) 历史锚点 `970b7f2ff4f6` 的会话格式；Git remote 脱敏契约另对照本地上游 `121f91fd5` 的 `codex-rs/protocol/src/sanitized_git_url.rs` 与完整测试语义。上游 Apache-2.0，详见 [NOTICE.md](./NOTICE.md)。
 
 ---
 

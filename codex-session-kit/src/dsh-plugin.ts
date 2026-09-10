@@ -93,5 +93,5 @@ export function apply(ctx: unknown, config: unknown = {}) {
   }))
 }
 
-export { listSessions, parseRolloutFile, toDshEvents, MemoryStore }
+export * from './index.js'
 export { AgentGraphStore, MAX_ENVIRONMENT_SUBAGENTS, MAX_ENVIRONMENT_SUBAGENT_BYTES }

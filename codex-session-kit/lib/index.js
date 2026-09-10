@@ -1,29 +1,271 @@
 // src/dsh-plugin.ts
-import { join as join2 } from "node:path";
+import { join as join4 } from "node:path";
 import { homedir } from "node:os";
 
 // src/index.ts
-import { readFileSync, readdirSync, statSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { readFileSync as readFileSync3, readdirSync as readdirSync3, statSync as statSync3, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { join as join3 } from "node:path";
+
+// src/sanitizedGitUrl.ts
+var INVALID_GIT_REMOTE_URL = "invalid git remote URL";
+var HELPER_TRANSPORT = /^[A-Za-z0-9+.-]+$/;
+var InvalidGitRemoteUrlError = class extends Error {
+  constructor() {
+    super(INVALID_GIT_REMOTE_URL);
+    this.name = "InvalidGitRemoteUrlError";
+  }
+};
+function invalid() {
+  throw new InvalidGitRemoteUrlError();
+}
+function splitRemoteHelpers(value) {
+  let offset = 0;
+  while (true) {
+    const separator = value.indexOf("::", offset);
+    if (separator < 0) break;
+    const transport = value.slice(offset, separator);
+    if (!transport || !HELPER_TRANSPORT.test(transport)) break;
+    offset = separator + 2;
+  }
+  const address = value.slice(offset);
+  if (offset > 0 && /\s/.test(address)) invalid();
+  return { prefix: value.slice(0, offset), address };
+}
+function sanitizeStandardUrl(prefix, address) {
+  const schemeEnd = address.indexOf("://");
+  if (schemeEnd < 1) return void 0;
+  const scheme = address.slice(0, schemeEnd);
+  if (!/^[A-Za-z][A-Za-z0-9+.-]*$/.test(scheme)) invalid();
+  const authorityStart = schemeEnd + 3;
+  const pathStart = address.indexOf("/", authorityStart);
+  const authorityEnd = pathStart < 0 ? address.length : pathStart;
+  const authority = address.slice(authorityStart, authorityEnd);
+  if (!authority || /\s/.test(authority)) invalid();
+  const at = authority.lastIndexOf("@");
+  if (at < 0) return `${prefix}${address}`;
+  const userInfo = authority.slice(0, at);
+  const host = authority.slice(at + 1);
+  if (!host || host.includes("@") || /[\[\]]/.test(host) && !/^\[[^\]]+\](?::\d+)?$/.test(host)) invalid();
+  const username = userInfo.split(":", 1)[0];
+  const preserveGit = scheme.toLowerCase() === "ssh" && username === "git";
+  const retainedUser = preserveGit ? "git@" : "";
+  return `${prefix}${scheme}://${retainedUser}${host}${address.slice(authorityEnd)}`;
+}
+function sanitizeScpRemote(prefix, address) {
+  if (!address || /^\s|\s$/.test(address)) invalid();
+  const at = address.indexOf("@");
+  if (at >= 0) {
+    const username = address.slice(0, at);
+    const hostAndPath = address.slice(at + 1);
+    if (!username || !hostAndPath) invalid();
+    const separator2 = hostAndPath.startsWith("[") ? hostAndPath.indexOf("]:") + 1 : hostAndPath.indexOf(":");
+    if (separator2 <= 0 || !hostAndPath.slice(separator2 + 1)) invalid();
+    return `${prefix}${username === "git" ? "git@" : ""}${hostAndPath}`;
+  }
+  const separator = address.startsWith("[") ? address.indexOf("]:") + 1 : address.indexOf(":");
+  if (separator <= 0 || !address.slice(separator + 1)) invalid();
+  return `${prefix}${address}`;
+}
+function sanitizeGitRemoteUrl(value) {
+  const { prefix, address } = splitRemoteHelpers(value);
+  return sanitizeStandardUrl(prefix, address) ?? sanitizeScpRemote(prefix, address);
+}
+function sanitizeOptionalGitRemoteUrl(value) {
+  if (typeof value !== "string") return void 0;
+  try {
+    return sanitizeGitRemoteUrl(value);
+  } catch {
+    return void 0;
+  }
+}
+
+// src/sessionIndex.ts
+import { createRequire } from "node:module";
+import { readFileSync, statSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+var JsSessionStore = class {
+  rows = [];
+  constructor(_dbPath) {
+  }
+  upsert(r) {
+    const i = this.rows.findIndex((x) => x.file === r.file);
+    if (i >= 0) this.rows[i] = r;
+    else this.rows.push(r);
+  }
+  search(q) {
+    const needle = q.toLowerCase();
+    return this.rows.filter(
+      (x) => (x.id ?? "").toLowerCase().includes(needle) || x.file.toLowerCase().includes(needle) || (x.cwd ?? "").toLowerCase().includes(needle)
+    ).sort((a, b) => a.file < b.file ? -1 : a.file > b.file ? 1 : 0).map(({ id, file, cwd, originator }) => ({ id, cwd, originator, file }));
+  }
+  count() {
+    return this.rows.length;
+  }
+  close() {
+  }
+};
+var SqliteSessionStore = class {
+  db;
+  constructor(dbPath) {
+    const req = createRequire(import.meta.url);
+    const { DatabaseSync } = req("node:sqlite");
+    this.db = new DatabaseSync(dbPath);
+    this.db.exec(
+      `CREATE TABLE IF NOT EXISTS sessions(
+        id TEXT PRIMARY KEY, file TEXT UNIQUE, cwd TEXT, originator TEXT, size_bytes INTEGER)`
+    );
+  }
+  upsert(r) {
+    this.db.prepare(
+      `INSERT INTO sessions(id,file,cwd,originator,size_bytes) VALUES(?,?,?,?,?)
+         ON CONFLICT(file) DO UPDATE SET id=excluded.id, cwd=excluded.cwd,
+         originator=excluded.originator, size_bytes=excluded.size_bytes`
+    ).run(r.id, r.file, r.cwd, r.originator, r.size);
+  }
+  search(q) {
+    const rows = this.db.prepare(
+      `SELECT id,file,cwd,originator FROM sessions
+         WHERE id LIKE ? OR file LIKE ? OR IFNULL(cwd,'') LIKE ? ORDER BY file`
+    ).all("%" + q + "%", "%" + q + "%", "%" + q + "%");
+    return rows.map((r) => ({
+      id: r.id ?? null,
+      file: r.file,
+      cwd: r.cwd ?? null,
+      originator: r.originator ?? null
+    }));
+  }
+  count() {
+    return this.db.prepare("SELECT COUNT(*) c FROM sessions").all()[0]?.c ?? 0;
+  }
+  close() {
+    this.db.close();
+  }
+};
+function createStore(dbPath) {
+  try {
+    return new SqliteSessionStore(dbPath);
+  } catch {
+    return new JsSessionStore(dbPath);
+  }
+}
+var SessionIndex = class {
+  store;
+  constructor(dbPath) {
+    this.store = createStore(dbPath);
+  }
+  /** Rebuild the mirror from a sessions directory (idempotent upserts). */
+  rebuildFrom(dir) {
+    let n = 0;
+    for (const f of readdirSync(dir)) {
+      if (!f.endsWith(".jsonl")) continue;
+      const file = join(dir, f);
+      let id = null, cwd = null, originator = null;
+      try {
+        const headerLine = readFileSync(file, "utf8").split("\n")[0];
+        const j = JSON.parse(headerLine);
+        id = j?.payload?.id ?? j?.id ?? null;
+        cwd = j?.payload?.cwd ?? j?.cwd ?? null;
+        originator = j?.payload?.originator ?? null;
+      } catch {
+      }
+      const size = statSync(file).size;
+      this.store.upsert({ id, file, cwd, originator, size });
+      n++;
+    }
+    return n;
+  }
+  search(q) {
+    return this.store.search(q);
+  }
+  count() {
+    return this.store.count();
+  }
+  /** Release the underlying store (e.g. close the sqlite connection). */
+  close() {
+    this.store.close();
+  }
+};
+
+// src/claudeCode.ts
+import { readFileSync as readFileSync2, readdirSync as readdirSync2, statSync as statSync2 } from "node:fs";
+import { join as join2 } from "node:path";
+function listClaudeProjects(claudeHome) {
+  const projDir = join2(claudeHome, "projects");
+  try {
+    return readdirSync2(projDir).map((p) => join2(projDir, p)).filter((p) => statSync2(p).isDirectory());
+  } catch {
+    return [];
+  }
+}
+function listClaudeSessions(projectDir) {
+  try {
+    return readdirSync2(projectDir).filter((f) => f.endsWith(".jsonl")).map((f) => join2(projectDir, f));
+  } catch {
+    return [];
+  }
+}
+function parseClaudeSession(path) {
+  const turns = [];
+  let skipped = 0;
+  for (const line of readFileSync2(path, "utf8").split("\n")) {
+    if (!line.trim()) continue;
+    try {
+      const j = JSON.parse(line);
+      const msg = j?.message;
+      const text = Array.isArray(msg?.content) ? msg.content.filter((c) => c?.type === "text").map((c) => c.text).join("\n") : typeof msg?.content === "string" ? msg.content : "";
+      if (!text) {
+        skipped++;
+        continue;
+      }
+      turns.push({ role: j.type === "assistant" ? "assistant" : "user", text, ts: j.timestamp });
+    } catch {
+      skipped++;
+    }
+  }
+  return { turns, skipped };
+}
+function claudeToDshEvents(turns) {
+  return turns.map((t) => ({
+    type: t.role === "assistant" ? "agent_message" : "user_message",
+    payload: { text: t.text, ts: t.ts, source: "claude-code" }
+  }));
+}
+
+// src/index.ts
+function sanitizeRolloutHeader(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+  const header = value;
+  const payload = header.payload;
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return value;
+  const gitKey = payload.git && typeof payload.git === "object" && !Array.isArray(payload.git) ? "git" : payload.git_info && typeof payload.git_info === "object" && !Array.isArray(payload.git_info) ? "git_info" : void 0;
+  if (!gitKey) return value;
+  const git = payload[gitKey];
+  if (!Object.prototype.hasOwnProperty.call(git, "repository_url")) return value;
+  const repositoryUrl = sanitizeOptionalGitRemoteUrl(git.repository_url);
+  const sanitizedGit = { ...git };
+  if (repositoryUrl === void 0) delete sanitizedGit.repository_url;
+  else sanitizedGit.repository_url = repositoryUrl;
+  return { ...header, payload: { ...payload, [gitKey]: sanitizedGit } };
+}
 function listSessions(dir) {
   if (!existsSync(dir)) return [];
   const out = [];
-  for (const f of readdirSync(dir)) {
+  for (const f of readdirSync3(dir)) {
     if (!f.endsWith(".jsonl")) continue;
-    const full = join(dir, f);
+    const full = join3(dir, f);
     let id;
     try {
-      const first = readFileSync(full, "utf8").split("\n")[0];
+      const first = readFileSync3(full, "utf8").split("\n")[0];
       const j = JSON.parse(first);
       id = j?.payload?.id ?? j?.id;
     } catch {
     }
-    out.push({ file: full, id, sizeBytes: statSync(full).size });
+    out.push({ file: full, id, sizeBytes: statSync3(full).size });
   }
   return out.sort((a, b) => b.sizeBytes - a.sizeBytes);
 }
 function parseRolloutFile(path) {
-  const text = readFileSync(path, "utf8");
+  const text = readFileSync3(path, "utf8");
   return parseRolloutText(text);
 }
 function parseRolloutText(text) {
@@ -34,8 +276,9 @@ function parseRolloutText(text) {
     if (!line.trim()) continue;
     try {
       const j = JSON.parse(line);
-      if (!header && (j?.type === "session_header" || j?.type === "session_meta")) header = j;
-      else items.push(j);
+      if (!header && (j?.type === "session_header" || j?.type === "session_meta")) {
+        header = sanitizeRolloutHeader(j);
+      } else items.push(j);
     } catch {
       badLines++;
     }
@@ -54,7 +297,7 @@ var MemoryStore = class {
   rebuild() {
     this.state.clear();
     if (!existsSync(this.filePath)) return;
-    for (const line of readFileSync(this.filePath, "utf8").split("\n")) {
+    for (const line of readFileSync3(this.filePath, "utf8").split("\n")) {
       if (!line.trim()) continue;
       try {
         const op = JSON.parse(line);
@@ -65,7 +308,7 @@ var MemoryStore = class {
     }
   }
   log(op) {
-    if (!existsSync(join(this.filePath, ".."))) mkdirSync(join(this.filePath, ".."), { recursive: true });
+    if (!existsSync(join3(this.filePath, ".."))) mkdirSync(join3(this.filePath, ".."), { recursive: true });
     writeFileSync(this.filePath, JSON.stringify(op) + "\n", { flag: "a" });
   }
   set(key, value) {
@@ -88,7 +331,7 @@ var MemoryStore = class {
 };
 
 // src/agentGraph.ts
-import { existsSync as existsSync2, mkdirSync as mkdirSync2, readFileSync as readFileSync2, writeFileSync as writeFileSync2 } from "node:fs";
+import { existsSync as existsSync2, mkdirSync as mkdirSync2, readFileSync as readFileSync4, writeFileSync as writeFileSync2 } from "node:fs";
 import { dirname } from "node:path";
 var MAX_ENVIRONMENT_SUBAGENTS = 8;
 var MAX_ENVIRONMENT_SUBAGENT_BYTES = 1024;
@@ -100,7 +343,7 @@ var AgentGraphStore = class {
   constructor(filePath) {
     this.filePath = filePath;
     if (filePath && existsSync2(filePath)) {
-      for (const line of readFileSync2(filePath, "utf8").split("\n").filter(Boolean)) {
+      for (const line of readFileSync4(filePath, "utf8").split("\n").filter(Boolean)) {
         try {
           this.replay(JSON.parse(line));
         } catch {
@@ -212,7 +455,7 @@ function isToolHost(v) {
 function apply(ctx, config = {}) {
   if (!isToolHost(ctx)) return;
   const cfg = asRecord(config);
-  const memoryPath = typeof cfg.memoryPath === "string" && cfg.memoryPath ? cfg.memoryPath : join2(homedir(), ".dsh", "codex-memory.jsonl");
+  const memoryPath = typeof cfg.memoryPath === "string" && cfg.memoryPath ? cfg.memoryPath : join4(homedir(), ".dsh", "codex-memory.jsonl");
   let memory;
   try {
     memory = new MemoryStore(memoryPath);
@@ -242,7 +485,7 @@ function apply(ctx, config = {}) {
           events: toDshEvents(parsed.items).slice(0, maxItems)
         }, null, 2);
       }
-      const dir = String(input.dir ?? join2(homedir(), ".codex", "sessions"));
+      const dir = String(input.dir ?? join4(homedir(), ".codex", "sessions"));
       return JSON.stringify({ dir, sessions: listSessions(dir).slice(0, maxItems) }, null, 2);
     },
     timeoutMs: 1e4
@@ -276,13 +519,22 @@ function apply(ctx, config = {}) {
 }
 export {
   AgentGraphStore,
+  InvalidGitRemoteUrlError,
   MAX_ENVIRONMENT_SUBAGENTS,
   MAX_ENVIRONMENT_SUBAGENT_BYTES,
   MemoryStore,
+  SessionIndex,
   apply,
+  claudeToDshEvents,
   inject,
+  listClaudeProjects,
+  listClaudeSessions,
   listSessions,
   name,
+  parseClaudeSession,
   parseRolloutFile,
+  parseRolloutText,
+  sanitizeGitRemoteUrl,
+  sanitizeOptionalGitRemoteUrl,
   toDshEvents
 };
