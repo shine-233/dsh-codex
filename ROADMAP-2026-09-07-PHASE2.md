@@ -6,26 +6,21 @@
 
 ---
 
-## 一、核心结论：你说的「39 条仅设计收割」是过时快照
+## 一、历史结论与 2026-09-10 证据纠偏
 
-你提到的「39 条仍是仅设计收割——65% 已准入能力无实现」，对应的是 **2026-09-06 五轮执行之前** 的台账状态。本轮（09-07）我对权威台账 `dsh-codex-ledger/coverage.yaml` 做了逐条核对，并**实跑了全部 10 个包的测试套件**，结论如下：
+2026-09-07 时，台账从“39 条仅设计收割”推进到 **0 active design-only**，这个迁移清单事实仍成立；但当时把“有代码、有单元测试”写成“已准入能力 100% 有可运行实现”，容易被理解为已完成 DSH 运行时等效。后续逐条 consumer/host 审查证明，这个推论不成立。
 
-| 指标 | 你记忆中的状态（09-06 前快照） | 2026-09-07 实测现状 |
-|---|---|---|
-| design-only 条目数 | 39 | **0**（已准入能力 0 条仅设计收割） |
-| implemented | 3 | 7 |
-| distilled | 18 | 46 |
-| 已准入能力「有可运行实现」占比 | 你估 35% | **100%**（7 implemented + 46 distilled） |
-| 全量测试 | — | **211 passed / 0 failed**（10 包） |
+| 口径 | 2026-09-10 复核结论 |
+|---|---|
+| 迁移标签 | 153 个时序 row：7 implemented / 46 distilled / 100 EXCLUDED（只表示去向） |
+| 53 条正向记录 | **0 runtime-equivalent / 9 behavioral-subset / 6 structural-only / 37 implemented-unconsumed / 1 unsupported-overclaim** |
+| 100 条当前排除记录 | 原 97-row 首轮 78/1/18 已失效；exact-source 已 **100/100** 裁决为 **37 split / 13 blocked / 38 excluded / 12 migration-candidate** |
+| 时序完整性 | historical anchor **142 manifests**、`adee0b0` **151 manifests** 均已通过 revision-aware exact-set gate；153-row 台账保留 2 个已删除历史 crate，并登记 3 个 endpoint 新增 crate |
+| 完成度百分比 | 撤回此前基于标签的 85%–90% 或 100% 表述；范围和权重未定义前不再给百分比 |
 
-**你列出的模块分解，已在 09-06 四/五轮落地为 distilled（带测试）：**
-- **session-kit（你记 9 条缺口）**：file-search / message-history / rollout-trace / thread-store / ext-memories / ext-history-notes / agent-graph / structured-memory / replay —— 全部已蒸馏并各自有测试（src 下 15 个文件、5 个测试文件、27 测试）。
-- **config-importer（你记 15 条、仅 3 配置键）**：features / terminal-detection / stream-parser / fuzzy-match / path-uri / path-utils / string / template / cache / home-dir / absolute-path / json-to-toml / readiness / redacted-string / git-discovery / context-fragments / response-debug-context —— 共 17 个蒸馏件（utils 全家 + 配置键三件套），18 测试。
-- **prompts（你记 2 条）**：guardian-v2 双缝提示词、collaboration 模板 —— 均已落账（6 测试）。
-- **schema（你记 1 条 extension-api）**：extension-api 运行时守卫已实现（17 测试覆盖四协议面）。
-- **sandbox-bin（你记 5 条）**：diagnostics / sandbox-summary 已 implemented；bwrap / shell-escalation / process-hardening 经核实为 **vendor 二进制内嵌行为、无独立 JS 面** → 09-07 改判 `EXCLUDED/E5-vendor-binary`，不再算作「未完成的 JS 能力」。
+逐条证据见 `dsh-codex-ledger/EVIDENCE_AUDIT_20260910.md`。四个关键反例已经由当前 DSH host 源码确认：rollout 未持久化/恢复为合法 Session，apply-patch 绕过 DSH FS authority，subagent roster 未进入真实 prompt assembly，config importer 未写当前 settings/default-model/provider。聚合包也只证明 source-tree sibling activation，不证明 registry 或单 tarball 闭包。
 
-**所以：真实剩余缺口不是 39，而是 0 条「已准入但无实现」。你感知到的缺口，绝大多数已经被前面几轮消化。**
+以下 2026-09-07 执行记录作为历史保留；其中“implemented/distilled”不得再读作 crate-level 或 runtime equivalence。
 
 ---
 
@@ -57,7 +52,7 @@
 
 11b. **typecheck 打通与 types.ts 审计（同日续）**：网络通路确认后以 standalone TS 5.x 工具链（`~/.workbuddy/binaries/node/workspace`，不污染仓库 lockfile）跑通 `tsc --noEmit`——先修掉重写引入的 4 处 `ValidationResult` 导入冲突（TS2440），**全包 0 错误**。随后临时摘除 4 个 types.ts 的 `@ts-nocheck` 审计欠账：**366 处类型错误**（TS2304 缺失引用类型 WireCellId/CellId/ToolName 等 + TS2300 重复成员 + TS2686）——机械翻译的结构性缺陷，修复等价于按上游形状重写类型层 → 定性为后续 epic（需上游 codex 源码对照，网络已可用），本轮维持 pragma 不动。
 
-> **PHASE2 清单至此全部收口**：P0-1/P0-2/**P1-1（全，含 parse_command 全量 bash 文法）**/P1-2/P1-3/P1-4/P2-2 均已执行并有机器证据（P1-1 的最后一块拼图 `parse_command` 已在本日续作中闭环，证据见下表与第六节）。P2-1/P2-3/P2-4 维持产品/环境决策类原状。
+> **2026-09-07 清单执行记录（非运行时等效结论）**：P0-1/P0-2/P1-1/P1-2/P1-3/P1-4/P2-2 当时均有对应代码或机器证据；P2-1/P2-3/P2-4 维持产品/环境决策类原状。2026-09-10 的逐条审查已取代“全部收口”结论：没有正向记录达到 `runtime-equivalent`，且五个 host/package 硬门仍未闭环。
 
 ---
 
@@ -149,7 +144,7 @@
 | 核验 | 方法 | 结果 |
 |---|---|---|
 | 移植源 = 锚点 | GitHub raw 取 tag `rust-v0.153.4` 的 `parse_command.rs`/`bash.rs`，去 CR 后与本地快照 `cmp` | **逐字节一致**（2766 / 565 行）——P1-1 的 v0.153.4 锚点说法由此证成，非口头声称 |
-| 台账无遗漏 | GitHub trees API 取 v0.153.4 完整树（**7,837 路径，truncated=false**），按 `Cargo.toml` 还原 crate 集合 | 上游 **149 crates**，台账 **NEW-UNREGISTERED = 0** |
+| 2026-09-07 历史 manifest 清单检查 | GitHub trees API 取当时目标树并按 `Cargo.toml` 还原 | 当时报告上游 **149 crates**、`NEW-UNREGISTERED = 0`；2026-09-10 的 exact Git-object gate 已发现 revision/provenance 漂移，故此项不再作为当前“台账无遗漏”证明 |
 | 台账无孤儿 | 台账标"已移植"条目回查路径是否存在 | **MISSING-BUT-PORTED = 0**（150 = 149 crates + 工作区根 `.`） |
 | 本地 `verify_coverage.py` | 对本机稀疏快照运行 | **仍 FAIL（20 条 MISSING-BUT-PORTED）——但属本地快照不全所致**（该快照仅 3 个 Cargo.toml，无 `codex-rs/utils` 等），非台账缺陷；已用上两行的 trees API 路径替代取证。注：git fetch 取锚点 sha/tag 均因 SSL 握手失败不可用，改用 curl + API 通路 |
 
@@ -190,7 +185,7 @@
 
 - **config-importer bare dotted keys 已继续执行（2026-09-08 01:21 +08:00）**：对照上游真实字段路径 `model_providers.<id>.auth.timeout_ms`，`parseTomlLite` 现支持带空白/连字符的 bare dotted assignments，并在当前 table 内相对赋值；inline table 同用一套路径赋值。为避免配置输入触发对象原型修改，`__proto__` / `prototype` / `constructor` 任一路径段均拒绝，已有标量与待建 table 冲突时也不覆写。新增 3 条测试验证 provider table/dotted patch 等价、table-relative auth 路径、空白/连字符与 pollution 拒绝；脱敏 fixture 加入 `auth.timeout_ms = 7000`。config-importer **24 passed / 0 failed**，重建 7.7 kB ESM bundle 后 `dotted-key-bundle-smoke: OK`。全仓 10 包再跑 **378 passed / 0 failed / 0 skipped**（24 / 14 / 3 / 162 / 6 / 4 / 34 / 34 / 21 / 76）；policy typecheck 0 错误，schema 用仓内 TypeScript 5.9.3 交叉 typecheck 0 错误（schema 自身未声明 TypeScript，故其 `pnpm run typecheck` 单独调用会报 `tsc` 不存在，此既有依赖欠账未伪报为通过）。pack preflight 7 modules OK，dry-run **23 files / 17.9 kB packed / 54.0 kB unpacked**，台账 150/150 一致。仍不支持 quoted dotted keys，且不宣称完整 TOML 1.0。
 
-- **上游 12 提交已增量审阅并继续执行（2026-09-08 01:4x +08:00）**：`f3f53ee..adee0b0` 的逐提交裁决见 `dsh-codex-pack/docs/UPSTREAM-12-COMMIT-REVIEW.md`。daemon updater/release pins、Rust recursion limit、Unix zombie PID backend 排除；selected-history internal fork、archive scan、Guardian retained authorization 等因本地缺真实 runtime/consumer 保持阻断。选择有真实持久图 seam 的 `d665e3bbc` 落地：`AgentNode` 可持久 full `agentPath`，`formatEnvironmentContextSubagents()` 在重开 JSONL 图后同时列出 loaded/unloaded 直接 children，loaded 优先、组内按 full path 确定排序，并按 parent path 前缀严格拒绝缺 parent path、跨 parent path 与直接链接的 grandchild；重复 edge 去重，且按上游 envelope 限制 **8 agents / 1,024 bytes**。只读代码复核发现并推动补齐上述 direct-child path invariant；另新增转义扩张 + UTF-8 多字节的 **1,024/1,025 精确边界**测试，证明 wrapper/indent/newline 与 XML escaping 均计入字节预算。公开 package runtime export 并重建 **9.8 kB** ESM bundle，smoke `v2-roster-bundle-smoke: OK`。session-kit **38/38**，定向 strict TypeScript **0 错误**。pack preflight **7 sibling modules OK**，最终 dry-run **24 files / 20.2 kB packed / 58.4 kB unpacked**，台账 YAML/JSON **150/150 语义一致**，`git diff --check` 通过（仅 CRLF 转换 warning）。这是 host 可调用的纯 roster 算法，尚未接入 DSH world-state/prompt，不能宣称 multi-agent runtime 已完整移植。
+- **2026-09-08 增量实现记录（后由证据审查降级）**：`d665e3bbc` 对应的 `AgentNode`/`formatEnvironmentContextSubagents()` roster 逻辑、排序、parent path 约束和 8 agents / 1,024 bytes 边界均已落地并有当时的算法/产物测试；但它没有接入 DSH `system-prompt/assemble` 或 request lifecycle。2026-09-10 证据等级为 `implemented-unconsumed`，不能作为 multi-agent runtime 或 host prompt integration 完成证明。
 
 - **exec-server 环境 metadata wire 小缺口已继续执行（2026-09-08 02:0x +08:00）**：对照上游 `dbe2f6d52` 的真实 `EnvironmentInfo` serde shape，在既有 `codex-schema/src/handwritten/exec-server-protocol` seam 增加 `executorVersion` 与可选 opaque `providerId?: string`，并新增 runtime validator：历史 payload 不含 `providerId` 仍兼容，字符串接受，非字符串拒绝，shell/executorVersion 必需字段缺失拒绝。schema 定向 12/12、全包 **35/35**、仓内 TypeScript 5.9.3 交叉 typecheck **0 错误**。随后重新逐包实跑 10 包共 **383 passed / 0 failed / 0 skipped**（24 / 14 / 3 / 162 / 6 / 4 / 35 / 38 / 21 / 76）。这里只蒸馏兼容 wire contract；没有移植 SHA-256 build-id producer、启动缓存、Cargo/Bazel stamp，也不把 `providerId` 当 artifact checksum/security attestation，更不宣称 DSH exec-server runtime 已存在。
 
@@ -213,5 +208,102 @@
 - 合并收口后的主分支为 `4496077`，工作树干净；相对 `origin/main` 为 **ahead 16 / behind 0**，因此本轮功能仍未进入 GitHub。
 - 重新使用当前依赖跑完 10 包测试，结果为 **392 passed / 0 failed / 0 skipped**：24 / 18 / 3 / 165 / 6 / 4 / 35 / 38 / 21 / 78。
 - `dsh-codex-pack` typecheck 继续为 **0 errors**，preflight 为 **7 sibling modules OK**，隔离 npm cache 下 dry-pack 为 **25 files**。
-- 对 `scripts/rebuild-bundles.mjs` 做了 Windows `.cmd/.ps1` shim 调用修复；当前环境的 esbuild 解析仍受受限 node_modules 路径阻断，Ubuntu CI 路径尚未受影响，不能把本地 `--check` 失败冒充源码漂移。
+- 当时对 `scripts/rebuild-bundles.mjs` 做了 Windows `.cmd/.ps1` shim 调用尝试，但 esbuild 解析仍受受限 node_modules 路径阻断，故未把本地 `--check` 失败冒充源码漂移；该历史缺口已在 11.5 的 2026-09-10 修复与回归中闭环。
 - 上游 `openai/codex` checkout 仍为 `121f91f`，相对 remote `adee0b0` **behind 29**；新增提交尚未发现可在本轮直接迁移的 DSH 真实消费面，继续按证据审查。
+- **上游 29 提交增量审计已闭环**：`UPSTREAM-17-COMMIT-REVIEW.md` 覆盖 `121f91f..f3f53ee`，`UPSTREAM-12-COMMIT-REVIEW.md` 覆盖 `f3f53ee..adee0b0`；两份报告合计覆盖当前 `121f91f..adee0b0` 的 **29 个非 merge 提交**。可迁移项已落到 session roster 与 exec-server wire validator；MCP user-verification/auth-change、elicitation proof、Guardian retained authorization/assessment、daemon/PID/release updater 均因缺 DSH 真实消费 seam 保持阻断或排除。
+
+## 十、2026-09-09 集成与发布就绪续作
+
+- **路线图阶段切换（2026-09-09 历史判断，2026-09-10 修正）**：当时台账为 150 条、7 implemented / 46 distilled / 0 active design-only，并据 29-commit report 转向发布准备。后续 revision-aware Git-object gate 识别并建模了该 150-row 集合的时序边界：补录 3 个 endpoint crate，并把 2 个 endpoint 前已删除 crate 保留为 historical rows；当前 153-row temporal ledger 已在 anchor 142 manifests 与 `adee0b0` 151 manifests 两端 exact-set 通过。evidence audit 仍得出 0 runtime-equivalent，当前主线因此是逐条证据纠偏和五个真实 host/package gate，而不是发布完成声明。
+- **Git 现场以执行时为准**：本轮开始时本地 `main` 相对 `origin/main` 为 **ahead 20 / behind 0**；仍有本文件的用户未暂存审计行和既有未跟踪核验报告。未经授权不提交、不推送，不能宣称 GitHub Actions 已覆盖本轮改动。
+- **pack 改为单一聚合 bundle**：manifest 使用 8 个实际未加 scope 的 package name，并纳入 `codex-skills-kit`；`codex-sandbox-bin` 保持独立可选。安装计划链接 pack 与 8 个组件，但 profile `dsh.profile.bundles` 只增加 `dsh-codex-pack`。聚合 patch 按 manifest 顺序挂载 8 个具体插件，不再尝试挂载 helper pack 自身。
+- **用户层所有权修正**：profile writer 现在只事务性替换 `package.json`，保留 dry-run、稳定 `.bak`、幂等与失败回滚；profile 的 `cordis.patch.yml` 逐字节不变。pack patch 由 bundle package 的 `dsh.bundle.patch` 加载，用户 patch 仍是后置层。
+- **fail-loud preflight**：现在核验 pack/package identity、pack 与每个 sibling 的运行时 export/main 对应 built entry、重复 manifest package、每个 `dsh.bundle.patch` 的严格 insert 结构和 package id/name，以及聚合 patch 与 manifest 的身份和顺序完全一致；malformed operation 不再静默跳过。
+- **2026-09-09 source-tree Loader 产物证据（后由证据审查限定）**：固定版本 Cordis/Loader 通过测试注入的 sibling bundle importer 激活 8 个提交 `lib/index.js`，观察到 11 个工具并执行只读 `codex_policy_check`。该测试不依赖 sibling DSH checkout，却仍依赖 sibling migration bundles 和 custom importer；它只证明 source-tree activation，不证明 bare-package resolution、clean registry install、offline multi-tarball/single-tarball closure 或 DSH host runtime integration。
+- **2026-09-09 本地发布准备历史证据**：当时的测试/typecheck、preflight、dry pack、bundle drift 与 150-row mirror 检查通过，只说明对应工作树的本地构建健康。2026-09-10 审查确认 registry dependency closure、offline install modes 和五个 host integration gate 均未闭环，因此“发布门本地闭环”结论撤回；旧计数不得当作当前验证结果。
+- **能力边界不变**：MCP elicitation/user-verification proof、auth/account epoch、remembered approval、Guardian retained authorization/assessment、exec-server identity producer、Linux sandbox 重建与 daemon/PID/updater 仍无可信 DSH 消费 seam，不在本轮模拟。
+
+## 十一、2026-09-10 源码差分与下一阶段执行
+
+### 11.1 云端、本地与上游现场
+
+- **GitHub 与本地未同步**：刷新 remote 后，本地 `main` 相对 `origin/main` 为 **ahead 21 / behind 0**；本地 HEAD `166eefb`，GitHub `main` 仍为 `7ce2d73`，且当前工作树还有未提交实现。没有开放 PR，因此云端既不含这 21 个本地提交，也不含工作树续作。
+- **云端 CI 仍是旧证据**：最新 Actions run [`34123388436`](https://github.com/shine-233/dsh-codex/actions/runs/34123388436) 在旧 SHA `7ce2d73` 上失败；唯一失败 job 是 `codex-config-importer` 的 4 个 Ubuntu/Windows 路径假设，其他 9 个 package job 通过。该跨平台测试已在本地后续提交/工作树修复，但尚无当前 SHA 的云端 run，不能称 GitHub CI 已绿。
+- **上游源码边界**：唯一 `openai/codex` 本地 checkout 是 `research/upstream/codex`，materialized HEAD `121f91fd5`，相对本地 tracking `origin/main=adee0b04f` behind 29；它是 blob-filtered sparse checkout，当前只物化 `protocol/src` 与 `shell-command/src`。`970b7f2ff4f6` 继续作为历史全量 provenance anchor，`121f91f..adee0b0` 继续作为两份增量审计范围，不混写为新的全量锚点。
+
+### 11.2 缺口排序（必须有真实消费 seam）
+
+| 顺序 | 上游能力 | DSH 目标 / 消费面 | 裁决 |
+|---|---|---|---|
+| 1 | `protocol/src/sanitized_git_url.rs` | `codex-session-kit.parseRolloutText()` 暴露持久 rollout header 前的 metadata 边界 | **✅ 本轮执行**：纯函数、keyless、直接阻断 remote token/用户名/密码从历史 rollout 泄漏 |
+| 2 | `shell-command/src/command_safety/powershell_*` + 68-case lowering fixture | `codex-policy-engine` 现有 command safety / pre-execute seam | **✅ 本轮执行**：新增不启动 PowerShell 的 fail-closed literal lowering，68-case fixture 全对齐，并接入 danger policy 与审批 canonicalization |
+| 3 | `history/src/reconciled_retained_context.rs` (`aa12ab45d`) | `codex-session-kit` rollout replay | **输入契约先行**：message-id / turn-id+text / acceptance-order 算法可移植，但现有 rollout payload 仍为 `any`，须先定义 host-owned acceptance order/source completeness |
+| 4 | `protocol/src/shell_environment.rs` 的 non-inheritable env scrub | 需要真实 subprocess/environment assembly seam | **暂缓**：算法本身可移植，但当前八插件没有 child-process producer；只加无消费者 helper 不算迁移完成 |
+| 阻断 | permission-profile intersection/snapshot、MCP verification/auth、Guardian retained authorization、native sandbox/daemon | 需要 host-owned authority/runtime | **保持阻断**：不能用 schema/helper 冒充已生效的权限或认证 runtime |
+
+### 11.3 已执行：rollout Git remote 凭据脱敏
+
+- 新增 `codex-session-kit/src/sanitizedGitUrl.ts`：覆盖 HTTPS/file/SSH/SCP、IPv6 与嵌套 remote-helper；只重建 authority，不解码/规范化 repository path；SSH 的惯例 `git` transport identity 保留，其他 username 与所有 password/token 移除；helper command payload 与 malformed URL fail closed，错误消息不回显原输入。
+- `parseRolloutText()` 现于返回 `session_header` / `session_meta` 前处理 `payload.git.repository_url` 与 legacy `payload.git_info.repository_url`；无效历史 remote 仅丢弃该字段，不丢整份 header，保持 tolerant rollout import 语义。
+- 公共 API 导出严格 sanitizer 与 tolerant optional sanitizer；README 明确这只是 metadata 脱敏，不是网络或文件系统安全边界。
+- 定向与全包验证：`codex-session-kit` **56 passed / 0 failed（8 files）**，`pnpm typecheck` **0 errors**。新增 18 个测试（12 组表驱动 remote + encoded/opaque path、4096 层非递归 helper、malformed secret-safe error、optional legacy，以及 2 个真实 parser boundary 用例）。
+
+### 11.4 已执行：PowerShell literal lowering
+
+- 将本地上游 `shell-command/src/command_safety/fixtures/powershell_lowering.json` 的 68 个行为样本固定进 `codex-policy-engine/test/powershell_lowering.json`；先以缺失模块得到红测，再实现 `src/powershellLowering.ts`。
+- lowering 只接受可静态确定的 literal argv：支持单/双引号、PowerShell backtick 的版本中立转义、Windows 路径、`|` / `||` / `&&` / `;`、注释与 `--flag=value`；变量、子表达式、here-string、重定向、invocation operator、`--%`、Unicode syntax alias、非规范数值和未知结构均返回 `null`。它不启动 PowerShell，也不宣称完整 PowerShell parser/runtime。
+- `commandSafety` 现优先把完整 PowerShell pipeline 降为多条 argv 后逐条执行 Windows danger policy；不支持的脚本仍走既有 best-effort fallback。审批 canonicalization 对单条 literal PowerShell 命令按 argv 归一化，多条或 opaque script 继续保留带类型前缀的原文键。
+- 实测：`codex-policy-engine` **241 passed / 0 failed（12 files）**，其中新增 fixture+集成 **70 tests**；typecheck **0 errors**；built package 三个 PowerShell API export smoke 通过。`codex-session-kit` built export smoke、**56/56** 与 typecheck 已通过；pack preflight 为 **8 modules**，真实 Loader smoke **1/1**；全仓 **10 bundles / 0 drift**。
+
+### 11.5 紧接执行门
+
+1. **✅ 已执行（2026-09-10）**：Windows bundle launcher 现只把 `.cmd` / `.bat` 经 `cmd.exe /d /s /c` 启动，并给完整 command string 加外层 quote；`.ps1` 明确 fail closed。新增真实 Windows regression：临时 shim 路径含空格，逐项验证 entry/outfile 与 `^ & | < >` 参数不变；`%` / `!` / quote / 换行等会被 `cmd.exe` 展开或无法无损表达的输入直接拒绝。实测 **5/5**，并用路径含空格的真实 esbuild `.cmd` wrapper 跑通 policy-engine **1 package / 0 drift**；同轮补上 package-local pnpm transitive esbuild launcher 解析，使无 `--esbuild` 的标准命令也实测 **10 bundles / 0 drift**。CI 新增独立 `windows-latest` shim job，云端结果仍须实际 run 后才能声称通过。
+2. **✅ YAML/JSON mirror 与 exact manifest completeness 均已闭环（2026-09-10 更新）**：ledger consistency 已加入 CI，metadata-only `--fix` 可修复镜像 metadata；补录 `attachment-store` / `mxc-sandbox` / `windows-sandbox-service` 后当前为 153/153 语义一致。`inventory-provenance.json` 显式记录 `guardian-context` / `utils/git-discovery` 的 post-anchor 引入、`mcp-server` 两行的删除及 `realtime-webrtc` 的重引入；revision-aware verifier 已在 historical anchor **142 manifests** 与 `adee0b0` **151 manifests** 两端 exact-set 通过。153 是跨时序 ledger row 数，不是任一 endpoint 的 manifest 数。
+3. **✅ 全仓本地回归刷新（2026-09-10）**：10 包逐包执行 Vitest 与 `pnpm typecheck`，实测 **493 passed / 0 failed**，十个 typecheck 全部 0 errors；分包为 24 / 18 / 3 / 241 / 6 / 35 / 56 / 21 / 4 / 85。另有根级 Windows shim regression **5/5**、pack preflight **8 sibling modules**、bundle check **10/10 / 0 drift**。这些是本地结果，不代表新增 CI jobs 已在 GitHub 通过。
+4. 发布完整性另设硬门：当前 aggregate patch 以 bare package name 挂载 8 个组件，但 pack 发布物尚未声明这些组件为可解析 runtime dependencies；在 registry/package source 明确前，不宣称“只安装 pack tarball 即可启动”。
+5. 源码能力下一候选改为 typed rollout→DSH Session bridge：必须先以真实 DSH `SessionEvent` validator、持久化和 resume seam 定义 mapping；不再把当前 `{type,payload}` 泛化数组称作可回放 DSH session。保留 apply-patch fs containment 为需要 DSH filesystem delete/rename/batch seam 的跨仓高优先级项。
+
+
+## 十、2026-09-10 上游函数面缺口裁决（对照 shell-command crate）
+
+**缘起**：2026-09-10 审计（`UPSTREAM-AUDIT-20260910.md`）实测上游 `shell-command` crate 共 38 个 pub fn，移植未见对应导出的有 **16 个**。本节逐个裁决，把"没看过"变成"看过并决定了"。
+
+审计前提不变：上游本地 `research/upstream/codex` HEAD = `121f91fd5`，**behind 29**，且为稀疏快照（`codex-rs/` 仅 `protocol/` + `shell-command/`）。
+
+### 裁决表
+
+| # | 上游函数 | 上游实现性质（实测） | 裁决 | 理由 |
+|---|---|---|---|---|
+| 1–6 | `shell_detect.rs`：`default_user_shell` / `default_user_shell_from_path` / `get_shell` / `get_shell_by_model_provided_path` / `ultimate_fallback_shell` / `fallback_powershell_shell_for_elevated_windows_sandbox` | 探测**本机实际安装的 shell 可执行文件**：读 `/etc/passwd`、Windows 路径与 WindowsApps 不可达路径过滤、elevated sandbox 兼容性判断（含 unix/windows 两份 `get_user_shell_path`） | **E5 排除** | 依赖真实文件系统与平台特定路径。本插件只做命令串**静态判定**，不派生 shell 进程，无 DSH 消费面 |
+| 7–8 | `shell_snapshot.rs`：`snapshot_script` / `snapshot_state_and_environment_script` | 生成脚本以**捕获与恢复 shell 状态**（cd / export），服务于 persistent shell session | **E5 排除** | 需要真实 shell 执行与跨命令状态保持；DSH 侧当前无 persistent shell session 概念 |
+| 9 | `command_safety/powershell_parser.rs`：`try_parse_powershell_ast_commands` | **spawn 真实 PowerShell 进程**执行内嵌 `powershell_parser.ps1` 取 AST（`Command::new(executable)` + `include_str!`） | **E5 排除** | 依赖本机 PowerShell 可执行文件与进程派生，静态判定面无消费面 |
+| 10 | `command_safety/powershell_tree_sitter.rs`：`try_parse_powershell_commands` | tree-sitter PS 语法树解析 | **已替代（非缺失）** | `powershellLowering.ts` 头部注释明确声明 aligned with `powershell_tree_sitter.rs`，采用**保守字面量降级 + 未知语法 fail closed**。属有意识的替代实现，此前未登记，现补登记 |
+| 11 | `is_dangerous_command.rs`：`dangerous_command_match_for_platform` | 薄封装：转发 `dangerous_command_match_with_depth(command, 0, platform)` | **建议补齐** | 能力已有（`dangerousCommandMatch` + `isDangerousCommandWindows`），只缺一层显式平台分派。成本低，补后 API 与上游对齐，便于后续对照回归 |
+| 12 | `is_dangerous_command.rs`：`dangerous_powershell_words_match` | 薄分派：Windows → `is_dangerous_powershell_words`，非 Windows → `None` | **建议补齐** | 实质能力已有（`isDangerousPowershellWords` 对应 `is_dangerous_powershell_words`），只缺平台门 |
+| 13–14 | `bash.rs`：`try_parse_shell` / `try_parse_word_only_commands_sequence` | **tree-sitter 强绑定**（`Parser::new()` + BASH grammar，按节点 kind 遍历） | **E5 排除** | JS 侧无 tree-sitter grammar 依赖，1:1 移植不可得；已由 `bashWordSeq.ts` 手写词法器替代（见二.6 遗留说明） |
+| 15 | `bash.rs`：`parse_shell_lc_literal_commands` | tree-sitter 字面量命令提取 | **已登记替代** | 消费路径由 `commandSafety.splitInvocationSegments` 承担（二.6 已注明，行为等价近似、非节点级忠实） |
+| 16 | `powershell.rs`：`prefix_powershell_script_with_utf8` | **执行期**给脚本加 UTF-8 输出前缀常量 | **E5 排除** | 执行期功能，静态判定面无消费面 |
+
+### 汇总
+
+- **E5 排除：12 个**（#1–9 的 9 个 + #13、14、16）
+- **已替代 / 已登记：2 个**（#10、#15）
+- **建议补齐：2 个**（#11、#12，均为薄封装层，能力已存在）→ **2026-09-10 已实现**：`dangerousCommandMatchForPlatform` 与 `dangerousPowershellWordsMatch` 已落地，含 4 条测试（等价性、平台门、PS 专属作用域）；typecheck 0 错、policy-engine 245 测试全绿、bundle 已重建且 10 包 0 drift。**暂未提交**：`commandSafety.ts` / `index.ts` / `lib/index.js` 同时含并行会话的未提交改动，按 own-file 规则不代他人提交，待其落定后再补交。
+
+**结论**：所谓"函数面覆盖约 58%"需要修正理解——16 个缺口里**实质能力缺失为 0**；真正值得动手的 2 个薄封装（#11、#12）已于 2026-09-10 补齐，用于让平台分派语义显式化、API 与上游对齐。其余 12 个是有充分理由的排除，2 个是已实现的替代。
+
+补齐后的行为实测（与上游语义逐条吻合）：`cmd /c del /f x` 在 windows → `Other`、posix → `null`；`pwsh -Command "Remove-Item -Force file"` 在 windows → `Other`、posix → `null`；无害脚本与 cmd.exe 均不进入 PS 词扫描作用域。
+
+### 重启条件（写入台账口径）
+
+| 排除组 | 何时需要重新评估 |
+|---|---|
+| #1–6 shell 探测 | DSH 侧要**真实派生 shell 进程**执行命令时 |
+| #7–8 shell 快照 | DSH 引入 **persistent shell session**（跨命令保持 cd/export）时 |
+| #9 PS AST（进程） | 具备可调用的 PowerShell 可执行文件且接受进程派生开销时 |
+| #13–14 tree-sitter | JS 侧引入 tree-sitter grammar 依赖（届时可用真 AST 替代手写词法器，并需重跑等价性验证） |
+| #16 UTF-8 前缀 | 进入执行期脚本下发路径时 |
+
+### 仍存疑、需补证据的一条
+
+`codex-skills-kit/src/selector.ts`：路线图称移植自 `ext/skills` 的 `dynamic_skill_selector`，并给出具体打分规则（名/别名命中 +3、名内词 +2、描述词 +1、前缀重叠 +1）。实测本地上游快照 `find -iname "*skill*"` **返回空**，该声称目前**无任何可溯源证据**。这是唯一一条给出具体算法却无法溯源的移植件，需在补齐上游快照后优先复核。
