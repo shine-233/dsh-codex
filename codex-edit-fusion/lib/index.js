@@ -1,25 +1,32 @@
 // src/dsh-plugin.ts
-import { readFile, writeFile, rm } from "node:fs/promises";
-import { isAbsolute, join, resolve } from "node:path";
+import z from "@deepseek-ai/schemastery";
+import { FsError } from "@deepseek-ai/dsh-fs";
+import { sandboxDenialMarker } from "@deepseek-ai/dsh-sandbox";
+import { defineTool } from "@deepseek-ai/dsh-tools";
 
 // src/v4aParser.ts
+var DIRECTIVE = /^\s*\*\*\*/;
+var BEGIN_PATCH = /^\s*\*\*\* Begin Patch\s*$/;
+var END_PATCH = /^\s*\*\*\* End Patch\s*$/;
+var END_OF_FILE = /^\s*\*\*\* End of File\s*$/;
+var HUNK_OR_DIRECTIVE = /^\s*(@@|\*\*\*)/;
 function parsePatch(text) {
   const lines = text.split(/\r?\n/);
   let i = 0;
-  while (i < lines.length && !/^\*\*\* Begin Patch\s*$/.test(lines[i])) i++;
+  while (i < lines.length && !BEGIN_PATCH.test(lines[i])) i++;
   if (i >= lines.length) throw new Error("v4a: missing *** Begin Patch");
   i++;
   const patch = { updateFiles: [], addFiles: [], deleteFiles: [] };
   const readPath = (line, prefix) => line.slice(prefix.length).trim();
   let ended = false;
-  while (i < lines.length && !/^\*\*\* End Patch\s*$/.test(lines[i])) {
-    const line = lines[i];
+  while (i < lines.length && !END_PATCH.test(lines[i])) {
+    const line = lines[i].trim();
     if (line.startsWith("*** Add File: ")) {
       const path = readPath(line, "*** Add File: ");
       i++;
       if (!path) throw new Error("v4a: add file path is empty");
       const body = [];
-      while (i < lines.length && !/^\*\*\*/.test(lines[i])) {
+      while (i < lines.length && !DIRECTIVE.test(lines[i])) {
         body.push(lines[i].replace(/^\+/, ""));
         i++;
       }
@@ -42,21 +49,22 @@ function parsePatch(text) {
       if (line.startsWith("*** Update File: ")) path = readPath(line, "*** Update File: ");
       if (!path) throw new Error("v4a: update file path is empty");
       i++;
-      if (i < lines.length && lines[i].startsWith("*** Move to: ")) {
-        moveTo = readPath(lines[i], "*** Move to: ");
+      const follow = i < lines.length ? lines[i].trim() : "";
+      if (follow.startsWith("*** Move to: ")) {
+        moveTo = readPath(follow, "*** Move to: ");
         i++;
-      } else if (i < lines.length && lines[i].startsWith("*** Rename to: ")) {
-        moveTo = readPath(lines[i], "*** Rename to: ");
+      } else if (follow.startsWith("*** Rename to: ")) {
+        moveTo = readPath(follow, "*** Rename to: ");
         i++;
       }
       const hunks = [];
-      while (i < lines.length && !/^\*\*\*/.test(lines[i])) {
-        if (lines[i].startsWith("@@")) {
-          let ctx = lines[i].slice(2).trim();
+      while (i < lines.length && !DIRECTIVE.test(lines[i])) {
+        if (lines[i].trimStart().startsWith("@@")) {
+          let ctx = lines[i].trimStart().slice(2).trim();
           if (ctx.startsWith(" ")) ctx = ctx.slice(1);
           i++;
           const hunkLines = [];
-          while (i < lines.length && !/^(@@|\*\*\*)/.test(lines[i])) {
+          while (i < lines.length && !HUNK_OR_DIRECTIVE.test(lines[i])) {
             const l = lines[i];
             if (l.startsWith("+")) hunkLines.push({ kind: "add", text: l.slice(1) });
             else if (l.startsWith("-")) hunkLines.push({ kind: "remove", text: l.slice(1) });
@@ -64,7 +72,7 @@ function parsePatch(text) {
             i++;
           }
           hunks.push({ changeContext: ctx || void 0, lines: hunkLines });
-          if (i < lines.length && /^\*\*\* End of File\s*$/.test(lines[i])) {
+          if (i < lines.length && END_OF_FILE.test(lines[i])) {
             hunks[hunks.length - 1].eof = true;
             i++;
           }
@@ -76,8 +84,11 @@ function parsePatch(text) {
     }
     throw new Error(`v4a: unexpected directive: ${line}`);
   }
-  if (i < lines.length && /^\*\*\* End Patch\s*$/.test(lines[i])) ended = true;
+  if (i < lines.length && END_PATCH.test(lines[i])) ended = true;
   if (!ended) throw new Error("v4a: missing *** End Patch");
+  if (!patch.updateFiles.length && !patch.addFiles.length && !patch.deleteFiles.length) {
+    throw new Error("v4a: patch contains no file operations");
+  }
   return patch;
 }
 function applyPatch(patch, files, locate) {
@@ -91,9 +102,10 @@ function applyPatch(patch, files, locate) {
     const c = out.get(p);
     return c === void 0 ? null : c.split(/\r\n|\n/);
   };
+  const ensureEol = (content, eol) => content.length > 0 && !content.endsWith("\n") ? content + eol : content;
   const setLines = (p, l) => {
     const eol = lineEndings.get(p) ?? "\n";
-    out.set(p, l.join(eol));
+    out.set(p, ensureEol(l.join(eol), eol));
   };
   for (const del of patch.deleteFiles) {
     if (!out.has(del)) errors.push(`delete target missing: ${del}`);
@@ -105,7 +117,7 @@ function applyPatch(patch, files, locate) {
   for (const add of patch.addFiles) {
     if (out.has(add.path)) errors.push(`add target already exists: ${add.path}`);
     else {
-      out.set(add.path, add.lines.join("\n"));
+      out.set(add.path, ensureEol(add.lines.join("\n"), "\n"));
       results.push({ file: add.path, status: "applied" });
     }
   }
@@ -137,7 +149,8 @@ function applyPatch(patch, files, locate) {
         errors.push(`hunk not found in ${upd.path}`);
         continue;
       }
-      const base = removePat.length === 0 ? cur.length : anchorIdx;
+      const endIndex = cur.length > 0 && cur[cur.length - 1] === "" ? cur.length - 1 : cur.length;
+      const base = removePat.length === 0 ? endIndex : anchorIdx;
       const kept = cur.slice(0, base);
       const tail = cur.slice(base + removePat.length);
       const rebuilt = [];
@@ -218,81 +231,127 @@ function seekSequence(lines, pattern, start, eof = false, updateFileMode = "Pres
 }
 
 // src/dsh-plugin.ts
-var name = "codex-edit-fusion";
-var inject = ["tools"];
-function asRecord(value) {
-  return value !== null && typeof value === "object" && !Array.isArray(value) ? value : {};
-}
-function touchedPaths(patch) {
-  const paths = /* @__PURE__ */ new Set();
-  for (const u of patch.updateFiles) {
-    paths.add(u.path);
-    if (u.moveTo) paths.add(u.moveTo);
+var MutationPolicy = class {
+  policy;
+  constructor(ctx) {
+    this.policy = ctx.fs.sandboxMode === void 0 ? void 0 : ctx.get("sandboxPolicy");
+    if (ctx.fs.sandboxMode !== void 0 && this.policy === void 0) {
+      throw new Error("codex-edit-fusion: the mounted filesystem confines but ctx.sandboxPolicy is missing");
+    }
   }
-  for (const a of patch.addFiles) paths.add(a.path);
-  for (const d of patch.deleteFiles) paths.add(d);
-  return [...paths];
+  resolve(exec) {
+    return this.policy?.resolve({
+      ...exec.agent === void 0 ? {} : { session: exec.agent.session }
+    });
+  }
+  mapError(error, policy) {
+    if (!(error instanceof FsError) || error.code !== "FS_SANDBOX_DENIED") return error;
+    const mode = policy.mode;
+    return new FsError(sandboxDenialMarker(mode), "FS_SANDBOX_DENIED", { cause: error });
+  }
+};
+function acceptSingleTarget(patch) {
+  const count = patch.addFiles.length + patch.updateFiles.length + patch.deleteFiles.length;
+  if (count !== 1) {
+    throw new Error("codex_apply_patch accepts exactly one Add File or one Update File declaration");
+  }
+  if (patch.deleteFiles.length !== 0) {
+    throw new Error("codex_apply_patch does not support Delete File declarations");
+  }
+  const add = patch.addFiles[0];
+  if (add !== void 0) {
+    return { kind: "add", path: add.path, content: add.lines.join("\n") };
+  }
+  const update = patch.updateFiles[0];
+  if (update === void 0) {
+    throw new Error("codex_apply_patch requires one Add File or one Update File declaration");
+  }
+  if (update.moveTo !== void 0) {
+    throw new Error("codex_apply_patch does not support Move to or Rename to directives");
+  }
+  return { kind: "update", path: update.path, patch };
 }
-function apply(ctx, config = {}) {
-  const tools = ctx?.tools;
-  if (!tools?.register) return;
-  const defineTool = (definition) => definition;
-  const cfg = asRecord(config);
-  const root = typeof cfg.root === "string" && cfg.root ? cfg.root : void 0;
-  tools.register(defineTool({
-    name: "codex_apply_patch",
-    description: "Apply an openai/codex V4A patch (*** Begin Patch ... Update/Add/Delete File ...) to files under the working directory. Fuzzy context matching with atomic per-file writes.",
-    parameters: {
-      patch: { type: "string", required: true, description: "full V4A patch text beginning with *** Begin Patch" },
-      cwd: { type: "string", description: "base directory for relative paths; defaults to process.cwd()" }
-    },
-    output: { schema: { type: "string" }, render: (_args, value) => [{ type: "text", text: String(value) }] },
-    async execute(rawArgs) {
-      const args = asRecord(rawArgs);
-      const configuredRoot = root ?? process.cwd();
-      const cwd = typeof args.cwd === "string" ? args.cwd : "";
-      const base = resolve(isAbsolute(cwd) ? cwd : join(configuredRoot, cwd || "."));
-      const patch = parsePatch(String(args.patch ?? ""));
-      const files = /* @__PURE__ */ new Map();
-      for (const p of touchedPaths(patch)) {
-        try {
-          files.set(p, await readFile(join(base, p), "utf8"));
-        } catch {
-        }
-      }
-      const res = applyPatch(
-        patch,
-        files,
-        (lines, pattern, start, eof) => seekSequence(lines, pattern, start, eof, "NormalizeToLf")
+async function resolveTarget(ctx, path, exec) {
+  if (path.trim().length === 0) throw new Error("patch path must be a non-empty string");
+  return ctx.fs.resolve(path, {
+    ...exec.agent?.session.header.cwd === void 0 ? {} : { cwd: exec.agent.session.header.cwd },
+    signal: exec.signal
+  });
+}
+async function applyAcceptedPatch(ctx, policy, accepted, exec) {
+  const sandboxPolicy = policy.resolve(exec);
+  const target = await resolveTarget(ctx, accepted.path, exec);
+  try {
+    if (accepted.kind === "add") {
+      await ctx.fs.writeText(
+        target,
+        accepted.content,
+        { kind: "createIfAbsent" },
+        exec.signal,
+        sandboxPolicy
       );
-      if (res.errors.length > 0) return JSON.stringify({ applied: [], errors: res.errors }, null, 2);
-      const touched = touchedPaths(patch);
-      try {
-        for (const [p, content] of res.files) {
-          if (content === files.get(p)) continue;
-          await writeFile(join(base, p), content, "utf8");
-        }
-        for (const upd of patch.updateFiles) {
-          if (!upd.moveTo || upd.moveTo === upd.path) continue;
-          await rm(join(base, upd.path), { force: true });
-        }
-        for (const del of patch.deleteFiles) await rm(join(base, del), { force: true });
-      } catch (error) {
-        for (const p of touched) {
-          try {
-            if (files.has(p)) await writeFile(join(base, p), files.get(p), "utf8");
-            else await rm(join(base, p), { force: true });
-          } catch {
-          }
-        }
-        return JSON.stringify({ applied: [], errors: [`write transaction failed: ${String(error)}`] }, null, 2);
+      return JSON.stringify({ applied: [{ file: accepted.path, status: "applied" }], errors: [] });
+    }
+    const info = await ctx.fs.stat(target, exec.signal);
+    if (info === void 0) {
+      throw new FsError(`cannot update "${target.displayPath}": file does not exist`, "FS_NOT_FOUND");
+    }
+    if (info.type !== "file") {
+      throw new FsError(`cannot update "${target.displayPath}": not a regular file`, "FS_NOT_REGULAR_FILE");
+    }
+    const before = await ctx.fs.readText(target, exec.signal);
+    const result = applyPatch(
+      accepted.patch,
+      /* @__PURE__ */ new Map([[accepted.path, before]]),
+      (lines, pattern, start, eof) => seekSequence(lines, pattern, start, eof, "NormalizeToLf")
+    );
+    if (result.errors.length !== 0) throw new Error(result.errors.join("; "));
+    const after = result.files.get(accepted.path);
+    if (after === void 0) throw new Error(`patch removed its update target: ${accepted.path}`);
+    await ctx.fs.writeText(
+      target,
+      after,
+      { kind: "replaceIfVersion", version: info.version },
+      exec.signal,
+      sandboxPolicy
+    );
+    return JSON.stringify({ applied: result.results, errors: [] });
+  } catch (error) {
+    throw policy.mapError(error, sandboxPolicy);
+  }
+}
+var name = "codex-edit-fusion";
+var inject = ["tools", "fs"];
+var Config = z.object({});
+function apply(ctx, _config) {
+  const policy = new MutationPolicy(ctx);
+  ctx.tools.register(defineTool({
+    name: "codex_apply_patch",
+    description: [
+      "Apply exactly one openai/codex V4A Add File or Update File patch.",
+      "One Update File may contain multiple hunks. Delete, move, rename, and multi-file patches are rejected.",
+      "Relative paths resolve from the current session workspace."
+    ].join(" "),
+    parameters: {
+      patch: {
+        type: "string",
+        required: true,
+        description: "Complete V4A text from *** Begin Patch through *** End Patch."
       }
-      return JSON.stringify({ applied: res.results, errors: [] }, null, 2);
     },
-    timeoutMs: 15e3
+    output: {
+      schema: { type: "string" },
+      render: (_args, value) => [{ type: "text", text: value }]
+    },
+    async execute(args, exec) {
+      const parsed = parsePatch(args.patch);
+      const accepted = acceptSingleTarget(parsed);
+      return applyAcceptedPatch(ctx, policy, accepted, exec);
+    }
   }));
 }
 export {
+  Config,
   apply,
   applyPatch,
   inject,

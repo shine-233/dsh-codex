@@ -11,10 +11,19 @@ export interface FileChange {
 }
 export interface Patch { updateFiles: FileChange[]; addFiles: { path: string; lines: string[] }[]; deleteFiles: string[] }
 
+// Upstream apply-patch tolerates surrounding whitespace on marker and
+// directive lines (scenarios 017/018/020 pad them with leading or trailing
+// spaces). Body lines must NOT be trimmed - their leading +/-/space is data.
+const DIRECTIVE = /^\s*\*\*\*/;
+const BEGIN_PATCH = /^\s*\*\*\* Begin Patch\s*$/;
+const END_PATCH = /^\s*\*\*\* End Patch\s*$/;
+const END_OF_FILE = /^\s*\*\*\* End of File\s*$/;
+const HUNK_OR_DIRECTIVE = /^\s*(@@|\*\*\*)/;
+
 export function parsePatch(text: string): Patch {
   const lines = text.split(/\r?\n/);
   let i = 0;
-  while (i < lines.length && !/^\*\*\* Begin Patch\s*$/.test(lines[i])) i++;
+  while (i < lines.length && !BEGIN_PATCH.test(lines[i])) i++;
   if (i >= lines.length) throw new Error('v4a: missing *** Begin Patch');
   i++;
   const patch: Patch = { updateFiles: [], addFiles: [], deleteFiles: [] };
@@ -23,13 +32,13 @@ export function parsePatch(text: string): Patch {
     line.slice(prefix.length).trim();
 
   let ended = false;
-  while (i < lines.length && !/^\*\*\* End Patch\s*$/.test(lines[i])) {
-    const line = lines[i];
+  while (i < lines.length && !END_PATCH.test(lines[i])) {
+    const line = lines[i].trim();
     if (line.startsWith('*** Add File: ')) {
       const path = readPath(line,'*** Add File: '); i++;
       if (!path) throw new Error('v4a: add file path is empty');
       const body: string[] = [];
-      while (i < lines.length && !/^\*\*\*/.test(lines[i])) { body.push(lines[i].replace(/^\+/,'')); i++; }
+      while (i < lines.length && !DIRECTIVE.test(lines[i])) { body.push(lines[i].replace(/^\+/,'')); i++; }
       if (body.some((entry, index) => lines[i - body.length + index]?.startsWith('+') !== true)) {
         throw new Error(`v4a: malformed add file body for ${path}`);
       }
@@ -48,19 +57,19 @@ export function parsePatch(text: string): Patch {
       if (line.startsWith('*** Update File: ')) path = readPath(line,'*** Update File: ');
       if (!path) throw new Error('v4a: update file path is empty');
       i++;
-      if (i < lines.length && lines[i].startsWith('*** Move to: ')) {
-        moveTo = readPath(lines[i],'*** Move to: '); i++;
-      } else if (i < lines.length && lines[i].startsWith('*** Rename to: ')) {
-        moveTo = readPath(lines[i],'*** Rename to: '); i++;
+      const follow = i < lines.length ? lines[i].trim() : '';
+      if (follow.startsWith('*** Move to: ')) {
+        moveTo = readPath(follow,'*** Move to: '); i++;
+      } else if (follow.startsWith('*** Rename to: ')) {
+        moveTo = readPath(follow,'*** Rename to: '); i++;
       }
       const hunks: FileChange['hunks'] = [];
-      while (i < lines.length && !/^\*\*\*/
-        .test(lines[i])) {
-        if (lines[i].startsWith('@@')) {
-          let ctx = lines[i].slice(2).trim(); if (ctx.startsWith(' ')) ctx = ctx.slice(1);
+      while (i < lines.length && !DIRECTIVE.test(lines[i])) {
+        if (lines[i].trimStart().startsWith('@@')) {
+          let ctx = lines[i].trimStart().slice(2).trim(); if (ctx.startsWith(' ')) ctx = ctx.slice(1);
           i++;
           const hunkLines: HunkLine[] = [];
-          while (i < lines.length && !/^(@@|\*\*\*)/.test(lines[i])) {
+          while (i < lines.length && !HUNK_OR_DIRECTIVE.test(lines[i])) {
             const l = lines[i];
             if (l.startsWith('+')) hunkLines.push({kind:'add', text:l.slice(1)});
             else if (l.startsWith('-')) hunkLines.push({kind:'remove', text:l.slice(1)});
@@ -68,7 +77,7 @@ export function parsePatch(text: string): Patch {
             i++;
           }
           hunks.push({ changeContext: ctx || undefined, lines: hunkLines });
-          if (i < lines.length && /^\*\*\* End of File\s*$/.test(lines[i])) {
+          if (i < lines.length && END_OF_FILE.test(lines[i])) {
             (hunks[hunks.length - 1] as { changeContext?: string; lines: HunkLine[]; eof?: boolean }).eof = true;
             i++;
           }
@@ -80,8 +89,12 @@ export function parsePatch(text: string): Patch {
     }
     throw new Error(`v4a: unexpected directive: ${line}`);
   }
-  if (i < lines.length && /^\*\*\* End Patch\s*$/.test(lines[i])) ended = true;
+  if (i < lines.length && END_PATCH.test(lines[i])) ended = true;
   if (!ended) throw new Error('v4a: missing *** End Patch');
+  // Upstream rejects a patch that carries no operation at all (scenario 005).
+  if (!patch.updateFiles.length && !patch.addFiles.length && !patch.deleteFiles.length) {
+    throw new Error('v4a: patch contains no file operations');
+  }
   return patch;
 }
 
@@ -108,9 +121,14 @@ export function applyPatch(
   const getLines = (p: string): string[] | null => {
     const c = out.get(p); return c === undefined ? null : c.split(/\r\n|\n/);
   };
+  // Upstream apply-patch always leaves files newline-terminated (scenarios
+  // 001/002/016 assert a trailing newline); a file without one is what git
+  // reports as "\ No newline at end of file".
+  const ensureEol = (content: string, eol: string): string =>
+    content.length > 0 && !content.endsWith('\n') ? content + eol : content;
   const setLines = (p: string, l: string[]) => {
     const eol = lineEndings.get(p) ?? '\n';
-    out.set(p, l.join(eol));
+    out.set(p, ensureEol(l.join(eol), eol));
   };
 
   for (const del of patch.deleteFiles) {
@@ -119,7 +137,7 @@ export function applyPatch(
   }
   for (const add of patch.addFiles) {
     if (out.has(add.path)) errors.push(`add target already exists: ${add.path}`);
-    else { out.set(add.path, add.lines.join('\n')); results.push({ file:add.path, status:'applied' }); }
+    else { out.set(add.path, ensureEol(add.lines.join('\n'), '\n')); results.push({ file:add.path, status:'applied' }); }
   }
   for (const upd of patch.updateFiles) {
     let cur = getLines(upd.path);
@@ -141,7 +159,11 @@ export function applyPatch(
         return null;
       })();
       if (anchorIdx === null && removePat.length>0) { errors.push(`hunk not found in ${upd.path}`); continue; }
-      const base = removePat.length===0 ? cur.length : anchorIdx!;
+      // A pure-addition hunk appends after the last real line. Because the
+      // content is split on the trailing newline, the array ends with an empty
+      // string; inserting after it would add a blank line (scenario 016).
+      const endIndex = cur.length > 0 && cur[cur.length - 1] === '' ? cur.length - 1 : cur.length;
+      const base = removePat.length===0 ? endIndex : anchorIdx!;
       const kept = cur.slice(0, base);
       const tail = cur.slice(base + removePat.length);
       const rebuilt: string[] = [];

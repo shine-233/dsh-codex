@@ -5,19 +5,52 @@
   "type": "module",
   "main": "lib/index.js",
   "types": "src/index.ts",
-  "description": "Fuzzy patch application grafted onto dsh atomic writes (from openai/codex apply-patch, Apache-2.0)",
+  "description": "Fuzzy single-file patch application over the DSH filesystem service (from openai/codex apply-patch, Apache-2.0)",
   "scripts": {
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "build": "node ../scripts/rebuild-bundles.mjs --pkg codex-edit-fusion",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "3.18.2"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "4.0.2",
+    "@deepseek-ai/dsh-fs": "0.1.3-alpha.1",
+    "@deepseek-ai/dsh-sandbox": "0.1.3-alpha.1",
+    "@deepseek-ai/dsh-sandbox-policy": "0.1.3-alpha.1",
+    "@deepseek-ai/dsh-tools": "0.1.3-alpha.1"
   },
   "devDependencies": {
+    "@deepseek-ai/cordis": "4.0.2",
+    "@deepseek-ai/cordis-plugin-include": "1.0.7",
+    "@deepseek-ai/cordis-plugin-loader": "1.0.3",
+    "@deepseek-ai/dsh-agent": "0.1.3-alpha.1",
+    "@deepseek-ai/dsh-code-runtime": "0.1.3-alpha.1",
+    "@deepseek-ai/dsh-fs": "0.1.3-alpha.1",
+    "@deepseek-ai/dsh-fs-local": "0.1.3-alpha.1",
+    "@deepseek-ai/dsh-fs-sandbox": "0.1.3-alpha.1",
+    "@deepseek-ai/dsh-invariants": "0.1.3-alpha.1",
+    "@deepseek-ai/dsh-llm": "0.1.3-alpha.1",
+    "@deepseek-ai/dsh-sandbox": "0.1.3-alpha.1",
+    "@deepseek-ai/dsh-sandbox-policy": "0.1.3-alpha.1",
+    "@deepseek-ai/dsh-scope": "0.1.3-alpha.1",
+    "@deepseek-ai/dsh-session": "0.1.3-alpha.1",
+    "@deepseek-ai/dsh-session-projection": "0.1.3-alpha.1",
+    "@deepseek-ai/dsh-system-prompt": "0.1.3-alpha.1",
+    "@deepseek-ai/dsh-tools": "0.1.3-alpha.1",
+    "@deepseek-ai/dsh-typert-protocol": "0.1.3-alpha.1",
+    "@deepseek-ai/dsh-user-approval": "0.1.3-alpha.1",
     "@types/node": "22.20.1",
     "typescript": "5.9.3",
     "vite": "6.4.3",
     "vitest": "4.1.11"
   },
   "exports": {
-    ".": "./lib/index.js",
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./lib/index.js"
+    },
     "./package.json": "./package.json"
   },
   "dsh": {

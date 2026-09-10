@@ -30,7 +30,7 @@ describe('V4A parser + applier', () => {
     const p = parsePatch(PATCH);
     const { files: out, results, errors } = applyPatch(p, files);
     expect(errors).toEqual([]);
-    expect(out.get('docs/new.md')).toBe('hello world');
+    expect(out.get('docs/new.md')).toBe('hello world\n');
     expect(out.get('src/app.ts')).toContain('return msg + "!"');
     expect(out.has('src/old.ts')).toBe(false);
     expect(results.length).toBe(3);
@@ -120,7 +120,7 @@ describe('V4A parser + applier', () => {
     const result = applyPatch(patch, files);
 
     expect(result.errors).toEqual([]);
-    expect(result.files.get('src/app.ts')).toBe('ONE\ntwo\nTHREE\nfour');
+    expect(result.files.get('src/app.ts')).toBe('ONE\ntwo\nTHREE\nfour\n');
   });
 
   it('preserves CRLF line endings when updating a Windows file', () => {
@@ -147,7 +147,7 @@ describe('V4A parser + applier', () => {
     });
     expect(result.errors).toEqual([]);
     expect(seen).toEqual([true]);
-    expect(result.files.get('tail.txt')).toBe('first\nlast\nappended');
+    expect(result.files.get('tail.txt')).toBe('first\nlast\nappended\n');
   });
 
   it('rejects malformed patches instead of silently ignoring directives', () => {

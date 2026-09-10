@@ -1,2 +1,29 @@
 allowBuilds:
   esbuild: true
+
+# Exact release source used for DSH filesystem-authority development. The
+# managed DSH checkout stays untouched; every local Harness link is below.
+overrides:
+  '@deepseek-ai/cordis': 'link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/vendor/cordis'
+  '@deepseek-ai/cordis-plugin-include': 'link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/vendor/include'
+  '@deepseek-ai/cordis-plugin-loader': 'link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/vendor/loader'
+  '@deepseek-ai/cosmokit': 'link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/vendor/cosmokit'
+  '@deepseek-ai/schemastery': 'link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/vendor/schemastery'
+  '@deepseek-ai/dsh-agent': 'link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/core/agent'
+  '@deepseek-ai/dsh-brand': 'link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/util/brand'
+  '@deepseek-ai/dsh-code-runtime': 'link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/code-runtime/code-runtime'
+  '@deepseek-ai/dsh-fs': 'link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/fs/fs'
+  '@deepseek-ai/dsh-fs-local': 'link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/fs/fs-local'
+  '@deepseek-ai/dsh-fs-sandbox': 'link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/fs/fs-sandbox'
+  '@deepseek-ai/dsh-invariants': 'link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/runtime-diagnostics/invariants'
+  '@deepseek-ai/dsh-llm': 'link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/llm/llm'
+  '@deepseek-ai/dsh-sandbox': 'link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/sandbox/sandbox'
+  '@deepseek-ai/dsh-sandbox-policy': 'link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/sandbox/sandbox-policy'
+  '@deepseek-ai/dsh-scope': 'link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/core/scope'
+  '@deepseek-ai/dsh-session': 'link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/core/session'
+  '@deepseek-ai/dsh-session-projection': 'link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/session/session-projection'
+  '@deepseek-ai/dsh-system-prompt': 'link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/core/system-prompt'
+  '@deepseek-ai/dsh-tools': 'link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/core/tools'
+  '@deepseek-ai/dsh-typert-protocol': 'link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/typert/protocol'
+  '@deepseek-ai/dsh-user-approval': 'link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/interaction/user-approval'
+  '@deepseek-ai/dsh-util-values': 'link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/util/values'

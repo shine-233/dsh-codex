@@ -4,10 +4,96 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  '@deepseek-ai/cordis': link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/vendor/cordis
+  '@deepseek-ai/cordis-plugin-include': link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/vendor/include
+  '@deepseek-ai/cordis-plugin-loader': link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/vendor/loader
+  '@deepseek-ai/cosmokit': link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/vendor/cosmokit
+  '@deepseek-ai/schemastery': link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/vendor/schemastery
+  '@deepseek-ai/dsh-agent': link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/core/agent
+  '@deepseek-ai/dsh-brand': link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/util/brand
+  '@deepseek-ai/dsh-code-runtime': link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/code-runtime/code-runtime
+  '@deepseek-ai/dsh-fs': link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/fs/fs
+  '@deepseek-ai/dsh-fs-local': link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/fs/fs-local
+  '@deepseek-ai/dsh-fs-sandbox': link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/fs/fs-sandbox
+  '@deepseek-ai/dsh-invariants': link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/runtime-diagnostics/invariants
+  '@deepseek-ai/dsh-llm': link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/llm/llm
+  '@deepseek-ai/dsh-sandbox': link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/sandbox/sandbox
+  '@deepseek-ai/dsh-sandbox-policy': link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/sandbox/sandbox-policy
+  '@deepseek-ai/dsh-scope': link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/core/scope
+  '@deepseek-ai/dsh-session': link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/core/session
+  '@deepseek-ai/dsh-session-projection': link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/session/session-projection
+  '@deepseek-ai/dsh-system-prompt': link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/core/system-prompt
+  '@deepseek-ai/dsh-tools': link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/core/tools
+  '@deepseek-ai/dsh-typert-protocol': link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/typert/protocol
+  '@deepseek-ai/dsh-user-approval': link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/interaction/user-approval
+  '@deepseek-ai/dsh-util-values': link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/util/values
+
 importers:
 
   .:
+    dependencies:
+      '@deepseek-ai/cordis':
+        specifier: link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/vendor/cordis
+        version: link:../../../_proof/dsh-0.1.3-alpha.1-d347e703/vendor/cordis
+      '@deepseek-ai/dsh-fs':
+        specifier: link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/fs/fs
+        version: link:../../../_proof/dsh-0.1.3-alpha.1-d347e703/packages/fs/fs
+      '@deepseek-ai/dsh-sandbox':
+        specifier: link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/sandbox/sandbox
+        version: link:../../../_proof/dsh-0.1.3-alpha.1-d347e703/packages/sandbox/sandbox
+      '@deepseek-ai/dsh-sandbox-policy':
+        specifier: link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/sandbox/sandbox-policy
+        version: link:../../../_proof/dsh-0.1.3-alpha.1-d347e703/packages/sandbox/sandbox-policy
+      '@deepseek-ai/dsh-tools':
+        specifier: link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/core/tools
+        version: link:../../../_proof/dsh-0.1.3-alpha.1-d347e703/packages/core/tools
+      '@deepseek-ai/schemastery':
+        specifier: link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/vendor/schemastery
+        version: link:../../../_proof/dsh-0.1.3-alpha.1-d347e703/vendor/schemastery
     devDependencies:
+      '@deepseek-ai/cordis-plugin-include':
+        specifier: link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/vendor/include
+        version: link:../../../_proof/dsh-0.1.3-alpha.1-d347e703/vendor/include
+      '@deepseek-ai/cordis-plugin-loader':
+        specifier: link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/vendor/loader
+        version: link:../../../_proof/dsh-0.1.3-alpha.1-d347e703/vendor/loader
+      '@deepseek-ai/dsh-agent':
+        specifier: link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/core/agent
+        version: link:../../../_proof/dsh-0.1.3-alpha.1-d347e703/packages/core/agent
+      '@deepseek-ai/dsh-code-runtime':
+        specifier: link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/code-runtime/code-runtime
+        version: link:../../../_proof/dsh-0.1.3-alpha.1-d347e703/packages/code-runtime/code-runtime
+      '@deepseek-ai/dsh-fs-local':
+        specifier: link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/fs/fs-local
+        version: link:../../../_proof/dsh-0.1.3-alpha.1-d347e703/packages/fs/fs-local
+      '@deepseek-ai/dsh-fs-sandbox':
+        specifier: link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/fs/fs-sandbox
+        version: link:../../../_proof/dsh-0.1.3-alpha.1-d347e703/packages/fs/fs-sandbox
+      '@deepseek-ai/dsh-invariants':
+        specifier: link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/runtime-diagnostics/invariants
+        version: link:../../../_proof/dsh-0.1.3-alpha.1-d347e703/packages/runtime-diagnostics/invariants
+      '@deepseek-ai/dsh-llm':
+        specifier: link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/llm/llm
+        version: link:../../../_proof/dsh-0.1.3-alpha.1-d347e703/packages/llm/llm
+      '@deepseek-ai/dsh-scope':
+        specifier: link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/core/scope
+        version: link:../../../_proof/dsh-0.1.3-alpha.1-d347e703/packages/core/scope
+      '@deepseek-ai/dsh-session':
+        specifier: link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/core/session
+        version: link:../../../_proof/dsh-0.1.3-alpha.1-d347e703/packages/core/session
+      '@deepseek-ai/dsh-session-projection':
+        specifier: link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/session/session-projection
+        version: link:../../../_proof/dsh-0.1.3-alpha.1-d347e703/packages/session/session-projection
+      '@deepseek-ai/dsh-system-prompt':
+        specifier: link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/core/system-prompt
+        version: link:../../../_proof/dsh-0.1.3-alpha.1-d347e703/packages/core/system-prompt
+      '@deepseek-ai/dsh-typert-protocol':
+        specifier: link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/typert/protocol
+        version: link:../../../_proof/dsh-0.1.3-alpha.1-d347e703/packages/typert/protocol
+      '@deepseek-ai/dsh-user-approval':
+        specifier: link:C:/Users/Zz/Documents/projects/_proof/dsh-0.1.3-alpha.1-d347e703/packages/interaction/user-approval
+        version: link:../../../_proof/dsh-0.1.3-alpha.1-d347e703/packages/interaction/user-approval
       '@types/node':
         specifier: 22.20.1
         version: 22.20.1
