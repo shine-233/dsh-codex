@@ -3,10 +3,16 @@ export { Policy } from './policy.js';
 export { prefixRule, altsToken, singleToken, type PatternToken, type PrefixRule } from './rule.js';
 export { parsePolicyFile, type ParsedPolicy } from './starlarkLite.js';
 export {
-  dangerousCommandMatch, executableNameLookupKey, executableBasename,
-  isDangerousCommandWindows, isDangerousPowershellWords, shlexSplit, splitInvocationSegments,
+  dangerousCommandMatch, dangerousCommandMatchForPlatform, executableNameLookupKey,
+  executableBasename, isDangerousCommandWindows, isDangerousPowershellWords,
+  dangerousPowershellWordsMatch, shlexSplit, splitInvocationSegments,
   type DangerousPlatform, type DangerousMatch, type DangerousOptions,
 } from './commandSafety.js';
+export {
+  extractPowershellCommand,
+  parsePowershellCommandIntoPlainCommands,
+  parsePowershellScriptIntoPlainCommands,
+} from './powershellLowering.js';
 export {
   truncateText, truncateMiddleChars, truncateMiddleWithTokenBudget, formattedTruncateText,
   truncateFunctionOutputItems, approxTokenCount, approxBytesForTokens, approxTokensFromByteCount,

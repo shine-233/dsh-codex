@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   dangerousCommandMatch,
+  dangerousCommandMatchForPlatform,
+  dangerousPowershellWordsMatch,
   executableNameLookupKey,
   executableBasename,
   isDangerousPowershellWords,
@@ -106,5 +108,47 @@ describe('commandSafety (ported from shell-command command_safety, rust-v0.153.4
   it('shlexSplit is quote aware', () => {
     expect(shlexSplit('sh -c "rm -rf /"')).toEqual(['sh', '-c', 'rm -rf /']);
     expect(shlexSplit("echo 'it''s'")).not.toBeNull();
+  });
+});
+
+describe('platform-shaped entry points (upstream *_for_platform / _words_match)', () => {
+  const commands: string[][] = [
+    ['rm', '-rf', '/'],
+    ['rm', '-fr', 'build'],
+    ['cmd', '/c', 'del', '/f', 'x'],
+    ['pwsh', '-Command', 'Remove-Item -Force file'],
+    ['pwsh', '-Command', 'Get-ChildItem'],
+    ['powershell.exe', '-c', 'Remove-Item -Force x'],
+    ['git', 'status'],
+  ];
+
+  it('dangerousCommandMatchForPlatform agrees with the options-bag classifier', () => {
+    // Upstream forwards to the depth-aware classifier at depth 0, so both
+    // shapes must return the same verdict for every platform.
+    for (const command of commands) {
+      for (const platform of ['posix', 'windows'] as const) {
+        expect(dangerousCommandMatchForPlatform(command, platform))
+          .toBe(dangerousCommandMatch(command, { platform }));
+      }
+    }
+  });
+
+  it('treats the platform argument as load-bearing, not decorative', () => {
+    // cmd.exe deletion is only a danger pattern on Windows.
+    expect(dangerousCommandMatchForPlatform(['cmd', '/c', 'del', '/f', 'x'], 'windows')).toBe('Other');
+    expect(dangerousCommandMatchForPlatform(['cmd', '/c', 'del', '/f', 'x'], 'posix')).toBeNull();
+  });
+
+  it('dangerousPowershellWordsMatch gates on windows', () => {
+    const dangerous = ['pwsh', '-Command', 'Remove-Item -Force file'];
+    expect(dangerousPowershellWordsMatch(dangerous, 'windows')).toBe('Other');
+    expect(dangerousPowershellWordsMatch(dangerous, 'posix')).toBeNull();
+  });
+
+  it('dangerousPowershellWordsMatch scans powershell only, not every windows danger', () => {
+    // A benign script stays null, and cmd.exe is out of scope for the word
+    // scan even though the general Windows check flags it.
+    expect(dangerousPowershellWordsMatch(['pwsh', '-Command', 'Get-ChildItem'], 'windows')).toBeNull();
+    expect(dangerousPowershellWordsMatch(['cmd', '/c', 'del', '/f', 'x'], 'windows')).toBeNull();
   });
 });

@@ -588,6 +588,191 @@ function shlexJoin(tokens) {
   return shlexTryJoin(tokens) ?? "<command included NUL byte>";
 }
 
+// src/powershellLowering.ts
+var POWERSHELL_FLAGS = /* @__PURE__ */ new Set(["-nologo", "-noprofile", "-command", "-c"]);
+var UNICODE_SYNTAX_ALIASES = /[‘’“”–—―]/u;
+var STRUCTURAL_BARE = /[$@'"(){}\[\];|&><,]/u;
+var TOKEN_BOUNDARY = /\s/u;
+function executableBasename(value) {
+  return (value.split(/[\\/]/u).pop() ?? "").replace(/\.exe$/iu, "").toLowerCase();
+}
+function extractPowershellCommand(command) {
+  if (command.length < 3) return null;
+  const shell = command[0];
+  const basename2 = executableBasename(shell);
+  if (basename2 !== "powershell" && basename2 !== "pwsh") return null;
+  for (let index = 1; index + 1 < command.length; index += 1) {
+    const flag = command[index].toLowerCase();
+    if (!POWERSHELL_FLAGS.has(flag)) return null;
+    if (flag === "-command" || flag === "-c") {
+      return index + 2 === command.length ? { shell, script: command[index + 1] } : null;
+    }
+  }
+  return null;
+}
+function decodeBacktickEscape(value) {
+  const escapes = {
+    "0": "\0",
+    a: "\x07",
+    b: "\b",
+    f: "\f",
+    n: "\n",
+    r: "\r",
+    t: "	",
+    v: "\v"
+  };
+  return escapes[value] ?? value;
+}
+function readSingleQuoted(script, cursor) {
+  let value = "";
+  cursor.index += 1;
+  while (cursor.index < script.length) {
+    if (script[cursor.index] !== "'") {
+      value += script[cursor.index];
+      cursor.index += 1;
+      continue;
+    }
+    if (script[cursor.index + 1] === "'") {
+      value += "'";
+      cursor.index += 2;
+      continue;
+    }
+    cursor.index += 1;
+    return { value, bare: false };
+  }
+  return null;
+}
+function readDoubleQuoted(script, cursor) {
+  let value = "";
+  cursor.index += 1;
+  while (cursor.index < script.length) {
+    const char = script[cursor.index];
+    if (char === '"') {
+      cursor.index += 1;
+      return { value, bare: false };
+    }
+    if (char === "$") return null;
+    if (char === "`") {
+      const escaped = script[cursor.index + 1];
+      if (escaped === void 0 || escaped === "e") return null;
+      if (escaped === "u" && script[cursor.index + 2] === "{") return null;
+      value += decodeBacktickEscape(escaped);
+      cursor.index += 2;
+      continue;
+    }
+    value += char;
+    cursor.index += 1;
+  }
+  return null;
+}
+function readBare(script, cursor) {
+  let value = "";
+  while (cursor.index < script.length) {
+    const char = script[cursor.index];
+    if (TOKEN_BOUNDARY.test(char) || ";|&".includes(char)) break;
+    if (char === "#" && value.length === 0) break;
+    if (char === "`") {
+      const escaped = script[cursor.index + 1];
+      if (escaped === void 0 || escaped === "e") return null;
+      value += decodeBacktickEscape(escaped);
+      cursor.index += 2;
+      continue;
+    }
+    if (STRUCTURAL_BARE.test(char)) return null;
+    value += char;
+    cursor.index += 1;
+  }
+  return value ? { value, bare: true } : null;
+}
+function readWord(script, cursor) {
+  if (script[cursor.index] === "'") return readSingleQuoted(script, cursor);
+  if (script[cursor.index] === '"') return readDoubleQuoted(script, cursor);
+  return readBare(script, cursor);
+}
+function bareWordIsLiteral(word) {
+  if (word.includes("#") && word.endsWith("#")) return false;
+  if (word === "--%") return false;
+  if (word.startsWith("-") && !word.startsWith("--") && (word.includes(":") || word.includes("="))) return false;
+  if (/^\d/u.test(word)) {
+    return word === "0" || /^[1-9]\d*$/u.test(word);
+  }
+  return true;
+}
+function skipLineComment(script, cursor) {
+  while (cursor.index < script.length && !/[\r\n]/u.test(script[cursor.index])) {
+    cursor.index += 1;
+  }
+}
+function skipBlockComment(script, cursor) {
+  const end = script.indexOf("#>", cursor.index + 2);
+  if (end < 0) return false;
+  cursor.index = end + 2;
+  return true;
+}
+function consumeSeparator(script, cursor) {
+  const char = script[cursor.index];
+  if (char === ";" || char === "\r" || char === "\n") {
+    cursor.index += 1;
+    if (char === "\r" && script[cursor.index] === "\n") cursor.index += 1;
+    return true;
+  }
+  if (char === "|") {
+    cursor.index += script[cursor.index + 1] === "|" ? 2 : 1;
+    return true;
+  }
+  if (char === "&" && script[cursor.index + 1] === "&") {
+    cursor.index += 2;
+    return true;
+  }
+  return null;
+}
+function parsePowershellScriptIntoPlainCommands(script) {
+  if (!script.trim() || UNICODE_SYNTAX_ALIASES.test(script)) return null;
+  const cursor = { index: 0 };
+  const commands = [];
+  let current = [];
+  let needsCommand = true;
+  while (cursor.index < script.length) {
+    while (cursor.index < script.length && TOKEN_BOUNDARY.test(script[cursor.index])) {
+      cursor.index += 1;
+    }
+    if (cursor.index >= script.length) break;
+    if (script.startsWith("<#", cursor.index)) {
+      if (current.length || !skipBlockComment(script, cursor)) return null;
+      continue;
+    }
+    if (script[cursor.index] === "#") {
+      if (!current.length && needsCommand) return null;
+      skipLineComment(script, cursor);
+      continue;
+    }
+    const separator = consumeSeparator(script, cursor);
+    if (separator !== null) {
+      if (!current.length) return null;
+      commands.push(current);
+      current = [];
+      needsCommand = true;
+      continue;
+    }
+    const word = readWord(script, cursor);
+    if (!word || !word.value || word.bare && !bareWordIsLiteral(word.value)) return null;
+    if (cursor.index < script.length) {
+      const next = script[cursor.index];
+      if (!TOKEN_BOUNDARY.test(next) && !";|&".includes(next) && next !== "#") return null;
+    }
+    current.push(word.value);
+    needsCommand = false;
+  }
+  if (current.length) commands.push(current);
+  if (!commands.length || needsCommand) return null;
+  if (commands.some((command) => command[0].toLowerCase() === "using")) return null;
+  return commands;
+}
+function parsePowershellCommandIntoPlainCommands(command) {
+  const extracted = extractPowershellCommand(command);
+  return extracted ? parsePowershellScriptIntoPlainCommands(extracted.script) : null;
+}
+
 // src/commandSafety.ts
 var MAX_WRAPPER_DEPTH = 8;
 var WINDOWS_EXEC_SUFFIXES = [".exe", ".cmd", ".bat", ".com"];
@@ -634,7 +819,7 @@ function splitInvocationSegments(line) {
   flush();
   return segments;
 }
-function executableBasename(exe) {
+function executableBasename2(exe) {
   const name2 = exe.split(/[\\/]/).pop() ?? "";
   if (!name2) return null;
   let stripped = name2;
@@ -658,7 +843,7 @@ function executableNameLookupKey(raw, platform) {
   return name2 || null;
 }
 function isPowershellExecutable(exe) {
-  const base = executableBasename(exe);
+  const base = executableBasename2(exe);
   return base === "powershell" || base === "powershell.exe" || base === "pwsh" || base === "pwsh.exe";
 }
 function isBrowserExecutable(name2) {
@@ -691,6 +876,13 @@ function shLiteralCommands(script) {
 function dangerousCommandMatch(command, options = {}) {
   const platform = options.platform ?? (process.platform === "win32" ? "windows" : "posix");
   return matchWithDepth(command, options.wrapperDepth ?? 0, platform);
+}
+function dangerousCommandMatchForPlatform(command, platform) {
+  return matchWithDepth(command, 0, platform);
+}
+function dangerousPowershellWordsMatch(command, platform) {
+  if (platform !== "windows") return null;
+  return isDangerousPowershell(command) ? "Other" : null;
 }
 function dangerousCommandMatchLine(line, options = {}) {
   const platform = options.platform ?? (process.platform === "win32" ? "windows" : "posix");
@@ -812,11 +1004,11 @@ function isPowershellInvocationArgs(args) {
   return null;
 }
 function isDangerousPowershell(command) {
-  if (!command.length) return false;
-  if (!isPowershellExecutable(command[0])) return false;
+  if (!command.length || !isPowershellExecutable(command[0])) return false;
+  const commands = parsePowershellCommandIntoPlainCommands(command);
+  if (commands) return commands.some(isDangerousPowershellWords);
   const tokens = isPowershellInvocationArgs(command.slice(1));
-  if (!tokens) return false;
-  return isDangerousPowershellWords(tokens);
+  return tokens ? isDangerousPowershellWords(tokens) : false;
 }
 function isDangerousPowershellWords(words) {
   const tokensLc = words.map((t) => t.replace(/^'+|^"+/g, "").replace(/'+$|"+$/g, "").toLowerCase());
@@ -836,7 +1028,7 @@ function isDangerousPowershellWords(words) {
 }
 function isDangerousCmd(command) {
   if (!command.length) return false;
-  const base = executableBasename(command[0]);
+  const base = executableBasename2(command[0]);
   if (base !== "cmd" && base !== "cmd.exe") return false;
   let i = 1;
   for (; i < command.length; i++) {
@@ -869,7 +1061,7 @@ function isDangerousCmd(command) {
 }
 function isDirectGuiLaunch(command) {
   if (!command.length) return false;
-  const base = executableBasename(command[0]);
+  const base = executableBasename2(command[0]);
   if (!base) return false;
   const rest = command.slice(1);
   if ((base === "explorer" || base === "explorer.exe") && argsHaveUrl(rest)) return true;
@@ -1250,15 +1442,15 @@ function classifyShell(shellPath) {
 }
 
 // src/parseCommand/powershellExtract.ts
-var POWERSHELL_FLAGS = ["-nologo", "-noprofile", "-command", "-c"];
-function extractPowershellCommand(command) {
+var POWERSHELL_FLAGS2 = ["-nologo", "-noprofile", "-command", "-c"];
+function extractPowershellCommand2(command) {
   if (command.length < 3) return null;
   const shell = command[0];
   if (detectShellType(shell) !== "powershell") return null;
   let i = 1;
   while (i + 1 < command.length) {
     const flag = command[i];
-    if (!POWERSHELL_FLAGS.includes(flag.toLowerCase())) return null;
+    if (!POWERSHELL_FLAGS2.includes(flag.toLowerCase())) return null;
     if (flag.toLowerCase() === "-command" || flag.toLowerCase() === "-c") {
       const script = command[i + 1];
       return [shell, script];
@@ -1288,7 +1480,7 @@ function tokenizePowershellCommand(command) {
   return tokens;
 }
 function extractShellCommand(command) {
-  return extractBashCommand(command) ?? extractPowershellCommand(command);
+  return extractBashCommand(command) ?? extractPowershellCommand2(command);
 }
 function extractBashCommand(command) {
   if (command.length !== 3) return null;
@@ -2095,7 +2287,7 @@ function parseCommandImpl(command) {
   if (shellLc !== null) return shellLc;
   const head = command[0];
   const powershellCommand = head !== void 0 && head.includes("\\") ? command.map((t, i) => i === 0 ? head.split(/[\\/]/).pop() ?? head : t) : null;
-  const ps = extractPowershellCommand(powershellCommand ?? command);
+  const ps = extractPowershellCommand2(powershellCommand ?? command);
   if (ps !== null) {
     const [, script] = ps;
     const tokens = tokenizePowershellCommand(script);
@@ -2173,13 +2365,6 @@ function extractBashCommand2(argv) {
   if (!SHELL_BASENAMES.has(basename(shell))) return null;
   return { shellMode: flag, script };
 }
-function extractPowershellCommand2(argv) {
-  if (argv.length !== 3) return null;
-  const [shell, flag, script] = argv;
-  const base = basename(shell);
-  if (base !== "powershell" && base !== "pwsh" || flag.toLowerCase() !== "-command") return null;
-  return { script };
-}
 function isPlainWordToken(token) {
   return !/['"`$<>&;|*?~(){}\n\r]/.test(token) && !/^\s*#/.test(token);
 }
@@ -2201,8 +2386,11 @@ function canonicalizeCommandForApproval(argv) {
     if (commands && commands.length === 1) return commands[0];
     return [SH_SCRIPT_PREFIX, argv[1], script];
   }
-  if (extractPowershellCommand2(argv)) {
-    return [PS_SCRIPT_PREFIX, argv[2]];
+  const powershell = extractPowershellCommand(argv);
+  if (powershell) {
+    const commands = parsePowershellScriptIntoPlainCommands(powershell.script);
+    if (commands && commands.length === 1) return commands[0];
+    return [PS_SCRIPT_PREFIX, powershell.script];
   }
   return argv;
 }
@@ -2415,11 +2603,14 @@ export {
   approxTokenCount,
   approxTokensFromByteCount,
   dangerousCommandMatch,
+  dangerousCommandMatchForPlatform,
+  dangerousPowershellWordsMatch,
   evaluate,
   evaluateCached,
-  executableBasename,
+  executableBasename2 as executableBasename,
   executableNameLookupKey,
   extractBashCommand,
+  extractPowershellCommand,
   formattedTruncateText,
   inject,
   isDangerousCommandWindows,
@@ -2432,6 +2623,8 @@ export {
   parseCommand,
   parseCommandImpl,
   parsePolicyFile,
+  parsePowershellCommandIntoPlainCommands,
+  parsePowershellScriptIntoPlainCommands,
   parseShellLcPlainCommands,
   parseShellScript,
   parseShellScriptIntoCommands,

@@ -8,6 +8,7 @@
 // Semantic line parsing (quotes/substitutions/heredocs) lives in shellParser.ts.
 import { shellSubCommands } from './shellParser.js'
 import { shlexSplit } from './parseCommand/shlex.js'
+import { parsePowershellCommandIntoPlainCommands } from './powershellLowering.js'
 
 export type DangerousPlatform = 'posix' | 'windows'
 export type DangerousMatch = 'ForcedRm' | 'Other'
@@ -135,6 +136,34 @@ export function dangerousCommandMatch(
 ): DangerousMatch | null {
   const platform = options.platform ?? (process.platform === 'win32' ? 'windows' : 'posix')
   return matchWithDepth(command, options.wrapperDepth ?? 0, platform)
+}
+
+/**
+ * Upstream `dangerous_command_match_for_platform`: forwards to the depth-aware
+ * classifier at depth 0. `dangerousCommandMatch` already threads a platform
+ * through its options bag — this pins the upstream argument shape so the two
+ * surfaces can be diffed name-for-name instead of through an option bag.
+ */
+export function dangerousCommandMatchForPlatform(
+  command: string[],
+  platform: DangerousPlatform,
+): DangerousMatch | null {
+  return matchWithDepth(command, 0, platform)
+}
+
+/**
+ * Upstream `dangerous_powershell_words_match`: a thin platform gate. Windows
+ * defers to the PowerShell danger scan, every other platform is a no-op.
+ * Kept distinct from `isDangerousCommandWindows` because upstream exposes the
+ * word scan as its own entry point rather than folding it into the general
+ * Windows check.
+ */
+export function dangerousPowershellWordsMatch(
+  command: string[],
+  platform: DangerousPlatform,
+): DangerousMatch | null {
+  if (platform !== 'windows') return null
+  return isDangerousPowershell(command) ? 'Other' : null
 }
 
 /**
@@ -317,11 +346,11 @@ function isPowershellInvocationArgs(args: string[]): string[] | null {
 }
 
 function isDangerousPowershell(command: string[]): boolean {
-  if (!command.length) return false
-  if (!isPowershellExecutable(command[0])) return false
+  if (!command.length || !isPowershellExecutable(command[0])) return false
+  const commands = parsePowershellCommandIntoPlainCommands(command)
+  if (commands) return commands.some(isDangerousPowershellWords)
   const tokens = isPowershellInvocationArgs(command.slice(1))
-  if (!tokens) return false
-  return isDangerousPowershellWords(tokens)
+  return tokens ? isDangerousPowershellWords(tokens) : false
 }
 
 export function isDangerousPowershellWords(words: string[]): boolean {
