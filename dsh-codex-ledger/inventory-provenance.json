@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "historicalAnchor": "970b7f2ff4f612b8e8cd340eb6b6d789d7141dd2",
+  "observedThrough": "adee0b04fa27a8ba5d2e3612b900363cffe72930",
+  "reviewWindows": [
+    {
+      "baseExclusive": "970b7f2ff4f612b8e8cd340eb6b6d789d7141dd2",
+      "headInclusive": "121f91fd5d9dc66017866ce9bdc49f1e182721df",
+      "note": "Closes the previously unrecorded post-anchor window; inspect through Git objects because the local checkout is shallow at the head."
+    },
+    {
+      "baseExclusive": "121f91fd5d9dc66017866ce9bdc49f1e182721df",
+      "headInclusive": "f3f53ee",
+      "report": "../dsh-codex-pack/docs/UPSTREAM-17-COMMIT-REVIEW.md"
+    },
+    {
+      "baseExclusive": "f3f53ee",
+      "headInclusive": "adee0b04fa27a8ba5d2e3612b900363cffe72930",
+      "report": "../dsh-codex-pack/docs/UPSTREAM-12-COMMIT-REVIEW.md"
+    }
+  ],
+  "paths": {
+    "agent-roles": {
+      "inventoryClass": "incremental-addition",
+      "presenceEpochs": [
+        { "addedAt": "fb9311db5ce1910ee71d0f29c074f3af0f72417d" }
+      ]
+    },
+    "attachment-store": {
+      "inventoryClass": "incremental-addition",
+      "presenceEpochs": [
+        { "addedAt": "03467026f2426fafd3d33bbdfc78ec5f9d79f6f0" }
+      ]
+    },
+    "config-schema": {
+      "inventoryClass": "incremental-addition",
+      "presenceEpochs": [
+        { "addedAt": "9a4b78579a7f672d5c71aa442bb95072915cc5cd" }
+      ]
+    },
+    "guardian-context": {
+      "inventoryClass": "incremental-addition",
+      "presenceEpochs": [
+        { "addedAt": "4878401e8fbd205c683255b0d224a4592ff95a09" }
+      ],
+      "sources": [
+        {
+          "path": "codex-rs/guardian-context",
+          "reviewRevision": "adee0b04fa27a8ba5d2e3612b900363cffe72930",
+          "symbols": ["SectionRegistry.collect", "ContextSection", "truncate_text"]
+        },
+        {
+          "path": "codex-rs/ext/guardian-v2",
+          "reviewRevision": "adee0b04fa27a8ba5d2e3612b900363cffe72930",
+          "note": "The destination combines Guardian prompt material from both upstream paths."
+        }
+      ]
+    },
+    "mcp-server": {
+      "inventoryClass": "historical-anchor",
+      "presenceEpochs": [
+        { "addedAt": null, "removedAt": "531f3836a1e38ea61eaaba3dccda6711eb6c0dca" }
+      ]
+    },
+    "mcp-server/tests/common": {
+      "inventoryClass": "historical-anchor",
+      "presenceEpochs": [
+        { "addedAt": null, "removedAt": "531f3836a1e38ea61eaaba3dccda6711eb6c0dca" }
+      ]
+    },
+    "mxc-sandbox": {
+      "inventoryClass": "incremental-addition",
+      "presenceEpochs": [
+        { "addedAt": "60888d08685f3caa8ad4979518924d373d7477cf" }
+      ]
+    },
+    "otel-trace-websocket": {
+      "inventoryClass": "incremental-addition",
+      "presenceEpochs": [
+        { "addedAt": "9969043b95339ec008b2f2f317f664d763fa4825" }
+      ]
+    },
+    "realtime-webrtc": {
+      "inventoryClass": "incremental-addition",
+      "presenceEpochs": [
+        {
+          "addedAt": "d90a3488704c6a2d0a3f50c3a17c9e1a52a7ddd9",
+          "removedAt": "b93dcf341c9328a5f71b3c5eef73e9e21ebee5dd"
+        },
+        { "addedAt": "d60560f14e6271da8ac8f680fcdfb9245d5b9413" }
+      ]
+    },
+    "utils/git-discovery": {
+      "inventoryClass": "incremental-addition",
+      "presenceEpochs": [
+        { "addedAt": "8436b749a410133c58ec61fe89db07496ca22033" }
+      ],
+      "sources": [
+        {
+          "path": "codex-rs/utils/git-discovery",
+          "reviewRevision": "adee0b04fa27a8ba5d2e3612b900363cffe72930",
+          "symbols": ["GitRootDiscovery.discover"]
+        }
+      ]
+    },
+    "voice-host": {
+      "inventoryClass": "incremental-addition",
+      "presenceEpochs": [
+        { "addedAt": "d60560f14e6271da8ac8f680fcdfb9245d5b9413" }
+      ]
+    },
+    "windows-sandbox-service": {
+      "inventoryClass": "incremental-addition",
+      "presenceEpochs": [
+        { "addedAt": "501931b3995983c1eb888933bd79adfd18fccc1e" }
+      ]
+    },
+    "worktree": {
+      "inventoryClass": "incremental-addition",
+      "presenceEpochs": [
+        { "addedAt": "f832b2fe7b6e04baa8ea80ff377367a8cc5c90d5" }
+      ]
+    }
+  }
+}

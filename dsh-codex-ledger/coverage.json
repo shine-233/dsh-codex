@@ -3,7 +3,19 @@
     "upstream": "openai/codex",
     "anchor_commit": "970b7f2ff4f6",
     "generated_at": "2026-08-22",
-    "status_audit_at": "2026-09-07"
+    "status_audit_at": "2026-09-09",
+    "incremental_reviews": [
+      {
+        "range": "121f91f..f3f53ee",
+        "report": "../dsh-codex-pack/docs/UPSTREAM-17-COMMIT-REVIEW.md",
+        "non_merge_commits": 17
+      },
+      {
+        "range": "f3f53ee..adee0b0",
+        "report": "../dsh-codex-pack/docs/UPSTREAM-12-COMMIT-REVIEW.md",
+        "non_merge_commits": 12
+      }
+    ]
   },
   "entries": [
     {
@@ -720,7 +732,7 @@
       "code": "",
       "note": "",
       "status": "distilled",
-      "audit": "手写草图 @ts-nocheck M1 + 2026-09-06 三轮升级: protocol/exec-server-protocol/code-mode-protocol 三面各增零依赖运行时校验器 validateXxx(15 测试), history 已先行; 覆盖仍为蒸馏面子集; 2026-09-07 P2-2: 五面 validate.ts 全部 zod 形式化(zodUnion 分发器 + sketchMember/presenceKeys 字段 schema; 先以语义锁 17 测试钉死 ok/variant 契约再重写, 原契约测试零改动通过), zod 为显式 devDep^3.24.0(实测 3.25.76); 2026-09-07 续: tsc --noEmit 全包 0 错误(standalone TS5 工具链), 摘 @ts-nocheck 审计实测 366 处类型错误(机械翻译结构性缺陷) → types.ts 重写列为后续 epic"
+      "audit": "手写草图 @ts-nocheck M1 + 2026-09-06 三轮升级: protocol/exec-server-protocol/code-mode-protocol 三面各增零依赖运行时校验器 validateXxx(15 测试), history 已先行; 覆盖仍为蒸馏面子集; 2026-09-07 P2-2: 五面 validate.ts 全部 zod 形式化(zodUnion 分发器 + sketchMember/presenceKeys 字段 schema; 先以语义锁 17 测试钉死 ok/variant 契约再重写, 原契约测试零改动通过), zod 为显式 devDep^3.24.0(实测 3.25.76); 2026-09-07 续: tsc --noEmit 全包 0 错误(standalone TS5 工具链), 摘 @ts-nocheck 审计实测 366 处类型错误(机械翻译结构性缺陷) → types.ts 重写列为后续 epic; 2026-09-10 对照本地上游 121f91f 的 protocol/src/sanitized_git_url.rs，将 rollout GitInfo remote 凭据脱敏蒸馏到 codex-session-kit 真实 parseRolloutText header 消费边界，严格/容错 API + 18 测试，session-kit 56/56、typecheck 0"
     },
     {
       "path": "response-debug-context",
@@ -786,7 +798,7 @@
       "code": "",
       "note": "",
       "status": "distilled",
-      "audit": "2026-09-06 三轮: 分类器+语义解析器+审批规范键(canonicalization, unified_exec 重试缓存思想)全部落地, /bin/bash -lc 与 bash -c 同键; 共 24 测试。2026-09-07: shell_detect 提权选路已落地(commandSafety.detectEscalation: sudo/doas/pkexec/gsudo/elevate/runas + su -c 路由, 含选项参数跳过)。2026-09-07 续: P1-1 parse_command 全量 bash 文法已落地——缓议前提(本机无上游 rust 源码)因网络通路解除, 取 rust-v0.153.4 上游 parse_command.rs(2,766 行) + bash.rs(565 行) 逐条移植: 新增 codex-policy-engine/src/parseCommand/{shlex,bashWordSeq,shellDetect,powershellExtract,parseCommand}.ts 共 1,537 行 + test/parseCommand.test.ts 625 行/106 测试, 与上游 83(parse_command.rs)+23(bash.rs) 测试名 1:1 对齐(双向 comm diff 零漂移), 其中 6 个高危引号字面量按码点与上游原文逐字节校验; shlex 为 shlex-1.3.0 忠实移植(quote/split 分词与引号策略按 crates.io 源码核对)。policy-engine 测试 45→151 全绿。遗留: 上游 49 函数中 8 个 tree-sitter 节点遍历内部函数无对应物(手写词法器替代, 已写入模块头注释); parse_shell_lc_literal_commands 未按名移植, 其消费路径(危险检测递归)由 commandSafety.splitInvocationSegments 承担——行为等价近似, 非节点级忠实。同日去重: commandSafety.shlexSplit 改为复用忠实移植版, 消除包内双 shlex 实现漂移风险"
+      "audit": "2026-09-06 三轮: 分类器+语义解析器+审批规范键(canonicalization, unified_exec 重试缓存思想)全部落地, /bin/bash -lc 与 bash -c 同键; 共 24 测试。2026-09-07: shell_detect 提权选路已落地(commandSafety.detectEscalation: sudo/doas/pkexec/gsudo/elevate/runas + su -c 路由, 含选项参数跳过)。2026-09-07 续: P1-1 parse_command 全量 bash 文法已落地——缓议前提(本机无上游 rust 源码)因网络通路解除, 取 rust-v0.153.4 上游 parse_command.rs(2,766 行) + bash.rs(565 行) 逐条移植: 新增 codex-policy-engine/src/parseCommand/{shlex,bashWordSeq,shellDetect,powershellExtract,parseCommand}.ts 共 1,537 行 + test/parseCommand.test.ts 625 行/106 测试, 与上游 83(parse_command.rs)+23(bash.rs) 测试名 1:1 对齐(双向 comm diff 零漂移), 其中 6 个高危引号字面量按码点与上游原文逐字节校验; shlex 为 shlex-1.3.0 忠实移植(quote/split 分词与引号策略按 crates.io 源码核对)。policy-engine 测试 45→151 全绿。遗留: 上游 49 函数中 8 个 tree-sitter 节点遍历内部函数无对应物(手写词法器替代, 已写入模块头注释); parse_shell_lc_literal_commands 未按名移植, 其消费路径(危险检测递归)由 commandSafety.splitInvocationSegments 承担——行为等价近似, 非节点级忠实。同日去重: commandSafety.shlexSplit 改为复用忠实移植版, 消除包内双 shlex 实现漂移风险。2026-09-10: 对照本地上游 121f91f 的 command_safety/powershell_tree_sitter.rs 与 68-case powershell_lowering.json, 新增纯静态 fail-closed PowerShell literal lowering, 接入 Windows danger policy 与 approval canonicalization; fixture+集成新增 70 tests, policy-engine 241/241, typecheck 0 errors; 不启动或复制 PowerShell AST runtime"
     },
     {
       "path": "shell-escalation",
@@ -1165,6 +1177,30 @@
       "dest": "EXCLUDED",
       "code": "E5-equivalent-or-os",
       "audit": "dsh workspace 体系即等价层; 2026-09-06 准入"
+    },
+    {
+      "path": "attachment-store",
+      "lines": 186,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "superseded by DSH ctx.attachments durable opaque-reference storage",
+      "audit": "2026-09-10 exact adee0b0: trait 已 runtime-wired，但 persist 仅测试调用；DSH attachment-local 已提供 content-addressed 原子持久化与完整性校验"
+    },
+    {
+      "path": "mxc-sandbox",
+      "lines": 111,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "alternative Windows confinement backend intentionally excluded",
+      "audit": "2026-09-10 exact adee0b0: Codex runtime 仅消费 is_available 遥测，MxcCommand/launcher 无调用；DSH 明确采用 WRITE_RESTRICTED ACL backend"
+    },
+    {
+      "path": "windows-sandbox-service",
+      "lines": 2924,
+      "dest": "EXCLUDED",
+      "code": "E5-equivalent-or-os",
+      "note": "split: privileged service authority blocked; Codex package lifecycle excluded",
+      "audit": "2026-09-10 exact adee0b0: LocalSystem SCM/IPC/机器策略/特权 provisioning 无 DSH seam；package-family/MSIX identity 与安装记录为产品专属"
     }
   ]
 }
