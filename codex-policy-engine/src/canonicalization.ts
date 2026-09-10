@@ -9,6 +9,11 @@
 // Simplification vs upstream: the "plain commands" test is a conservative
 // word-only check (no quotes, substitutions, redirects, globs, or operators
 // beyond && || ; |) instead of upstream's tree-sitter grammar walk.
+import {
+  extractPowershellCommand,
+  parsePowershellScriptIntoPlainCommands,
+} from './powershellLowering.js'
+
 const SH_SCRIPT_PREFIX = '__codex_shell_script__'
 const PS_SCRIPT_PREFIX = '__codex_powershell_script__'
 
@@ -28,13 +33,10 @@ export function extractBashCommand(argv: string[]): { shellMode: string; script:
   return { shellMode: flag, script }
 }
 
-/** `[powershell|pwsh, -Command, script]`? */
-export function extractPowershellCommand(argv: string[]): { script: string } | null {
-  if (argv.length !== 3) return null
-  const [shell, flag, script] = argv
-  const base = basename(shell)
-  if ((base !== 'powershell' && base !== 'pwsh') || flag.toLowerCase() !== '-command') return null
-  return { script }
+/** `[powershell|pwsh, supported flags..., -Command|-c, script]`? */
+export function extractPowershellCommandForApproval(argv: string[]): { script: string } | null {
+  const extracted = extractPowershellCommand(argv)
+  return extracted ? { script: extracted.script } : null
 }
 
 /** Word-only token: no shell metacharacters that could hide another command. */
@@ -66,8 +68,11 @@ export function canonicalizeCommandForApproval(argv: string[]): string[] {
     if (commands && commands.length === 1) return commands[0]
     return [SH_SCRIPT_PREFIX, argv[1], script]
   }
-  if (extractPowershellCommand(argv)) {
-    return [PS_SCRIPT_PREFIX, argv[2]]
+  const powershell = extractPowershellCommand(argv)
+  if (powershell) {
+    const commands = parsePowershellScriptIntoPlainCommands(powershell.script)
+    if (commands && commands.length === 1) return commands[0]
+    return [PS_SCRIPT_PREFIX, powershell.script]
   }
   return argv
 }

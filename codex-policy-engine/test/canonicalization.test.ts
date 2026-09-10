@@ -13,10 +13,15 @@ describe('canonicalization (ported from core/src/command_canonicalization.rs, 0.
     expect(out[0]).toBe('__codex_shell_script__');
     expect(out[1]).toBe('-c');
   });
-  it('canonicalizes powershell -Command', () => {
-    const out = canonicalizeCommandForApproval(['pwsh', '-Command', 'Get-ChildItem']);
+  it('unwraps one literal PowerShell command and preserves complex scripts', () => {
+    expect(canonicalizeCommandForApproval([
+      'pwsh', '-NoProfile', '-Command', "Get-Content 'foo bar'",
+    ])).toEqual(['Get-Content', 'foo bar']);
+    const out = canonicalizeCommandForApproval([
+      'pwsh', '-Command', 'Get-ChildItem; Measure-Object',
+    ]);
     expect(out[0]).toBe('__codex_powershell_script__');
-    expect(out[1]).toBe('Get-ChildItem');
+    expect(out[1]).toBe('Get-ChildItem; Measure-Object');
   });
   it('passes non-wrapper commands through verbatim', () => {
     expect(canonicalizeCommandForApproval(['git', 'status'])).toEqual(['git', 'status']);

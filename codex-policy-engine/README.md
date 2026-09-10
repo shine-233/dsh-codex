@@ -11,7 +11,8 @@
 一个**纯 JS 的命令审批引擎**：你用前缀规则声明"哪些命令直接放行、哪些必须询问用户、哪些一律禁止"，它在 agent 每次 shell 执行前做最安全优先聚合裁决。
 
 - 规则模型移植自 `openai/codex` 的 `execpolicy/src/rule.rs + policy.rs`（锚点 `970b7f2ff4f6`）
-- 零运行时依赖，Node 18+ 可用，当前包内 162 个单测覆盖
+- 零运行时依赖，Node 18+ 可用；本地验证使用 Vitest 4.1.11
+- PowerShell `-Command` 先经 68-case 上游 fixture 锁定的纯静态 literal lowering；不启动 PowerShell，动态/未知语法保持 opaque
 - 既可作为 **dsh 插件**接管 `tools/pre-execute` 审批缝，也可作为独立库嵌入任何 agent
 - 规则求值按规范化命令做插件实例内缓存；用户审批结果（包括 `allowed-once`）仍由 dsh 按调用处理，绝不进入该缓存
 - 可选 `decisionAdapter` 接收 `callId` / `rootCallId` / `signal` 并返回 delegate/ask/deny；异常、取消或缺身份时 fail closed
@@ -81,6 +82,8 @@ policy.check(['rm', '-rf', '/'])      // → { decision: 'Prompt', ... }
 | `prefixRule(first, rest, decision)` | 构造前缀规则 |
 | `altsToken(values)` / `singleToken(value)` | rest 位置的模式 token |
 | `parsePolicyFile(text)` | 解析 Starlark 策略文件子集 |
+| `parsePowershellScriptIntoPlainCommands(script)` | 把受支持的 literal PowerShell 子集降为 argv；动态、重定向、展开等返回 `null` |
+| `parsePowershellCommandIntoPlainCommands(argv)` | 识别 `powershell` / `pwsh` wrapper 后调用同一 lowering |
 | `apply(ctx, config)` | dsh 插件入口（name / inject / apply 三件套） |
 | `config.decisionAdapter` | 可选调用级扩展决策器；只处理 delegate / ask / deny，不直接请求 ApprovalService |
 | `config.runtimeObserver` | 可选最终结果观察器；按 `callId` 关联，不代表审批 outcome feedback |
