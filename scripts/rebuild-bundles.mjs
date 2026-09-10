@@ -22,6 +22,7 @@ import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSy
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { windowsCmdInvocation } from './windows-cmd-invocation.mjs';
 
 const ROOT = resolve(fileURLToPath(import.meta.url), '..', '..');
 
@@ -49,10 +50,28 @@ function packages() {
 }
 
 function resolveEsbuild(pkgDir, explicit) {
-  if (explicit) return explicit;
-  const local = join(pkgDir, 'node_modules', '.bin', 'esbuild');
-  if (existsSync(local)) return local;
-  return process.platform === 'win32' ? 'esbuild.cmd' : 'esbuild';
+  if (explicit) return { executable: explicit, prefix: [] };
+  const bin = join(pkgDir, 'node_modules', '.bin');
+  const local = join(bin, process.platform === 'win32' ? 'esbuild.cmd' : 'esbuild');
+  if (existsSync(local)) return { executable: local, prefix: [] };
+
+  const esbuildRoot = join(pkgDir, 'node_modules', '.pnpm');
+  if (existsSync(esbuildRoot)) {
+    const packageDirs = readdirSync(esbuildRoot, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory() && /^esbuild@/u.test(entry.name))
+      .map((entry) => entry.name)
+      .sort()
+      .reverse();
+    for (const packageDir of packageDirs) {
+      const launcher = join(esbuildRoot, packageDir, 'node_modules', 'esbuild', 'bin', 'esbuild');
+      if (!existsSync(launcher)) continue;
+      return process.platform === 'win32'
+        ? { executable: process.execPath, prefix: [launcher] }
+        : { executable: launcher, prefix: [] };
+    }
+  }
+
+  return { executable: process.platform === 'win32' ? 'esbuild.cmd' : 'esbuild', prefix: [] };
 }
 
 function exportsOf(js) {
@@ -77,18 +96,21 @@ const failures = [];
 // comments relative to the cwd, so building from the repo root would prefix
 // every comment with the package name and report a false drift.
 function build(esbuild, pkgDir, entry, out) {
-  const args = [entry, '--bundle', '--format=esm', '--platform=node', '--packages=external', `--outfile=${out}`];
+  const args = [...esbuild.prefix, entry, '--bundle', '--format=esm', '--platform=node', '--packages=external', `--outfile=${out}`];
   // Windows package shims are .cmd files and cannot be launched directly by
   // execFileSync without a shell. Keep the normal direct path for real
   // binaries, including Linux CI, while making local Windows checks work.
-  if (process.platform === 'win32' && /\.(cmd|ps1)$/i.test(esbuild)) {
-    execFileSync(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', [esbuild, ...args].map((arg) => `"${arg}"`).join(' ')], {
+  if (process.platform === 'win32' && /\.(cmd|bat)$/i.test(esbuild.executable)) {
+    const invocation = windowsCmdInvocation(esbuild.executable, args);
+    execFileSync(invocation.executable, invocation.args, {
       cwd: pkgDir,
       stdio: 'pipe',
       windowsVerbatimArguments: true,
     });
+  } else if (process.platform === 'win32' && /\.ps1$/i.test(esbuild.executable)) {
+    throw new Error('PowerShell command shims are not supported; use a .cmd shim or executable');
   } else {
-    execFileSync(esbuild, args, { cwd: pkgDir, stdio: 'pipe' });
+    execFileSync(esbuild.executable, args, { cwd: pkgDir, stdio: 'pipe' });
   }
   return readFileSync(join(pkgDir, out), 'utf8');
 }
