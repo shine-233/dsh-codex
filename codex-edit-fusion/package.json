@@ -57,5 +57,12 @@
     "bundle": {
       "patch": "./cordis.patch.yml"
     }
-  }
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "NOTICE.md",
+    "README.md",
+    "src"
+  ]
 }
