@@ -97,3 +97,4 @@ export class MemoryStore {
 export { SessionIndex, type IndexedSession } from './sessionIndex.js';
 export * from './claudeCode.js';
 export * from './sanitizedGitUrl.js';
+export * from './subagentRoster.js';

@@ -66,7 +66,23 @@ mem.set('route', 'codex-port')             // 重启后自动重建状态
 | `toDshEvents(items)` | 归一化为 `{type, payload}` 事件流 |
 | `MemoryStore` | 追加式 JSONL 记忆库（set/get/delete/keys） |
 | `SessionIndex` | node:sqlite 可用时的镜像索引 |
+| `formatSubagentRoster(entries)` | 有界子代理名册格式化（≤8 行、≤1024 UTF-8 字节、诊断条目 fail closed） |
+| `MAX_ROSTER_ROWS` / `MAX_ROSTER_BYTES` | 名册行数上限（8）与字节上限（1024） |
 | `apply(ctx, config)` | dsh 插件入口；`config.memoryPath` 自定义存储路径 |
+
+## 请求时子代理名册（行为子集）
+
+当 `codex-session-kit` 作为 dsh 插件加载、且运行时同时提供 `agents`、`systemPrompt`、`subagents` 服务时，插件会为每个 Agent 挂载一个 `system-prompt/assemble` 异步消费者。每次模型请求前：
+
+- 调用 `ctx.subagents.listChildren(parentSessionId, signal)` 读取该会话的直接子代理；无子代理时不产生任何上下文贡献
+- 把结果渲染为 `<subagents>` XML 快照：durable `id`、`mode`（`one-shot` / `continuable`）、可选 `label`；顺序按创建时间再按 Session ID 稳定排序；属性做 XML 转义
+- 有界：最多 `MAX_ROSTER_ROWS` = 8 行、整个信封最多 `MAX_ROSTER_BYTES` = 1024 UTF-8 字节；放不下的行跳过并继续；全部放不下则整体不贡献
+- 列表中若出现 `diagnostic` 条目（`corrupt` / `unsupported` / `unavailable`）则在任何截断之前 fail closed（抛出错误，不静默降级）
+- 通过已有的运行时上下文 `user/message` 快照机制持久化，不引入名册专属 Session 事件；因此整机重启后下一次请求可从会话日志重建
+
+名册依赖 `subagents` 服务的存在；缺失该服务时插件其余工具照常注册，名册静默不启用。本能力仅覆盖上述窄子集，不宣称与 codex 子代理协议完全等价。
+
+**已验证边界**：`listChildren` 从 `subagent` identity projection 归类每个候选；若 one-shot 子代理在父会话本轮内**仍处于 live**（其 descriptor 序列尚未被自身 live session 拥有），会被视为仍在其 creation window 内而跳过——与 DSH 对「尚无 identity 的 live 子代理」的规则一致。该子代理在转为 cold（会话在 corpus 中物化）后即可被解析。因此同一轮内刚结束的 one-shot 可能不在名册中，而重启/冷读后会出现。这是 DSH 的消费边界，不是名册缺陷。
 
 ## 来源与许可
 

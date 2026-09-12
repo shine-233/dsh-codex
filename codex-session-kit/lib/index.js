@@ -1,6 +1,7 @@
 // src/dsh-plugin.ts
 import { join as join4 } from "node:path";
 import { homedir } from "node:os";
+import { defineTool } from "@deepseek-ai/dsh-tools";
 
 // src/index.ts
 import { readFileSync as readFileSync3, readdirSync as readdirSync3, statSync as statSync3, writeFileSync, existsSync, mkdirSync } from "node:fs";
@@ -231,6 +232,50 @@ function claudeToDshEvents(turns) {
   }));
 }
 
+// src/subagentRoster.ts
+var MAX_ROSTER_ROWS = 8;
+var MAX_ROSTER_BYTES = 1024;
+var OPEN = "<subagents>";
+var CLOSE = "</subagents>";
+var INDENT = "  ";
+function escapeAttribute(value) {
+  return value.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+}
+function renderRow(entry) {
+  const parts = [`<agent id="${escapeAttribute(entry.id)}"`];
+  parts.push(` mode="${entry.mode}"`);
+  if (entry.label !== void 0 && entry.label !== "") {
+    parts.push(` label="${escapeAttribute(entry.label)}"`);
+  }
+  parts.push(" />");
+  return parts.join("");
+}
+function formatSubagentRoster(entries) {
+  for (const entry of entries) {
+    if (entry.kind === "diagnostic") {
+      throw new Error(
+        `subagent listing contains a diagnostic entry for ${entry.id} (${entry.reason})`
+      );
+    }
+  }
+  const children = entries.filter(
+    (entry) => entry.kind === "child"
+  );
+  if (children.length === 0) return "";
+  const rows = [];
+  let size = Buffer.byteLength(OPEN) + Buffer.byteLength(CLOSE);
+  for (const child of children) {
+    if (rows.length >= MAX_ROSTER_ROWS) break;
+    const line = INDENT + renderRow(child);
+    const added = Buffer.byteLength("\n" + line);
+    if (size + added > MAX_ROSTER_BYTES) continue;
+    rows.push(line);
+    size += added;
+  }
+  if (rows.length === 0) return "";
+  return [OPEN, ...rows, CLOSE].join("\n");
+}
+
 // src/index.ts
 function sanitizeRolloutHeader(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return value;
@@ -445,15 +490,31 @@ var AgentGraphStore = class {
 // src/dsh-plugin.ts
 var name = "codex-session-kit";
 var inject = ["tools"];
+var ROSTER_CONTEXT_NAME = "codex-session-kit:subagent-roster";
 function asRecord(v) {
   return v && typeof v === "object" && !Array.isArray(v) ? v : {};
 }
-function isToolHost(v) {
-  const tools = asRecord(asRecord(v).tools);
-  return typeof tools.register === "function";
+function installRosterListener(ctx, agent) {
+  const fiber = agent.ctx.inject(["systemPrompt", "subagents"], (scope) => {
+    scope.on("system-prompt/assemble", async (_assembly, context, next) => {
+      const assembled = await next();
+      const entries = await scope.subagents.listChildren(agent.session.id, context.signal);
+      const text = formatSubagentRoster(entries);
+      if (text === "") return assembled;
+      if (assembled.contexts.some((item) => item.name === ROSTER_CONTEXT_NAME)) {
+        throw new Error(`duplicate subagent roster prompt context: ${ROSTER_CONTEXT_NAME}`);
+      }
+      return {
+        ...assembled,
+        contexts: [...assembled.contexts, { name: ROSTER_CONTEXT_NAME, text }]
+      };
+    }, { global: true });
+  });
+  return () => {
+    void fiber.dispose();
+  };
 }
 function apply(ctx, config = {}) {
-  if (!isToolHost(ctx)) return;
   const cfg = asRecord(config);
   const memoryPath = typeof cfg.memoryPath === "string" && cfg.memoryPath ? cfg.memoryPath : join4(homedir(), ".dsh", "codex-memory.jsonl");
   let memory;
@@ -462,70 +523,107 @@ function apply(ctx, config = {}) {
   } catch {
     memory = null;
   }
-  const defineTool = (d) => d;
-  ctx.tools.register(defineTool({
-    name: "codex_session_import",
-    description: "List and parse openai/codex session rollout files (*.jsonl): headers, items, malformed-line counts, normalized dsh event shapes.",
-    parameters: {
-      dir: { type: "string", description: "directory containing *.jsonl rollouts (lists files)" },
-      path: { type: "string", description: "single rollout file to parse in detail" },
-      maxItems: { type: "number", description: "cap returned items per file (default 50)" }
-    },
-    output: { schema: { type: "string" }, render: (_a, v) => [{ type: "text", text: v }] },
-    async execute(args) {
-      const input = asRecord(args);
-      const maxItems = Number(input.maxItems ?? 50);
-      if (typeof input.path === "string" && input.path) {
-        const parsed = parseRolloutFile(input.path);
-        return JSON.stringify({
-          file: input.path,
-          header: parsed.header,
-          itemCount: parsed.items.length,
-          badLines: parsed.badLines,
-          events: toDshEvents(parsed.items).slice(0, maxItems)
-        }, null, 2);
-      }
-      const dir = String(input.dir ?? join4(homedir(), ".codex", "sessions"));
-      return JSON.stringify({ dir, sessions: listSessions(dir).slice(0, maxItems) }, null, 2);
-    },
-    timeoutMs: 1e4
-  }));
-  ctx.tools.register(defineTool({
-    name: "codex_memory",
-    description: "Persistent key/value memory backed by an append-only JSONL log (survives restarts). Actions: get/set/delete/list.",
-    parameters: {
-      action: { type: "string", required: true, enum: ["get", "set", "delete", "list"] },
-      key: { type: "string", description: "memory key (required for get/set/delete)" },
-      value: { type: "string", description: "value to store (set only)" }
-    },
-    output: { schema: { type: "string" }, render: (_a, v) => [{ type: "text", text: v }] },
-    async execute(args) {
-      const input = asRecord(args);
-      if (!memory) return JSON.stringify({ error: "memory store unavailable at " + memoryPath });
-      const action = String(input.action ?? "list");
-      if (action === "list") return JSON.stringify({ path: memoryPath, keys: memory.keys() }, null, 2);
-      const key = String(input.key ?? "");
-      if (!key) return JSON.stringify({ error: "key required for " + action });
-      if (action === "set") {
-        memory.set(key, input.value ?? null);
-        return JSON.stringify({ ok: true, key });
-      }
-      if (action === "get") return JSON.stringify({ key, value: memory.get(key), exists: memory.has(key) });
-      memory.delete(key);
-      return JSON.stringify({ ok: true, deleted: key });
-    },
-    timeoutMs: 3e3
-  }));
+  ctx.effect(() => {
+    const disposers = [];
+    disposers.push(ctx.tools.register(defineTool({
+      name: "codex_session_import",
+      description: "List and parse openai/codex session rollout files (*.jsonl): headers, items, malformed-line counts, normalized dsh event shapes.",
+      parameters: {
+        dir: { type: "string", description: "directory containing *.jsonl rollouts (lists files)" },
+        path: { type: "string", description: "single rollout file to parse in detail" },
+        maxItems: { type: "number", description: "cap returned items per file (default 50)" }
+      },
+      output: { schema: { type: "string" }, render: (_a, v) => [{ type: "text", text: v }] },
+      async execute(args) {
+        const input = asRecord(args);
+        const maxItems = Number(input.maxItems ?? 50);
+        if (typeof input.path === "string" && input.path) {
+          const parsed = parseRolloutFile(input.path);
+          return JSON.stringify({
+            file: input.path,
+            header: parsed.header,
+            itemCount: parsed.items.length,
+            badLines: parsed.badLines,
+            events: toDshEvents(parsed.items).slice(0, maxItems)
+          }, null, 2);
+        }
+        const dir = String(input.dir ?? join4(homedir(), ".codex", "sessions"));
+        return JSON.stringify({ dir, sessions: listSessions(dir).slice(0, maxItems) }, null, 2);
+      },
+      timeoutMs: 1e4
+    })));
+    disposers.push(ctx.tools.register(defineTool({
+      name: "codex_memory",
+      description: "Persistent key/value memory backed by an append-only JSONL log (survives restarts). Actions: get/set/delete/list.",
+      parameters: {
+        action: { type: "string", required: true, enum: ["get", "set", "delete", "list"] },
+        key: { type: "string", description: "memory key (required for get/set/delete)" },
+        value: { type: "string", description: "value to store (set only)" }
+      },
+      output: { schema: { type: "string" }, render: (_a, v) => [{ type: "text", text: v }] },
+      async execute(args) {
+        const input = asRecord(args);
+        if (!memory) return JSON.stringify({ error: "memory store unavailable at " + memoryPath });
+        const action = String(input.action ?? "list");
+        if (action === "list") return JSON.stringify({ path: memoryPath, keys: memory.keys() }, null, 2);
+        const key = String(input.key ?? "");
+        if (!key) return JSON.stringify({ error: "key required for " + action });
+        if (action === "set") {
+          memory.set(key, input.value ?? null);
+          return JSON.stringify({ ok: true, key });
+        }
+        if (action === "get") return JSON.stringify({ key, value: memory.get(key), exists: memory.has(key) });
+        memory.delete(key);
+        return JSON.stringify({ ok: true, deleted: key });
+      },
+      timeoutMs: 3e3
+    })));
+    return () => {
+      for (const dispose of disposers) dispose();
+    };
+  }, "codex-session-kit:tools");
+  ctx.inject(["agents"], (agentScope) => {
+    agentScope.effect(() => {
+      const listeners = /* @__PURE__ */ new Map();
+      const install = (agent) => {
+        if (listeners.has(agent)) return;
+        listeners.set(agent, installRosterListener(ctx, agent));
+      };
+      const remove = (agent) => {
+        const dispose = listeners.get(agent);
+        if (dispose === void 0) return;
+        listeners.delete(agent);
+        dispose();
+      };
+      for (const agent of agentScope.agents.list()) install(agent);
+      const stopCreated = agentScope.on("agent/created", ({ agent }) => {
+        install(agent);
+      });
+      const stopDisposed = agentScope.on("agent/disposed", ({ agent }) => {
+        remove(agent);
+      });
+      return () => {
+        stopCreated();
+        stopDisposed();
+        for (const dispose of listeners.values()) dispose();
+        listeners.clear();
+      };
+    }, "codex-session-kit:roster");
+  });
 }
 export {
   AgentGraphStore,
   InvalidGitRemoteUrlError,
   MAX_ENVIRONMENT_SUBAGENTS,
   MAX_ENVIRONMENT_SUBAGENT_BYTES,
+  MAX_ROSTER_BYTES,
+  MAX_ROSTER_ROWS,
   MemoryStore,
+  ROSTER_CONTEXT_NAME,
   SessionIndex,
   apply,
   claudeToDshEvents,
+  formatSubagentRoster,
   inject,
   listClaudeProjects,
   listClaudeSessions,
