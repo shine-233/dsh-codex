@@ -1,6 +1,10 @@
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
+import LocalFileSystem from '@deepseek-ai/dsh-fs-local'
 
 interface ToolDefinition {
   name: string
@@ -22,10 +26,15 @@ const expectedTools = [
 ]
 
 let context: Context | undefined
+let fsRoot: string | undefined
 
 afterEach(async () => {
   await context?.fiber.dispose()
   context = undefined
+  if (fsRoot !== undefined) {
+    rmSync(fsRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 })
+    fsRoot = undefined
+  }
 })
 
 describe('aggregate bundle through real Cordis Loader', () => {
@@ -41,6 +50,12 @@ describe('aggregate bundle through real Cordis Loader', () => {
         }
       },
     })
+    // `codex-edit-fusion` declares `inject = ['tools', 'fs']`, so the harness
+    // must mount a real filesystem authority or the plugin never activates and
+    // `codex_apply_patch` is silently absent. This is the real DSH local
+    // filesystem, rooted in a temp dir — not a stub.
+    fsRoot = mkdtempSync(join(tmpdir(), 'pack-loader-fs-'))
+    await context.plugin(LocalFileSystem, { cwd: fsRoot })
     await context.plugin(Loader)
     const builtPackages = [
       'codex-policy-engine',

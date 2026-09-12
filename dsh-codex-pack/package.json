@@ -8,8 +8,12 @@
     "js-yaml": "4.3.2"
   },
   "devDependencies": {
-    "@deepseek-ai/cordis": "4.0.1",
-    "@deepseek-ai/cordis-plugin-loader": "1.0.2",
+    "@deepseek-ai/cordis": "4.0.2",
+    "@deepseek-ai/cordis-plugin-include": "1.0.7",
+    "@deepseek-ai/cordis-plugin-loader": "1.0.3",
+    "@deepseek-ai/dsh-fs": "0.1.3-alpha.1",
+    "@deepseek-ai/dsh-fs-local": "0.1.3-alpha.1",
+    "@deepseek-ai/dsh-sandbox-policy": "0.1.3-alpha.1",
     "@types/js-yaml": "4.0.9",
     "@types/node": "26.4.1",
     "typescript": "5.9.3",
@@ -31,5 +35,13 @@
     "bundle": {
       "patch": "./cordis.patch.yml"
     }
-  }
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "NOTICE.md",
+    "README.md",
+    "manifest.json",
+    "docs"
+  ]
 }

@@ -263,7 +263,9 @@ function buildInstallPlan(root) {
     root,
     dependencies,
     bundles: [manifest.name],
-    patchPath: join3(root, "cordis.patch.yml")
+    patchPath: join3(root, "cordis.patch.yml"),
+    mode: "sibling-lib",
+    publicationClosure: false
   };
 }
 function install(root = process.cwd()) {

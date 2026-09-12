@@ -73,11 +73,25 @@ export function statusReport(ledger: Ledger): string {
   return lines.join('\n')
 }
 
+/**
+ * How one plan resolves its dependencies.
+ *
+ * `sibling-lib` resolves every dependency to a sibling source directory. It is
+ * the development path and is deliberately NOT publication closure: proving a
+ * package is publishable requires installing its real tarball, offline, into a
+ * clean tree (see the offline closure tests).
+ */
+export type InstallMode = 'sibling-lib' | 'offline-tarball' | 'registry'
+
 export interface InstallationPlan {
   root: string
   dependencies: Record<string, string>
   bundles: string[]
   patchPath: string
+  /** How {@link dependencies} resolve. */
+  mode: InstallMode
+  /** Whether this mode counts as publication closure. Only a real install does. */
+  publicationClosure: boolean
 }
 
 interface PackManifest {
@@ -99,6 +113,8 @@ export function buildInstallPlan(root: string): InstallationPlan {
     dependencies,
     bundles: [manifest.name],
     patchPath: join(root, 'cordis.patch.yml'),
+    mode: 'sibling-lib',
+    publicationClosure: false,
   }
 }
 
