@@ -33,6 +33,14 @@ jobs:
       - name: Install dependencies
         working-directory: ${{ matrix.package }}
         run: pnpm install --frozen-lockfile --prefer-offline
+      - name: Warm the npm cache for the offline install proofs
+        # dsh-codex-pack's offlineClosure cases install the published tarballs
+        # with `npm install --offline`, which resolves every non-`file:`
+        # dependency from ~/.npm/_cacache and fails with ENOTCACHED otherwise.
+        # The pnpm install above fills the pnpm store, not the npm cache, so
+        # the runtime dependency closure has to be warmed explicitly.
+        if: matrix.package == 'dsh-codex-pack'
+        run: node scripts/warm-npm-cache.mjs
       - name: Test
         working-directory: ${{ matrix.package }}
         run: pnpm test

@@ -72,6 +72,28 @@ codex-skills-kit      404
 host 提供的 `@deepseek-ai/dsh-*` 而失败（`ERR_MODULE_NOT_FOUND` 且消息含 `@deepseek-ai/dsh-`）。
 任何其他失败都是真实的闭包缺陷。
 
+## 关于离线安装对 npm 缓存的前置要求
+
+路径 2 / 3 的安装步骤是 `npm install --offline`：它**不联网、不解析 registry**，只从
+`~/.npm/_cacache` 取包。因此运行这两条用例之前，闭包里的全部非 `file:` 依赖必须已在缓存中，
+否则会在断言之前就死掉：
+
+```
+npm error request to https://registry.npmjs.org/@standard-schema%2fspec
+failed: cache mode is 'only-if-cached' but no cached response is available.
+```
+
+CI 的 test 作业用 `pnpm install` 装依赖，只填充 pnpm store，**不写 npm 缓存**，所以在干净
+runner 上必须显式预热。仓库根目录的脚本负责这件事，依赖集合从各包 `package.json` 的
+`dependencies`（仅运行时依赖；离线安装带 `--legacy-peer-deps` 且不装 devDependencies）派生：
+
+```
+node scripts/warm-npm-cache.mjs
+```
+
+CI 中该步骤只在 `dsh-codex-pack` 这一矩阵项上执行。本地首次运行这两条用例前也要先跑一次；
+缓存在后续运行中复用，无需重复预热。
+
 ## 发布前仍待解决
 
 - 9 个未认领 identity 的所有权与最终命名（含是否需要 scope）；
