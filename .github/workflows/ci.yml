@@ -41,6 +41,22 @@ jobs:
         # the runtime dependency closure has to be warmed explicitly.
         if: matrix.package == 'dsh-codex-pack'
         run: node scripts/warm-npm-cache.mjs
+      - name: Install sibling dependencies
+        # dsh-codex-pack is the integration package: its tests import sibling
+        # sources (../../codex-*/src/...) and activate their committed bundles,
+        # and its typecheck pulls those same sources into the program. Each
+        # sibling's own dependencies therefore have to resolve from its own
+        # directory — the matrix install above only covers ${{ matrix.package }},
+        # which left `@deepseek-ai/schemastery`, `@deepseek-ai/cordis`,
+        # `@deepseek-ai/dsh-subagent` and friends unresolvable.
+        if: matrix.package == 'dsh-codex-pack'
+        run: |
+          for dir in codex-*/ dsh-codex-pack/; do
+            [ -f "${dir}pnpm-lock.yaml" ] || continue
+            echo "::group::install ${dir}"
+            (cd "$dir" && pnpm install --frozen-lockfile --prefer-offline)
+            echo "::endgroup::"
+          done
       - name: Test
         working-directory: ${{ matrix.package }}
         run: pnpm test
@@ -76,6 +92,18 @@ jobs:
       - name: Install dependencies
         working-directory: ${{ matrix.package }}
         run: pnpm install --frozen-lockfile --prefer-offline
+      - name: Install sibling dependencies
+        # Same reason as in the test job: dsh-codex-pack's typecheck pulls
+        # sibling sources into the program, so each sibling's own dependencies
+        # and type declarations must resolve from its own directory.
+        if: matrix.package == 'dsh-codex-pack'
+        run: |
+          for dir in codex-*/ dsh-codex-pack/; do
+            [ -f "${dir}pnpm-lock.yaml" ] || continue
+            echo "::group::install ${dir}"
+            (cd "$dir" && pnpm install --frozen-lockfile --prefer-offline)
+            echo "::endgroup::"
+          done
       - name: Typecheck
         working-directory: ${{ matrix.package }}
         run: pnpm typecheck
