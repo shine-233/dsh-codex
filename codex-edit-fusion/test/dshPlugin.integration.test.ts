@@ -8,8 +8,8 @@ import Loader from '@deepseek-ai/cordis-plugin-loader'
 import Include from '@deepseek-ai/cordis-plugin-include'
 import { ToolCallId } from '@deepseek-ai/dsh-llm'
 import { SESSION_FORMAT_VERSION, Session, SessionId } from '@deepseek-ai/dsh-session'
-import AgentRegistry from '@deepseek-ai/dsh-agent'
-import type { Agent, Inbox } from '@deepseek-ai/dsh-agent'
+import AgentRegistry, { Inbox } from '@deepseek-ai/dsh-agent'
+import type { Agent } from '@deepseek-ai/dsh-agent'
 import LocalFileSystem from '@deepseek-ai/dsh-fs-local'
 import SandboxedFileSystem from '@deepseek-ai/dsh-fs-sandbox'
 import SandboxPolicy from '@deepseek-ai/dsh-sandbox-policy'
@@ -42,17 +42,13 @@ function owner(ctx: Context, cwd: string): Agent {
     id,
     options: {},
     session,
-    // 0.1.5：Inbox 变为类型接口（具体存储归 driver），fake agent 给惰性空实现
-    inbox: {
-      nextTurn: [],
-      nextStep: [],
-      clear() {},
-      append() {},
-      prepend() {},
-      replace: () => false,
-      remove: () => false,
-      splice: () => [],
-    } satisfies Inbox,
+    // 0.1.3-alpha.2：Inbox 变成带私有字段的 class，对象字面量无法满足其结构，
+    // 因此直接构造真实的 Inbox——它是 session 之上的纯投影，不需要 driver。
+    inbox: new Inbox(session, {
+      inserted: () => {},
+      discarded: () => {},
+      claimed: () => {},
+    }),
     status: 'idle',
     ctx: scope.ctx,
     send: () => {},

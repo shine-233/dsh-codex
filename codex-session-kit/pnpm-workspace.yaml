@@ -1,7 +1,19 @@
 allowBuilds:
   esbuild: true
-# 本机开发覆盖（不入库）：对端依赖链到本地 dsh-v0.153.4 源码
-overrides:
-  '@deepseek-ai/cordis': 'link:C:/Users/Zz/Documents/projects/_local-managed-20260906/deepseek-harness/vendor/cordis'
-  '@deepseek-ai/schemastery': 'link:C:/Users/Zz/Documents/projects/_local-managed-20260906/deepseek-harness/vendor/schemastery'
-  '@deepseek-ai/dsh-tools': 'link:C:/Users/Zz/Documents/projects/_local-managed-20260906/deepseek-harness/packages/core/tools'
+  fs-ext: true
+  koffi: true
+
+# ---------------------------------------------------------------------------
+# 本机开发覆盖（**不入库**）
+#
+# 下面的 overrides 把 @deepseek-ai/* 链接到本机 DSH 源码，路径是 Windows
+# 绝对路径（C:/Users/Zz/...）。它们一旦提交，CI 的 Ubuntu runner 上无法解析，
+# typecheck / test 会直接报 "Cannot find package '@deepseek-ai/*'"。
+#
+# 需要对本地 DSH 源码调试时：在本地临时取消注释，调试完**务必恢复提交**。
+#
+# overrides:
+#   '@deepseek-ai/cordis': 'link:<本机路径>/vendor/cordis'
+#   '@deepseek-ai/schemastery': 'link:<本机路径>/vendor/schemastery'
+#   '@deepseek-ai/dsh-tools': 'link:<本机路径>/packages/core/tools'
+# ---------------------------------------------------------------------------
