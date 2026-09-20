@@ -1,2 +1,4 @@
 allowBuilds:
   esbuild: true
+  fs-ext: true
+  koffi: true
