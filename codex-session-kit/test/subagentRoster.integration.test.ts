@@ -226,17 +226,22 @@ describe('request-time subagent roster (real Loader composition)', () => {
       const texts = requestTexts(request)
       const roster = texts.find(text => text.includes('<subagents>'))
 
-      // The current request carries the roster for the child that is
+      // The current request carries the roster for the children that are
       // resolvable at request time: the live continuable child, with its
-      // durable id, mode, and label. The one-shot child was disposed in this
-      // same turn and its live `subagent` identity is not yet resolvable while
-      // it is still live (the DSH creation window), so it is deliberately
-      // absent here and is asserted after the restart below instead.
+      // durable id, mode, and label.
+      //
+      // The one-shot child was started and disposed in this same turn. Whether
+      // its durable record is already readable at this exact instant is a DSH
+      // persistence-timing detail, not something this plugin may rely on, so
+      // its presence in this particular request is deliberately asserted
+      // *neither way* — asserting absence here is a race, and it did in fact
+      // flake (identical source tree, green and red on consecutive runs).
+      // Its durable listing is asserted deterministically after the restart
+      // below instead (see `coldModes`).
       expect(roster).toBeDefined()
       expect(roster).toContain('<agent id="' + String(continuable.childId) + '"')
       expect(roster).toContain('mode="continuable"')
       expect(roster).toContain('label="worker"')
-      expect(roster).not.toContain('mode="one-shot"')
 
       await ctx.fiber.dispose()
       ctx = undefined
